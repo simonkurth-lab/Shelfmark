@@ -70,6 +70,25 @@
   .roster-row{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid var(--line);}
   .roster-row:last-child{border-bottom:none;}
   .divider{text-align:center;color:var(--muted);font-size:12px;font-weight:700;margin:16px 0 6px;text-transform:uppercase;letter-spacing:.05em;}
+  .setup-label{font-weight:800;font-size:14.5px;margin:0 0 4px;}
+  .setup-sub{margin:0 0 12px;}
+  .choice-row{display:flex;gap:8px;margin-bottom:20px;}
+  .choice-btn{flex:1;text-align:center;padding:12px 8px;border-radius:12px;border:1.5px solid var(--line);background:#fff;cursor:pointer;font-family:'Nunito';color:var(--ink);}
+  .choice-btn .cb-main{font-family:'Baloo 2';font-weight:700;font-size:16px;display:block;}
+  .choice-btn .cb-sub{font-size:11.5px;color:var(--muted);font-weight:700;display:block;margin-top:2px;}
+  .choice-btn.selected{border-color:var(--forest);background:#EEF4F1;}
+  .choice-btn.selected .cb-sub{color:var(--forest-dark);}
+  .choice-col{display:flex;flex-direction:column;gap:8px;margin-bottom:6px;}
+  .conf-btn{text-align:left;padding:12px 14px;border-radius:12px;border:1.5px solid var(--line);background:#fff;cursor:pointer;font-family:'Nunito';display:flex;justify-content:space-between;align-items:center;gap:10px;}
+  .conf-btn.selected{border-color:var(--coral);background:#FDF2ED;}
+  .conf-main{font-weight:800;font-size:14.5px;color:var(--ink);}
+  .conf-sub{font-size:12px;color:var(--muted);font-weight:600;}
+  .mult-tag{flex:none;font-family:'Baloo 2';font-weight:700;font-size:13px;color:var(--gold);background:#FBF0DA;padding:3px 9px;border-radius:20px;}
+  .conf-btn.selected .mult-tag{background:var(--coral);color:#fff;}
+  .points-banner{background:linear-gradient(135deg,var(--gold),#E8B84D);color:#4A3300;border-radius:14px;padding:16px;text-align:center;margin-bottom:14px;}
+  .points-banner .pb-num{font-family:'Baloo 2';font-weight:800;font-size:28px;}
+  .points-banner .pb-lbl{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;opacity:.75;}
+  .points-pill{display:inline-block;background:#FBF0DA;color:#8A6412;font-weight:800;font-size:12px;padding:2px 9px;border-radius:20px;}
 </style>
 </head>
 <body>
@@ -84,7 +103,26 @@ const STATE = {
   roster: [], rosterLoaded: false,
   searchResults: [], searchQuery: '', currentBook: null,
   quiz: null, quizAnswers: {}, loading: false, loadingMsg: '',
+  quizSetup: { count: 7, confidence: 'medium' },
 };
+
+// ---------- Points system ----------
+const QUIZ_LENGTHS = [5, 7, 10];
+const LENGTH_BONUS = { 5: 0, 7: 5, 10: 10 };
+const CONFIDENCE = {
+  low:    { label: 'Not sure',        sub: "Haven't read it closely, or it's been a while", mult: 1   },
+  medium: { label: 'Pretty sure',     sub: 'I remember most of the story',                  mult: 1.5 },
+  high:   { label: 'Know it well',    sub: "I could retell the whole book",                 mult: 2   },
+};
+const POINTS_PER_CORRECT = 10;
+const PENALTY_PER_WRONG = 3;
+
+function computeQuizPoints(correct, total, confidenceKey, count){
+  const mult = (CONFIDENCE[confidenceKey] || CONFIDENCE.medium).mult;
+  const wrong = total - correct;
+  const raw = correct * POINTS_PER_CORRECT * mult - wrong * PENALTY_PER_WRONG * mult;
+  return Math.max(0, Math.round(raw)) + (LENGTH_BONUS[count] || 0);
+}
 
 function el(html){ const d=document.createElement('div'); d.innerHTML=html.trim(); return d.firstChild; }
 function render(){ document.getElementById('app').innerHTML=''; document.getElementById('app').appendChild(buildScreen()); }
@@ -124,6 +162,7 @@ function buildScreen(){
   else if(STATE.screen==='home') body = screenHome();
   else if(STATE.screen==='search') body = screenSearch();
   else if(STATE.screen==='book') body = screenBook();
+  else if(STATE.screen==='quizSetup') body = screenQuizSetup();
   else if(STATE.screen==='quiz') body = screenQuiz();
   else if(STATE.screen==='result') body = screenResult();
   else if(STATE.screen==='dashboard') body = screenDashboard();
@@ -186,7 +225,7 @@ async function doLogin(name){
 function screenHome(){
   if(STATE.loading) return el(`<div class="loading">${STATE.loadingMsg}</div>`);
   const s = STATE.student;
-  const c = el(`<div><div class="card"><h2>Hi ${s.name} 👋</h2><div class="stat-row"><div class="stat"><div class="num">${s.level.toFixed(1)}</div><div class="lbl">Reading Level</div></div><div class="stat"><div class="num">${s.history.length}</div><div class="lbl">Books Finished</div></div></div><button class="btn" id="searchBtn">Find a book</button><button class="btn secondary" id="dashBtn">My progress</button></div></div>`);
+  const c = el(`<div><div class="card"><h2>Hi ${s.name} 👋</h2><div class="stat-row"><div class="stat"><div class="num">${s.level.toFixed(1)}</div><div class="lbl">Reading Level</div></div><div class="stat"><div class="num">${s.points||0}</div><div class="lbl">Points</div></div><div class="stat"><div class="num">${s.history.length}</div><div class="lbl">Books Finished</div></div></div><button class="btn" id="searchBtn">Find a book</button><button class="btn secondary" id="dashBtn">My progress</button></div></div>`);
   c.querySelector('#searchBtn').onclick = ()=>{ STATE.screen='search'; render(); };
   c.querySelector('#dashBtn').onclick = ()=>{ STATE.screen='dashboard'; render(); };
   return c;
@@ -258,16 +297,51 @@ function screenBook(){
   const b = STATE.currentBook;
   const c = el(`<div><button class="backlink" id="back">&larr; Back to search</button><div class="card"><h2>${b.title}</h2><p class="muted" style="margin:2px 0 10px;">${b.author}</p><span class="pill">Level ${Number(b.gradeLevel).toFixed(1)}</span><span class="pill gold">${b.genre||'Fiction'}</span><div class="stat-row"><div class="stat"><div class="num">${b.wordEstimate ? b.wordEstimate.toLocaleString() : '—'}</div><div class="lbl">Est. Words</div></div><div class="stat"><div class="num">${b.pages || '—'}</div><div class="lbl">Pages</div></div></div><p style="line-height:1.5;">${b.summary}</p><button class="btn coral" id="quizBtn">I finished it — take the quiz</button></div></div>`);
   c.querySelector('#back').onclick = ()=>{ STATE.screen='search'; render(); };
-  c.querySelector('#quizBtn').onclick = startQuiz;
+  c.querySelector('#quizBtn').onclick = ()=>{ STATE.screen='quizSetup'; render(); };
+  return c;
+}
+
+function screenQuizSetup(){
+  const b = STATE.currentBook;
+  const setup = STATE.quizSetup;
+  const c = el(`<div><button class="backlink" id="back">&larr; Back</button><div class="card"><h2 style="margin-bottom:4px;">${b.title}</h2><p class="muted" style="margin:0 0 18px;">Set up your quiz before you start.</p>
+    <p class="setup-label">How many questions?</p>
+    <p class="muted setup-sub">Longer quizzes are worth bonus points.</p>
+    <div class="choice-row" id="lengthRow"></div>
+    <p class="setup-label">How well do you know this book?</p>
+    <p class="muted setup-sub">Higher confidence = bigger point swings, up or down.</p>
+    <div class="choice-col" id="confCol"></div>
+    <button class="btn coral" id="startBtn">Start quiz</button>
+  </div></div>`);
+  c.querySelector('#back').onclick = ()=>{ STATE.screen='book'; render(); };
+
+  const lengthRow = c.querySelector('#lengthRow');
+  QUIZ_LENGTHS.forEach(n=>{
+    const bonus = LENGTH_BONUS[n];
+    const btn = el(`<button type="button" class="choice-btn ${setup.count===n?'selected':''}"><span class="cb-main">${n}</span><span class="cb-sub">${bonus ? '+'+bonus+' bonus' : 'Quick'}</span></button>`);
+    btn.onclick = ()=>{ STATE.quizSetup.count = n; render(); };
+    lengthRow.appendChild(btn);
+  });
+
+  const confCol = c.querySelector('#confCol');
+  Object.keys(CONFIDENCE).forEach(key=>{
+    const conf = CONFIDENCE[key];
+    const btn = el(`<button type="button" class="conf-btn ${setup.confidence===key?'selected':''}"><span><span class="conf-main">${conf.label}</span><br><span class="conf-sub">${conf.sub}</span></span><span class="mult-tag">${conf.mult}x</span></button>`);
+    btn.onclick = ()=>{ STATE.quizSetup.confidence = key; render(); };
+    confCol.appendChild(btn);
+  });
+
+  c.querySelector('#startBtn').onclick = startQuiz;
   return c;
 }
 
 async function startQuiz(){
   STATE.loading = true; STATE.loadingMsg = 'Writing your quiz...'; render();
   const b = STATE.currentBook;
+  const count = STATE.quizSetup.count;
   const quiz = await api('/api/quiz', {
     method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ olid: b.olid, title: b.title, author: b.author, summary: b.summary, gradeLevel: b.gradeLevel })
+    body: JSON.stringify({ olid: b.olid, title: b.title, author: b.author, summary: b.summary, gradeLevel: b.gradeLevel, count })
   });
   STATE.quiz = quiz;
   STATE.quizAnswers = {};
@@ -314,11 +388,16 @@ async function submitQuiz(){
   else delta = -0.15;
   const newLevel = Math.max(1, Math.round((s.level + delta)*10)/10);
 
-  s.history.unshift({ title:b.title, level:b.gradeLevel, score:pct, date:new Date().toISOString().slice(0,10), levelAfter:newLevel });
+  const confidence = STATE.quizSetup.confidence;
+  const count = STATE.quizSetup.count;
+  const earnedPoints = computeQuizPoints(correct, qs.length, confidence, count);
+
+  s.history.unshift({ title:b.title, level:b.gradeLevel, score:pct, date:new Date().toISOString().slice(0,10), levelAfter:newLevel, points:earnedPoints, count, confidence });
   s.level = newLevel;
+  s.points = (s.points||0) + earnedPoints;
   await saveStudent(s.name, s);
 
-  STATE.quizResult = { correct, total: qs.length, pct, newLevel };
+  STATE.quizResult = { correct, total: qs.length, pct, newLevel, earnedPoints, totalPoints: s.points, confidence };
   STATE.screen = 'result';
   render();
 }
@@ -326,7 +405,8 @@ async function submitQuiz(){
 function screenResult(){
   const r = STATE.quizResult;
   const good = r.pct >= 70;
-  const c = el(`<div class="card" style="text-align:center;"><h2>${good ? 'Nice reading! 🎉' : 'Good try!'}</h2><p class="muted" style="margin:6px 0 16px;">${r.correct} of ${r.total} correct</p><div class="stat-row"><div class="stat"><div class="num">${r.pct}%</div><div class="lbl">Score</div></div><div class="stat"><div class="num">${r.newLevel.toFixed(1)}</div><div class="lbl">New Level</div></div></div><button class="btn" id="nextBtn">Find another book</button><button class="btn secondary" id="dashBtn">See my progress</button></div>`);
+  const mult = (CONFIDENCE[r.confidence] || CONFIDENCE.medium).mult;
+  const c = el(`<div class="card" style="text-align:center;"><h2>${good ? 'Nice reading! 🎉' : 'Good try!'}</h2><p class="muted" style="margin:6px 0 16px;">${r.correct} of ${r.total} correct</p><div class="points-banner"><div class="pb-num">+${r.earnedPoints}</div><div class="pb-lbl">Points earned · ${mult}x confidence</div></div><div class="stat-row"><div class="stat"><div class="num">${r.pct}%</div><div class="lbl">Score</div></div><div class="stat"><div class="num">${r.newLevel.toFixed(1)}</div><div class="lbl">New Level</div></div><div class="stat"><div class="num">${r.totalPoints}</div><div class="lbl">Total Points</div></div></div><button class="btn" id="nextBtn">Find another book</button><button class="btn secondary" id="dashBtn">See my progress</button></div>`);
   c.querySelector('#nextBtn').onclick = ()=>{ STATE.screen='search'; STATE.searchResults=[]; STATE.searchQuery=''; render(); };
   c.querySelector('#dashBtn').onclick = ()=>{ STATE.screen='dashboard'; render(); };
   return c;
@@ -334,7 +414,7 @@ function screenResult(){
 
 function screenDashboard(){
   const s = STATE.student;
-  const c = el(`<div><button class="backlink" id="back">&larr; Back</button><div class="card"><h2>${s.name}'s bookshelf</h2><div class="ladder" id="ladder"></div></div><div class="card"><h3 style="margin-bottom:8px;">History</h3><div id="hist"></div></div></div>`);
+  const c = el(`<div><button class="backlink" id="back">&larr; Back</button><div class="card"><h2>${s.name}'s bookshelf</h2><p class="muted" style="margin:4px 0 0;"><span class="points-pill">${s.points||0} pts</span></p><div class="ladder" id="ladder"></div></div><div class="card"><h3 style="margin-bottom:8px;">History</h3><div id="hist"></div></div></div>`);
   c.querySelector('#back').onclick = ()=>{ STATE.screen='home'; render(); };
   const ladder = c.querySelector('#ladder');
   [8,7,6,5,4,3,2,1].forEach(lv=>{
@@ -345,7 +425,7 @@ function screenDashboard(){
   if(s.history.length===0){ hist.innerHTML = `<div class="empty">No books finished yet — go find one!</div>`; }
   else {
     s.history.forEach(h=>{
-      hist.appendChild(el(`<div class="history-row"><span>${h.title}</span><span class="score-badge ${h.score>=70?'good':'low'}">${h.score}%</span></div>`));
+      hist.appendChild(el(`<div class="history-row"><span>${h.title}</span><span class="score-badge ${h.score>=70?'good':'low'}">${h.score}%${h.points!=null ? ' · +'+h.points+'pts' : ''}</span></div>`));
     });
   }
   return c;
@@ -366,7 +446,7 @@ async function loadTeacherRoster(){
     if(!students || students.length===0){ rosterDiv.innerHTML = `<div class="empty">No students yet.</div>`; return; }
     rosterDiv.innerHTML = '';
     students.forEach(s=>{
-      rosterDiv.appendChild(el(`<div class="roster-row"><span>${s.name}</span><span class="pill">Lvl ${s.level.toFixed(1)} · ${s.history.length} books</span></div>`));
+      rosterDiv.appendChild(el(`<div class="roster-row"><span>${s.name}</span><span class="pill">Lvl ${s.level.toFixed(1)} · ${s.history.length} books · ${s.points||0} pts</span></div>`));
     });
   }catch(e){
     rosterDiv.innerHTML = `<div class="empty">Couldn't load roster.</div>`;
