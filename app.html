@@ -97,6 +97,8 @@
   .badge-chip{background:var(--forest);color:#fff;font-weight:800;font-size:12.5px;padding:6px 12px;border-radius:20px;animation:pop .35s cubic-bezier(.3,1.6,.4,1);}
   @keyframes pop{0%{transform:scale(0);opacity:0;}70%{transform:scale(1.12);}100%{transform:scale(1);opacity:1;}}
   .confetti-piece{position:fixed;top:-10px;pointer-events:none;z-index:9999;}
+  .bilingual-pair{display:flex;flex-wrap:wrap;column-gap:14px;row-gap:2px;align-items:baseline;}
+  .bilingual-pair .es{color:var(--muted);font-style:italic;font-weight:600;}
 </style>
 </head>
 <body>
@@ -163,6 +165,7 @@ function lengthTag(pages){
 const TESTING_START_MIN = 7*60 + 40;  // 7:40 AM
 const TESTING_END_MIN = 14*60 + 40;   // 2:40 PM
 function isTestingHours(){
+  if(new URLSearchParams(location.search).get('preview') === '1') return true; // teacher testing bypass
   const now = new Date();
   const minutes = now.getHours()*60 + now.getMinutes();
   return minutes >= TESTING_START_MIN && minutes <= TESTING_END_MIN;
