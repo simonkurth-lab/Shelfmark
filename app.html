@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Shelfmark — Reading Tracker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@400;600;700;800&display=optional" rel="stylesheet">
 <style>
   :root{
     --paper:#FBF6EC; --ink:#2B2118; --forest:#2F5D50; --forest-dark:#1F423A;
@@ -101,17 +101,28 @@ const STATE = {
   screen: 'login', alias: null, student: null,
   roster: [], rosterLoaded: false,
   loginMode: 'pick', pendingAlias: null, loginError: '',
-  signupAlias: '', signupPin: '',
+  signupAlias: '', signupPin: '', signupGrade: '35',
   teacherPasscode: '', teacherError: '', teacherAuthed: false, teacherRows: null,
   searchResults: [], searchQuery: '', currentBook: null,
   quiz: null, quizAnswers: {}, loading: false, loadingMsg: '',
-  quizSetup: { count: 7, confidence: 'medium' },
+  quizSetup: { count: 7, confidence: 'medium', challenge: 'onlevel' },
   resultAnimated: false,
 };
 
 // ---------- Points system ----------
 const QUIZ_LENGTHS = [5, 7, 10];
 const LENGTH_BONUS = { 5: 0, 7: 5, 10: 10 };
+const GRADE_BANDS = {
+  k2:  { label: 'K-2',   sub: 'Ages 5-8' },
+  '35': { label: '3-5',  sub: 'Ages 8-11' },
+  '68': { label: '6-8',  sub: 'Ages 11-14' },
+  '912': { label: '9-12', sub: 'Ages 14-18' },
+};
+const CHALLENGE = {
+  easier:  { label: 'Easier',    sub: 'Simpler wording' },
+  onlevel: { label: 'Just right', sub: 'Matches my grade' },
+  harder:  { label: 'Harder',    sub: 'Push me a bit' },
+};
 const CONFIDENCE = {
   low:    { label: 'Not sure',        sub: "Haven't read it closely, or it's been a while", mult: 1   },
   medium: { label: 'Pretty sure',     sub: 'I remember most of the story',                  mult: 1.5 },
@@ -237,10 +248,19 @@ function screenLoginPin(){
 }
 
 function screenSignup(){
-  const c = el(`<div class="card"><button class="backlink" id="back">&larr; Back</button><h2 style="margin-bottom:6px;">Create your alias</h2><p class="muted" style="margin:0 0 14px;">Pick a nickname (not your real name) and a 4-digit PIN you'll remember. Your teacher can look up your PIN if you forget it.</p><input type="text" id="aliasInput" placeholder="Choose an alias" maxlength="24" value="${STATE.signupAlias.replace(/"/g,'')}" /><br><br><input type="password" inputmode="numeric" maxlength="4" pattern="[0-9]*" class="pin-input" id="pinInput" placeholder="••••" /><button class="btn coral" id="goBtn">Create account</button><div id="err"></div></div>`);
+  const c = el(`<div class="card"><button class="backlink" id="back">&larr; Back</button><h2 style="margin-bottom:6px;">Create your alias</h2><p class="muted" style="margin:0 0 14px;">Pick a nickname (not your real name) and a 4-digit PIN you'll remember. Your teacher can look up your PIN if you forget it.</p><input type="text" id="aliasInput" placeholder="Choose an alias" maxlength="24" value="${STATE.signupAlias.replace(/"/g,'')}" /><br><br><input type="password" inputmode="numeric" maxlength="4" pattern="[0-9]*" class="pin-input" id="pinInput" placeholder="••••" value="${STATE.signupPin.replace(/"/g,'')}" /><p class="setup-label" style="margin-top:18px;">What grade are you in?</p><p class="muted setup-sub">This helps us write quizzes at the right level for you.</p><div class="choice-row" id="gradeRow"></div><button class="btn coral" id="goBtn">Create account</button><div id="err"></div></div>`);
   c.querySelector('#back').onclick = ()=>{ STATE.loginMode='pick'; render(); };
   const aliasInput = c.querySelector('#aliasInput');
   const pinInput = c.querySelector('#pinInput');
+  aliasInput.addEventListener('input', ()=>{ STATE.signupAlias = aliasInput.value; });
+  pinInput.addEventListener('input', ()=>{ STATE.signupPin = pinInput.value; });
+  const gradeRow = c.querySelector('#gradeRow');
+  Object.keys(GRADE_BANDS).forEach(key=>{
+    const g = GRADE_BANDS[key];
+    const btn = el(`<button type="button" class="choice-btn ${STATE.signupGrade===key?'selected':''}"><span class="cb-main">${g.label}</span><span class="cb-sub">${g.sub}</span></button>`);
+    btn.onclick = ()=>{ STATE.signupGrade = key; render(); };
+    gradeRow.appendChild(btn);
+  });
   const trySignup = ()=> doSignup(aliasInput.value, pinInput.value);
   pinInput.addEventListener('keydown', e=>{ if(e.key==='Enter') trySignup(); });
   c.querySelector('#goBtn').onclick = trySignup;
@@ -253,7 +273,7 @@ async function doSignup(alias, pin){
   if(!alias){ STATE.loginError='Pick an alias first.'; render(); return; }
   if(!/^\d{4}$/.test(pin||'')){ STATE.loginError='PIN must be exactly 4 digits.'; render(); return; }
   STATE.loading=true; STATE.loadingMsg='Setting up your shelf...'; render();
-  const resp = await postJSON('/api/signup', { alias, pin });
+  const resp = await postJSON('/api/signup', { alias, pin, grade: STATE.signupGrade });
   STATE.loading=false;
   if(resp.error==='alias_taken'){ STATE.loginError='That alias is taken — try another.'; render(); return; }
   if(resp.error){ STATE.loginError='Something went wrong. Try again.'; render(); return; }
@@ -363,6 +383,9 @@ function screenQuizSetup(){
     <p class="setup-label">How many questions?</p>
     <p class="muted setup-sub">Longer quizzes are worth bonus points.</p>
     <div class="choice-row" id="lengthRow"></div>
+    <p class="setup-label">How much of a challenge do you want?</p>
+    <p class="muted setup-sub">We'll write the quiz to match.</p>
+    <div class="choice-row" id="challengeRow"></div>
     <p class="setup-label">How well do you know this book?</p>
     <p class="muted setup-sub">Higher confidence = bigger point swings, up or down.</p>
     <div class="choice-col" id="confCol"></div>
@@ -376,6 +399,14 @@ function screenQuizSetup(){
     const btn = el(`<button type="button" class="choice-btn ${setup.count===n?'selected':''}"><span class="cb-main">${n}</span><span class="cb-sub">${bonus ? '+'+bonus+' bonus' : 'Quick'}</span></button>`);
     btn.onclick = ()=>{ STATE.quizSetup.count = n; render(); };
     lengthRow.appendChild(btn);
+  });
+
+  const challengeRow = c.querySelector('#challengeRow');
+  Object.keys(CHALLENGE).forEach(key=>{
+    const ch = CHALLENGE[key];
+    const btn = el(`<button type="button" class="choice-btn ${setup.challenge===key?'selected':''}"><span class="cb-main">${ch.label}</span><span class="cb-sub">${ch.sub}</span></button>`);
+    btn.onclick = ()=>{ STATE.quizSetup.challenge = key; render(); };
+    challengeRow.appendChild(btn);
   });
 
   const confCol = c.querySelector('#confCol');
@@ -394,9 +425,11 @@ async function startQuiz(){
   STATE.loading = true; STATE.loadingMsg = 'Writing your quiz...'; render();
   const b = STATE.currentBook;
   const count = STATE.quizSetup.count;
+  const grade = STATE.student.grade || '35';
+  const challenge = STATE.quizSetup.challenge;
   const quiz = await api('/api/quiz', {
     method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ olid: b.olid, title: b.title, author: b.author, summary: b.summary, count })
+    body: JSON.stringify({ olid: b.olid, title: b.title, author: b.author, summary: b.summary, count, grade, challenge })
   });
   STATE.quiz = quiz;
   STATE.quizAnswers = {};
