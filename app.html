@@ -239,7 +239,7 @@ function buildScreen(){
 
 function topbar(){
   const bar = el(`<div class="topbar"></div>`);
-  const brand = el(`<div class="brand"><div class="mark">S</div><div class="brand-name">Shelfmark</div></div>`);
+  const brand = el(`<a href="index.html" class="brand" style="text-decoration:none;color:inherit;cursor:pointer;"><div class="mark">S</div><div class="brand-name">Shelfmark</div></a>`);
   bar.appendChild(brand);
   if(STATE.alias){
     const who = el(`<div class="who">${STATE.alias} <button id="switchBtn">switch</button></div>`);
@@ -259,7 +259,7 @@ function screenLogin(){
   if(STATE.loginMode==='pin') return screenLoginPin();
   if(STATE.loginMode==='signup') return screenSignup();
 
-  const c = el(`<div class="card"><h2 style="margin-bottom:6px;">Who's reading?</h2><p class="muted" style="margin:0 0 14px;">Pick your alias below.</p><div id="names"></div><div class="divider">New here?</div><button class="btn secondary" id="newBtn">Create an alias</button><button class="btn secondary" id="teacherBtn">Teacher dashboard</button></div>`);
+  const c = el(`<div><a href="index.html" class="backlink" style="text-decoration:none;display:inline-block;">&larr; Back to home</a><div class="card"><h2 style="margin-bottom:6px;">Who's reading?</h2><p class="muted" style="margin:0 0 14px;">Pick your alias below.</p><div id="names"></div><div class="divider">New here?</div><button class="btn secondary" id="newBtn">Create an alias</button><button class="btn secondary" id="teacherBtn">Teacher dashboard</button></div></div>`);
   const namesDiv = c.querySelector('#names');
   if(!STATE.rosterLoaded){
     namesDiv.innerHTML = `<div class="loading">Loading class list...</div>`;
