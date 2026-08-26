@@ -156,6 +156,14 @@ function lengthTag(pages){
   return 'Chunky read';
 }
 
+const TESTING_START_MIN = 7*60 + 40;  // 7:40 AM
+const TESTING_END_MIN = 14*60 + 40;   // 2:40 PM
+function isTestingHours(){
+  const now = new Date();
+  const minutes = now.getHours()*60 + now.getMinutes();
+  return minutes >= TESTING_START_MIN && minutes <= TESTING_END_MIN;
+}
+
 function findPriorAttempt(history, book){
   return (history||[]).find(h =>
     (book.olid && h.olid && h.olid === book.olid) ||
@@ -417,6 +425,8 @@ function screenBook(){
   const prior = findPriorAttempt(STATE.student.history, b);
   const actionHtml = prior
     ? `<div class="already-done"><div class="already-done-title">✅ Already completed</div><p class="muted" style="margin:4px 0 0;">You scored ${prior.score}% and earned ${prior.points!=null ? '+'+prior.points+' pts' : ''} on ${prior.date}. Each book can only be quizzed once — go find something new!</p></div><button class="btn secondary" id="anotherBtn">Find another book</button>`
+    : !isTestingHours()
+    ? `<div class="already-done"><div class="already-done-title">⏰ Quizzes aren't open right now</div><p class="muted" style="margin:4px 0 0;">Quizzes can only be taken between 7:40 AM and 2:40 PM. Come back during that window to take yours.</p></div>`
     : `<button class="btn coral" id="quizBtn">I finished it — take the quiz</button>`;
   const c = el(`<div><button class="backlink" id="back">&larr; Back to search</button><div class="card"><h2>${b.title}</h2><p class="muted" style="margin:2px 0 10px;">${b.author}</p>${tag ? `<span class="pill">${tag}</span>` : ''}<span class="pill gold">${b.genre||'Fiction'}</span><div class="stat-row"><div class="stat"><div class="num">${b.wordEstimate ? b.wordEstimate.toLocaleString() : '—'}</div><div class="lbl">Est. Words</div></div><div class="stat"><div class="num">${b.pages || '—'}</div><div class="lbl">Pages</div></div></div><p style="line-height:1.5;">${b.summary}</p>${actionHtml}</div></div>`);
   c.querySelector('#back').onclick = ()=>{ STATE.screen='search'; render(); };
@@ -473,6 +483,7 @@ function screenQuizSetup(){
 }
 
 async function startQuiz(){
+  if(!isTestingHours()){ STATE.screen='book'; render(); return; }
   STATE.loading = true; STATE.loadingMsg = 'Writing your quiz...'; render();
   const b = STATE.currentBook;
   const count = STATE.quizSetup.count;
