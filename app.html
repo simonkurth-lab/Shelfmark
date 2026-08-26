@@ -114,7 +114,7 @@ const STATE = {
   teacherPasscode: '', teacherError: '', teacherAuthed: false, teacherRows: null,
   searchResults: [], searchQuery: '', currentBook: null,
   quiz: null, quizAnswers: {}, loading: false, loadingMsg: '',
-  quizSetup: { count: 7, confidence: 'medium', challenge: 'onlevel', lang: 'en' },
+  quizSetup: { count: 7, confidence: 'medium', challenge: 'onlevel', bilingual: 0 },
   resultAnimated: false,
 };
 
@@ -132,9 +132,9 @@ const CHALLENGE = {
   onlevel: { label: 'Just right', sub: 'Matches my grade' },
   harder:  { label: 'Harder',    sub: 'Push me a bit' },
 };
-const QUIZ_LANGS = {
-  en: { label: 'English', sub: 'Default' },
-  es: { label: 'Español', sub: 'Spanish' },
+const BILINGUAL_CHOICES = {
+  0: { label: 'English only', sub: 'Default' },
+  1: { label: 'English + Español', sub: 'Shown together' },
 };
 const CONFIDENCE = {
   low:    { label: 'Not sure',        sub: "Haven't read it closely, or it's been a while", mult: 1   },
@@ -455,7 +455,7 @@ function screenQuizSetup(){
     <p class="muted setup-sub">Higher confidence = bigger point swings, up or down.</p>
     <div class="choice-col" id="confCol"></div>
     <p class="setup-label">Quiz language</p>
-    <p class="muted setup-sub">Optional — take the quiz in Spanish instead.</p>
+    <p class="muted setup-sub">Optional — show English and Spanish together for every question.</p>
     <div class="choice-row" id="langRow"></div>
     <button class="btn coral" id="startBtn">Start quiz</button>
   </div></div>`);
@@ -486,10 +486,11 @@ function screenQuizSetup(){
   });
 
   const langRow = c.querySelector('#langRow');
-  Object.keys(QUIZ_LANGS).forEach(key=>{
-    const l = QUIZ_LANGS[key];
-    const btn = el(`<button type="button" class="choice-btn ${setup.lang===key?'selected':''}"><span class="cb-main">${l.label}</span><span class="cb-sub">${l.sub}</span></button>`);
-    btn.onclick = ()=>{ STATE.quizSetup.lang = key; render(); };
+  Object.keys(BILINGUAL_CHOICES).forEach(key=>{
+    const l = BILINGUAL_CHOICES[key];
+    const val = Number(key);
+    const btn = el(`<button type="button" class="choice-btn ${setup.bilingual===val?'selected':''}"><span class="cb-main">${l.label}</span><span class="cb-sub">${l.sub}</span></button>`);
+    btn.onclick = ()=>{ STATE.quizSetup.bilingual = val; render(); };
     langRow.appendChild(btn);
   });
 
@@ -504,10 +505,10 @@ async function startQuiz(){
   const count = STATE.quizSetup.count;
   const grade = STATE.student.grade || '35';
   const challenge = STATE.quizSetup.challenge;
-  const lang = STATE.quizSetup.lang;
+  const bilingual = !!STATE.quizSetup.bilingual;
   const quiz = await api('/api/quiz', {
     method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ olid: b.olid, title: b.title, author: b.author, summary: b.summary, count, grade, challenge, lang })
+    body: JSON.stringify({ olid: b.olid, title: b.title, author: b.author, summary: b.summary, count, grade, challenge, bilingual })
   });
   STATE.quiz = quiz;
   STATE.quizAnswers = {};
@@ -522,9 +523,16 @@ function screenQuiz(){
   c.querySelector('#back').onclick = ()=>{ STATE.screen='book'; render(); };
   const qs = c.querySelector('#qs');
   STATE.quiz.questions.forEach((q,qi)=>{
-    const qDiv = el(`<div class="quiz-q"><div class="qtext">${qi+1}. ${q.q}</div></div>`);
+    const qText = q.q_es
+      ? `<div class="bilingual-pair"><span>${qi+1}. ${q.q}</span><span class="es">${q.q_es}</span></div>`
+      : `${qi+1}. ${q.q}`;
+    const qDiv = el(`<div class="quiz-q"><div class="qtext">${qText}</div></div>`);
     q.options.forEach((opt,oi)=>{
-      const optEl = el(`<button type="button" class="opt">${opt}</button>`);
+      const optEs = q.options_es && q.options_es[oi];
+      const optHtml = optEs
+        ? `<div class="bilingual-pair"><span>${opt}</span><span class="es">${optEs}</span></div>`
+        : opt;
+      const optEl = el(`<button type="button" class="opt">${optHtml}</button>`);
       if(STATE.quizAnswers[qi]===oi) optEl.classList.add('selected');
       optEl.onclick = ()=>{ STATE.quizAnswers[qi]=oi; render(); };
       qDiv.appendChild(optEl);
