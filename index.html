@@ -330,7 +330,6 @@ async function openBook(b){
   }catch(e){}
 
   const pages = b.number_of_pages_median || null;
-  const wordEstimate = pages ? Math.round(pages*260) : null;
 
   const meta = await api('/api/book-meta', {
     method:'POST', headers:{'Content-Type':'application/json'},
@@ -339,7 +338,7 @@ async function openBook(b){
 
   STATE.currentBook = {
     title: b.title, author: (b.author_name||['Unknown']).join(', '),
-    pages, wordEstimate, summary: meta.summary, genre: meta.genre,
+    pages, wordEstimate: meta.estimatedWordCount || null, summary: meta.summary, genre: meta.genre,
     olid
   };
   STATE.loading = false;
