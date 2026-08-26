@@ -148,7 +148,13 @@ const PENALTY_PER_WRONG = 3;
 const POINT_MILESTONES = [50, 100, 250, 500, 1000, 2000];
 const STREAK_MILESTONES = [3, 5, 10, 20];
 
+const MASTERY_PCT = 0.8;
+function meetsMastery(correct, total){
+  return correct >= Math.ceil(total * MASTERY_PCT);
+}
+
 function computeQuizPoints(correct, total, confidenceKey, count){
+  if(!meetsMastery(correct, total)) return 0;
   const mult = (CONFIDENCE[confidenceKey] || CONFIDENCE.medium).mult;
   const wrong = total - correct;
   const raw = correct * POINTS_PER_CORRECT * mult - wrong * PENALTY_PER_WRONG * mult;
@@ -180,7 +186,7 @@ function findPriorAttempt(history, book){
 
 function currentStreak(history){
   let streak = 0;
-  for(const h of history){ if(h.score>=70) streak++; else break; }
+  for(const h of history){ if(h.points>0) streak++; else break; }
   return streak;
 }
 
@@ -630,10 +636,11 @@ function fireConfetti(){
 
 function screenResult(){
   const r = STATE.quizResult;
-  const good = r.pct >= 70;
+  const good = meetsMastery(r.correct, r.total);
   const mult = (CONFIDENCE[r.confidence] || CONFIDENCE.medium).mult;
   const headline = (good ? CELEBRATE_GOOD : CELEBRATE_OK)[Math.floor(Math.random()*(good?CELEBRATE_GOOD:CELEBRATE_OK).length)];
-  const c = el(`<div class="card" style="text-align:center;"><h2>${headline}</h2><p class="muted" style="margin:6px 0 16px;">${r.correct} of ${r.total} correct</p>${r.badges.length ? `<div class="badge-row">${r.badges.map(b=>`<span class="badge-chip">${b.emoji} ${b.label}</span>`).join('')}</div>` : ''}<div class="points-banner"><div class="pb-num">+0</div><div class="pb-lbl">Points earned · ${mult}x confidence</div></div><div class="stat-row"><div class="stat"><div class="num">${r.pct}%</div><div class="lbl">Score</div></div><div class="stat"><div class="num">${r.totalPoints}</div><div class="lbl">Total Points</div></div></div><button class="btn" id="nextBtn">Find another book</button><button class="btn secondary" id="dashBtn">See my progress</button></div>`);
+  const masteryNote = !good ? `<p class="muted" style="margin:0 0 14px;">Quizzes need 80% or higher to earn points — this one still counts as finished, just no points this time.</p>` : '';
+  const c = el(`<div class="card" style="text-align:center;"><h2>${headline}</h2><p class="muted" style="margin:6px 0 16px;">${r.correct} of ${r.total} correct</p>${masteryNote}${r.badges.length ? `<div class="badge-row">${r.badges.map(b=>`<span class="badge-chip">${b.emoji} ${b.label}</span>`).join('')}</div>` : ''}<div class="points-banner"><div class="pb-num">+0</div><div class="pb-lbl">Points earned · ${mult}x confidence</div></div><div class="stat-row"><div class="stat"><div class="num">${r.pct}%</div><div class="lbl">Score</div></div><div class="stat"><div class="num">${r.totalPoints}</div><div class="lbl">Total Points</div></div></div><button class="btn" id="nextBtn">Find another book</button><button class="btn secondary" id="dashBtn">See my progress</button></div>`);
   c.querySelector('#nextBtn').onclick = ()=>{ STATE.screen='search'; STATE.searchResults=[]; STATE.searchQuery=''; render(); };
   c.querySelector('#dashBtn').onclick = ()=>{ STATE.screen='dashboard'; render(); };
   if(!STATE.resultAnimated){
@@ -670,7 +677,7 @@ function screenDashboard(){
   if(s.history.length===0){ hist.innerHTML = `<div class="empty">No books finished yet — go find one!</div>`; }
   else {
     s.history.forEach(h=>{
-      hist.appendChild(el(`<div class="history-row"><span>${h.title}</span><span class="score-badge ${h.score>=70?'good':'low'}">${h.score}%${h.points!=null ? ' · +'+h.points+'pts' : ''}</span></div>`));
+      hist.appendChild(el(`<div class="history-row"><span>${h.title}</span><span class="score-badge ${h.points>0?'good':'low'}">${h.score}%${h.points!=null ? ' · +'+h.points+'pts' : ''}</span></div>`));
     });
   }
   return c;
