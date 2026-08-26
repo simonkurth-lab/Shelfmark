@@ -22,8 +22,9 @@
   .who{font-size:13px;color:var(--muted);font-weight:700;}
   .who button{background:none;border:none;color:var(--coral);font-weight:800;cursor:pointer;padding:0;margin-left:6px;font-family:inherit;font-size:13px;}
   .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;margin-bottom:16px;box-shadow:0 1px 2px rgba(43,33,24,0.04);}
-  input[type=text]{width:100%;padding:13px 14px;border-radius:10px;border:1.5px solid var(--line);font-family:'Nunito';font-size:16px;font-weight:600;color:var(--ink);background:#fff;}
-  input[type=text]:focus{outline:2px solid var(--forest);outline-offset:1px;}
+  input[type=text],input[type=password]{width:100%;padding:13px 14px;border-radius:10px;border:1.5px solid var(--line);font-family:'Nunito';font-size:16px;font-weight:600;color:var(--ink);background:#fff;}
+  input[type=text]:focus,input[type=password]:focus{outline:2px solid var(--forest);outline-offset:1px;}
+  input.pin-input{letter-spacing:8px;font-size:22px;text-align:center;font-weight:800;}
   .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:var(--forest);color:#fff;border:none;border-radius:10px;padding:13px 20px;font-family:'Nunito';font-weight:800;font-size:15px;cursor:pointer;width:100%;margin-top:12px;}
   .btn:hover{background:var(--forest-dark);}
   .btn:focus-visible{outline:3px solid var(--gold);outline-offset:2px;}
@@ -31,9 +32,11 @@
   .btn.coral{background:var(--coral);}
   .btn.coral:hover{background:#cf5f38;}
   .btn[disabled]{opacity:0.55;cursor:not-allowed;}
-  .btn.name-pick{background:#F6F1E4;color:var(--forest-dark);border:1.5px solid var(--line);margin-top:8px;}
+  .btn.name-pick{background:#F6F1E4;color:var(--forest-dark);border:1.5px solid var(--line);margin-top:8px;display:flex;justify-content:space-between;align-items:center;text-align:left;}
   .btn.name-pick:hover{background:#EFEAD9;}
+  .btn.name-pick .np-pts{font-size:12px;font-weight:800;color:var(--muted);}
   .muted{color:var(--muted);font-size:13.5px;}
+  .error-text{color:var(--coral);font-size:13.5px;font-weight:700;margin:8px 0 0;}
   .book-row{display:flex;gap:12px;align-items:flex-start;padding:14px 0;border-bottom:1px solid var(--line);cursor:pointer;}
   .book-row:last-child{border-bottom:none;}
   .book-row:hover{background:#faf8f2;}
@@ -50,14 +53,6 @@
   .quiz-q .qtext{font-weight:800;margin-bottom:10px;font-size:15.5px;}
   .opt{display:block;width:100%;text-align:left;padding:11px 14px;border-radius:10px;border:1.5px solid var(--line);background:#fff;margin-bottom:8px;cursor:pointer;font-family:'Nunito';font-weight:600;font-size:14.5px;color:var(--ink);}
   .opt.selected{border-color:var(--forest);background:#EEF4F1;}
-  .ladder{position:relative;padding-left:26px;margin:18px 0;}
-  .rung{display:flex;align-items:center;gap:10px;position:relative;padding:9px 0;}
-  .rung::before{content:'';position:absolute;left:-26px;top:50%;transform:translateY(-50%);width:10px;height:10px;border-radius:50%;background:var(--line);}
-  .rung.active::before{background:var(--coral);width:14px;height:14px;left:-28px;}
-  .ladder::after{content:'';position:absolute;left:-22px;top:8px;bottom:8px;width:2px;background:var(--line);}
-  .rung .lvl{width:46px;font-weight:800;color:var(--forest-dark);font-family:'Baloo 2';}
-  .spine{height:16px;border-radius:3px;background:var(--gold);opacity:.55;flex:1;}
-  .rung.active .spine{opacity:1;background:var(--coral);}
   .loading{text-align:center;padding:30px 0;color:var(--muted);font-weight:700;}
   .backlink{background:none;border:none;color:var(--forest-dark);font-weight:800;font-size:14px;cursor:pointer;padding:0;margin-bottom:14px;font-family:inherit;}
   .empty{text-align:center;padding:40px 10px;color:var(--muted);}
@@ -89,6 +84,10 @@
   .points-banner .pb-num{font-family:'Baloo 2';font-weight:800;font-size:28px;}
   .points-banner .pb-lbl{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;opacity:.75;}
   .points-pill{display:inline-block;background:#FBF0DA;color:#8A6412;font-weight:800;font-size:12px;padding:2px 9px;border-radius:20px;}
+  .badge-row{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-bottom:16px;}
+  .badge-chip{background:var(--forest);color:#fff;font-weight:800;font-size:12.5px;padding:6px 12px;border-radius:20px;animation:pop .35s cubic-bezier(.3,1.6,.4,1);}
+  @keyframes pop{0%{transform:scale(0);opacity:0;}70%{transform:scale(1.12);}100%{transform:scale(1);opacity:1;}}
+  .confetti-piece{position:fixed;top:-10px;pointer-events:none;z-index:9999;}
 </style>
 </head>
 <body>
@@ -99,11 +98,15 @@
 const WORKER_URL = 'https://shelfmark-api.simonkurth.workers.dev';
 
 const STATE = {
-  screen: 'login', studentName: null, student: null,
+  screen: 'login', alias: null, student: null,
   roster: [], rosterLoaded: false,
+  loginMode: 'pick', pendingAlias: null, loginError: '',
+  signupAlias: '', signupPin: '',
+  teacherPasscode: '', teacherError: '', teacherAuthed: false, teacherRows: null,
   searchResults: [], searchQuery: '', currentBook: null,
   quiz: null, quizAnswers: {}, loading: false, loadingMsg: '',
   quizSetup: { count: 7, confidence: 'medium' },
+  resultAnimated: false,
 };
 
 // ---------- Points system ----------
@@ -116,12 +119,27 @@ const CONFIDENCE = {
 };
 const POINTS_PER_CORRECT = 10;
 const PENALTY_PER_WRONG = 3;
+const POINT_MILESTONES = [50, 100, 250, 500, 1000, 2000];
+const STREAK_MILESTONES = [3, 5, 10, 20];
 
 function computeQuizPoints(correct, total, confidenceKey, count){
   const mult = (CONFIDENCE[confidenceKey] || CONFIDENCE.medium).mult;
   const wrong = total - correct;
   const raw = correct * POINTS_PER_CORRECT * mult - wrong * PENALTY_PER_WRONG * mult;
   return Math.max(0, Math.round(raw)) + (LENGTH_BONUS[count] || 0);
+}
+
+function lengthTag(pages){
+  if(!pages) return null;
+  if(pages < 150) return 'Quick read';
+  if(pages <= 320) return 'Standard length';
+  return 'Chunky read';
+}
+
+function currentStreak(history){
+  let streak = 0;
+  for(const h of history){ if(h.score>=70) streak++; else break; }
+  return streak;
 }
 
 function el(html){ const d=document.createElement('div'); d.innerHTML=html.trim(); return d.firstChild; }
@@ -131,25 +149,15 @@ async function api(path, opts){
   const res = await fetch(WORKER_URL + path, opts);
   return res.json();
 }
+function postJSON(path, body){
+  return api(path, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+}
 
-async function loadStudent(name){
-  return api('/api/student/' + encodeURIComponent(name.trim().toLowerCase()));
-}
-async function saveStudent(name, data){
-  await api('/api/student/' + encodeURIComponent(name.trim().toLowerCase()), {
-    method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data)
-  });
-}
 async function loadRoster(){
   return api('/api/roster');
 }
-
-function parseJsonLoose(text){
-  const cleaned = text.replace(/```json|```/g,'').trim();
-  const start = cleaned.indexOf('{'); const arrStart = cleaned.indexOf('[');
-  let s = start; if(arrStart !== -1 && (s === -1 || arrStart < s)) s = arrStart;
-  const end = Math.max(cleaned.lastIndexOf('}'), cleaned.lastIndexOf(']'));
-  return JSON.parse(cleaned.slice(s, end+1));
+async function saveStudent(alias, data){
+  await postJSON('/api/student/' + encodeURIComponent(alias), data);
 }
 
 // ---------- Screens ----------
@@ -169,7 +177,7 @@ function buildScreen(){
   else if(STATE.screen==='teacher') body = screenTeacher();
   wrap.appendChild(body);
   if(STATE.screen!=='login'){
-    const note = el(`<div class="footer-note">Reading levels here are estimates from AI + book length, not official Lexile/ATOS scores. Progress is stored for the whole class to see.</div>`);
+    const note = el(`<div class="footer-note">Everyone here goes by an alias, not their real name. Ask your teacher if you forget your PIN.</div>`);
     wrap.appendChild(note);
   }
   return wrap;
@@ -179,45 +187,92 @@ function topbar(){
   const bar = el(`<div class="topbar"></div>`);
   const brand = el(`<div class="brand"><div class="mark">S</div><div class="brand-name">Shelfmark</div></div>`);
   bar.appendChild(brand);
-  if(STATE.studentName){
-    const who = el(`<div class="who">${STATE.studentName} <button id="switchBtn">switch</button></div>`);
-    who.querySelector('#switchBtn').onclick = ()=>{ STATE.screen='login'; STATE.studentName=null; STATE.student=null; STATE.rosterLoaded=false; render(); };
+  if(STATE.alias){
+    const who = el(`<div class="who">${STATE.alias} <button id="switchBtn">switch</button></div>`);
+    who.querySelector('#switchBtn').onclick = ()=>{ logout(); };
     bar.appendChild(who);
   }
   return bar;
 }
 
+function logout(){
+  STATE.screen='login'; STATE.alias=null; STATE.student=null; STATE.rosterLoaded=false;
+  STATE.loginMode='pick'; STATE.pendingAlias=null; STATE.loginError='';
+  render();
+}
+
 function screenLogin(){
-  const c = el(`<div class="card"><h2 style="margin-bottom:6px;">Who's reading?</h2><p class="muted" style="margin:0 0 14px;">Pick your name, or add it if this is your first time.</p><div id="names"></div><div class="divider">New here?</div><input type="text" id="nameInput" placeholder="Type your name" /><button class="btn" id="goBtn">Add me</button><button class="btn secondary" id="teacherBtn">Teacher dashboard</button></div>`);
+  if(STATE.loginMode==='pin') return screenLoginPin();
+  if(STATE.loginMode==='signup') return screenSignup();
+
+  const c = el(`<div class="card"><h2 style="margin-bottom:6px;">Who's reading?</h2><p class="muted" style="margin:0 0 14px;">Pick your alias below.</p><div id="names"></div><div class="divider">New here?</div><button class="btn secondary" id="newBtn">Create an alias</button><button class="btn secondary" id="teacherBtn">Teacher dashboard</button></div>`);
   const namesDiv = c.querySelector('#names');
   if(!STATE.rosterLoaded){
     namesDiv.innerHTML = `<div class="loading">Loading class list...</div>`;
     loadRoster().then(list=>{ STATE.roster = list || []; STATE.rosterLoaded = true; render(); });
   } else if(STATE.roster.length){
     STATE.roster.forEach(s=>{
-      const b = el(`<button class="btn name-pick">${s.name}</button>`);
-      b.onclick = ()=> doLogin(s.name);
+      const b = el(`<button class="btn name-pick"><span>${s.alias}</span><span class="np-pts">${s.points||0} pts</span></button>`);
+      b.onclick = ()=>{ STATE.loginMode='pin'; STATE.pendingAlias=s.alias; STATE.loginError=''; render(); };
       namesDiv.appendChild(b);
     });
+  } else {
+    namesDiv.innerHTML = `<div class="empty">No aliases yet — be the first!</div>`;
   }
-  c.querySelector('#nameInput').addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(document.getElementById('nameInput').value); });
-  c.querySelector('#goBtn').onclick = ()=> doLogin(document.getElementById('nameInput').value);
+  c.querySelector('#newBtn').onclick = ()=>{ STATE.loginMode='signup'; STATE.signupAlias=''; STATE.signupPin=''; STATE.loginError=''; render(); };
   c.querySelector('#teacherBtn').onclick = ()=>{ STATE.screen='teacher'; render(); };
   return c;
 }
 
-async function doLogin(name){
-  name = (name||'').trim();
-  if(!name) return;
+function screenLoginPin(){
+  const c = el(`<div class="card"><button class="backlink" id="back">&larr; Back</button><h2 style="margin-bottom:6px;">Hi, ${STATE.pendingAlias}</h2><p class="muted" style="margin:0 0 14px;">Enter your 4-digit PIN.</p><input type="password" inputmode="numeric" maxlength="4" pattern="[0-9]*" class="pin-input" id="pinInput" placeholder="••••" /><button class="btn" id="goBtn">Log in</button><div id="err"></div></div>`);
+  c.querySelector('#back').onclick = ()=>{ STATE.loginMode='pick'; render(); };
+  const pinInput = c.querySelector('#pinInput');
+  const tryLogin = ()=> doLogin(STATE.pendingAlias, pinInput.value);
+  pinInput.addEventListener('keydown', e=>{ if(e.key==='Enter') tryLogin(); });
+  c.querySelector('#goBtn').onclick = tryLogin;
+  if(STATE.loginError) c.querySelector('#err').appendChild(el(`<p class="error-text">${STATE.loginError}</p>`));
+  setTimeout(()=>pinInput.focus(), 0);
+  return c;
+}
+
+function screenSignup(){
+  const c = el(`<div class="card"><button class="backlink" id="back">&larr; Back</button><h2 style="margin-bottom:6px;">Create your alias</h2><p class="muted" style="margin:0 0 14px;">Pick a nickname (not your real name) and a 4-digit PIN you'll remember. Your teacher can look up your PIN if you forget it.</p><input type="text" id="aliasInput" placeholder="Choose an alias" maxlength="24" value="${STATE.signupAlias.replace(/"/g,'')}" /><br><br><input type="password" inputmode="numeric" maxlength="4" pattern="[0-9]*" class="pin-input" id="pinInput" placeholder="••••" /><button class="btn coral" id="goBtn">Create account</button><div id="err"></div></div>`);
+  c.querySelector('#back').onclick = ()=>{ STATE.loginMode='pick'; render(); };
+  const aliasInput = c.querySelector('#aliasInput');
+  const pinInput = c.querySelector('#pinInput');
+  const trySignup = ()=> doSignup(aliasInput.value, pinInput.value);
+  pinInput.addEventListener('keydown', e=>{ if(e.key==='Enter') trySignup(); });
+  c.querySelector('#goBtn').onclick = trySignup;
+  if(STATE.loginError) c.querySelector('#err').appendChild(el(`<p class="error-text">${STATE.loginError}</p>`));
+  return c;
+}
+
+async function doSignup(alias, pin){
+  alias = (alias||'').trim();
+  if(!alias){ STATE.loginError='Pick an alias first.'; render(); return; }
+  if(!/^\d{4}$/.test(pin||'')){ STATE.loginError='PIN must be exactly 4 digits.'; render(); return; }
+  STATE.loading=true; STATE.loadingMsg='Setting up your shelf...'; render();
+  const resp = await postJSON('/api/signup', { alias, pin });
+  STATE.loading=false;
+  if(resp.error==='alias_taken'){ STATE.loginError='That alias is taken — try another.'; render(); return; }
+  if(resp.error){ STATE.loginError='Something went wrong. Try again.'; render(); return; }
+  STATE.alias = resp.alias;
+  STATE.student = resp;
+  STATE.rosterLoaded = false;
+  STATE.screen = 'home';
+  render();
+}
+
+async function doLogin(alias, pin){
+  if(!/^\d{4}$/.test(pin||'')){ STATE.loginError='Enter your 4-digit PIN.'; render(); return; }
   STATE.loading=true; STATE.loadingMsg='Loading your bookshelf...'; render();
-  let student = await loadStudent(name);
-  if(!student){
-    student = { name, level: 4.0, history: [] };
-    await saveStudent(name, student);
-  }
-  STATE.studentName = name;
-  STATE.student = student;
-  STATE.loading = false;
+  const resp = await postJSON('/api/login', { alias, pin });
+  STATE.loading=false;
+  if(resp.error==='wrong_pin'){ STATE.loginError='Wrong PIN — try again.'; render(); return; }
+  if(resp.error){ STATE.loginError='Could not find that alias.'; render(); return; }
+  STATE.alias = resp.alias;
+  STATE.student = resp;
   STATE.screen = 'home';
   render();
 }
@@ -225,7 +280,7 @@ async function doLogin(name){
 function screenHome(){
   if(STATE.loading) return el(`<div class="loading">${STATE.loadingMsg}</div>`);
   const s = STATE.student;
-  const c = el(`<div><div class="card"><h2>Hi ${s.name} 👋</h2><div class="stat-row"><div class="stat"><div class="num">${s.level.toFixed(1)}</div><div class="lbl">Reading Level</div></div><div class="stat"><div class="num">${s.points||0}</div><div class="lbl">Points</div></div><div class="stat"><div class="num">${s.history.length}</div><div class="lbl">Books Finished</div></div></div><button class="btn" id="searchBtn">Find a book</button><button class="btn secondary" id="dashBtn">My progress</button></div></div>`);
+  const c = el(`<div><div class="card"><h2>Hi ${s.alias} 👋</h2><div class="stat-row"><div class="stat"><div class="num">${s.points||0}</div><div class="lbl">Points</div></div><div class="stat"><div class="num">${s.history.length}</div><div class="lbl">Books Finished</div></div><div class="stat"><div class="num">${currentStreak(s.history)}</div><div class="lbl">Streak</div></div></div><button class="btn" id="searchBtn">Find a book</button><button class="btn secondary" id="dashBtn">My progress</button></div></div>`);
   c.querySelector('#searchBtn').onclick = ()=>{ STATE.screen='search'; render(); };
   c.querySelector('#dashBtn').onclick = ()=>{ STATE.screen='dashboard'; render(); };
   return c;
@@ -284,7 +339,7 @@ async function openBook(b){
 
   STATE.currentBook = {
     title: b.title, author: (b.author_name||['Unknown']).join(', '),
-    pages, wordEstimate, gradeLevel: meta.gradeLevel, summary: meta.summary, genre: meta.genre,
+    pages, wordEstimate, summary: meta.summary, genre: meta.genre,
     olid
   };
   STATE.loading = false;
@@ -295,7 +350,8 @@ async function openBook(b){
 function screenBook(){
   if(STATE.loading) return el(`<div class="loading">${STATE.loadingMsg}</div>`);
   const b = STATE.currentBook;
-  const c = el(`<div><button class="backlink" id="back">&larr; Back to search</button><div class="card"><h2>${b.title}</h2><p class="muted" style="margin:2px 0 10px;">${b.author}</p><span class="pill">Level ${Number(b.gradeLevel).toFixed(1)}</span><span class="pill gold">${b.genre||'Fiction'}</span><div class="stat-row"><div class="stat"><div class="num">${b.wordEstimate ? b.wordEstimate.toLocaleString() : '—'}</div><div class="lbl">Est. Words</div></div><div class="stat"><div class="num">${b.pages || '—'}</div><div class="lbl">Pages</div></div></div><p style="line-height:1.5;">${b.summary}</p><button class="btn coral" id="quizBtn">I finished it — take the quiz</button></div></div>`);
+  const tag = lengthTag(b.pages);
+  const c = el(`<div><button class="backlink" id="back">&larr; Back to search</button><div class="card"><h2>${b.title}</h2><p class="muted" style="margin:2px 0 10px;">${b.author}</p>${tag ? `<span class="pill">${tag}</span>` : ''}<span class="pill gold">${b.genre||'Fiction'}</span><div class="stat-row"><div class="stat"><div class="num">${b.wordEstimate ? b.wordEstimate.toLocaleString() : '—'}</div><div class="lbl">Est. Words</div></div><div class="stat"><div class="num">${b.pages || '—'}</div><div class="lbl">Pages</div></div></div><p style="line-height:1.5;">${b.summary}</p><button class="btn coral" id="quizBtn">I finished it — take the quiz</button></div></div>`);
   c.querySelector('#back').onclick = ()=>{ STATE.screen='search'; render(); };
   c.querySelector('#quizBtn').onclick = ()=>{ STATE.screen='quizSetup'; render(); };
   return c;
@@ -341,7 +397,7 @@ async function startQuiz(){
   const count = STATE.quizSetup.count;
   const quiz = await api('/api/quiz', {
     method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ olid: b.olid, title: b.title, author: b.author, summary: b.summary, gradeLevel: b.gradeLevel, count })
+    body: JSON.stringify({ olid: b.olid, title: b.title, author: b.author, summary: b.summary, count })
   });
   STATE.quiz = quiz;
   STATE.quizAnswers = {};
@@ -372,6 +428,16 @@ function screenQuiz(){
   return c;
 }
 
+function computeBadges(s, r, prevPoints){
+  const badges = [];
+  if(s.history.length === 1) badges.push({emoji:'🌱', label:'First Book!'});
+  if(r.pct === 100) badges.push({emoji:'💯', label:'Perfect Score'});
+  const streak = currentStreak(s.history);
+  if(STREAK_MILESTONES.includes(streak)) badges.push({emoji:'🔥', label: streak+'-Book Streak'});
+  POINT_MILESTONES.forEach(m=>{ if(prevPoints < m && s.points >= m) badges.push({emoji:'🏆', label: m+' Points!'}); });
+  return badges;
+}
+
 async function submitQuiz(){
   const qs = STATE.quiz.questions;
   let correct = 0;
@@ -380,47 +446,85 @@ async function submitQuiz(){
 
   const b = STATE.currentBook;
   const s = STATE.student;
-  const diff = b.gradeLevel - s.level;
-  let delta = 0;
-  if(pct>=90) delta = 0.3 + Math.max(0,diff)*0.15;
-  else if(pct>=70) delta = 0.1;
-  else if(pct>=50) delta = 0;
-  else delta = -0.15;
-  const newLevel = Math.max(1, Math.round((s.level + delta)*10)/10);
-
   const confidence = STATE.quizSetup.confidence;
   const count = STATE.quizSetup.count;
   const earnedPoints = computeQuizPoints(correct, qs.length, confidence, count);
+  const prevPoints = s.points||0;
 
-  s.history.unshift({ title:b.title, level:b.gradeLevel, score:pct, date:new Date().toISOString().slice(0,10), levelAfter:newLevel, points:earnedPoints, count, confidence });
-  s.level = newLevel;
-  s.points = (s.points||0) + earnedPoints;
-  await saveStudent(s.name, s);
+  s.history.unshift({ title:b.title, score:pct, date:new Date().toISOString().slice(0,10), points:earnedPoints, count, confidence });
+  s.points = prevPoints + earnedPoints;
+  await saveStudent(s.alias, s);
 
-  STATE.quizResult = { correct, total: qs.length, pct, newLevel, earnedPoints, totalPoints: s.points, confidence };
+  const result = { correct, total: qs.length, pct, earnedPoints, totalPoints: s.points, confidence };
+  result.badges = computeBadges(s, result, prevPoints);
+
+  STATE.quizResult = result;
+  STATE.resultAnimated = false;
   STATE.screen = 'result';
   render();
+}
+
+const CELEBRATE_GOOD = ['Nice reading! 🎉','You crushed it! 🌟','Book conquered! 📚','Reading champion! 🏆','Way to go, reader! ✨'];
+const CELEBRATE_OK = ['Good try! 💪','Nice effort! 👍','Keep it up! 🙂','Solid work! 📖'];
+
+function animateNumber(node, to, duration){
+  const start = performance.now();
+  function tick(now){
+    const p = Math.min(1, (now-start)/duration);
+    const eased = 1 - Math.pow(1-p, 3);
+    node.textContent = '+' + Math.round(eased*to);
+    if(p<1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+
+function fireConfetti(){
+  const colors = ['#E8734A','#D9A441','#2F5D50','#7A9E8C','#8A6412'];
+  for(let i=0;i<32;i++){
+    const p = document.createElement('div');
+    const size = 6+Math.random()*6;
+    p.className = 'confetti-piece';
+    p.style.left = (Math.random()*100)+'vw';
+    p.style.width = size+'px';
+    p.style.height = (size*0.4)+'px';
+    p.style.background = colors[i%colors.length];
+    p.style.opacity = '0.9';
+    p.style.borderRadius = '2px';
+    p.style.transform = `rotate(${Math.random()*360}deg)`;
+    p.style.transition = 'top 1.6s cubic-bezier(.2,.6,.3,1), transform 1.6s cubic-bezier(.2,.6,.3,1), opacity 1.6s';
+    document.body.appendChild(p);
+    requestAnimationFrame(()=>{
+      p.style.top = (65+Math.random()*30)+'vh';
+      p.style.transform = `translateX(${(Math.random()-0.5)*180}px) rotate(${360+Math.random()*720}deg)`;
+      p.style.opacity = '0';
+    });
+    setTimeout(()=>p.remove(), 1700);
+  }
 }
 
 function screenResult(){
   const r = STATE.quizResult;
   const good = r.pct >= 70;
   const mult = (CONFIDENCE[r.confidence] || CONFIDENCE.medium).mult;
-  const c = el(`<div class="card" style="text-align:center;"><h2>${good ? 'Nice reading! 🎉' : 'Good try!'}</h2><p class="muted" style="margin:6px 0 16px;">${r.correct} of ${r.total} correct</p><div class="points-banner"><div class="pb-num">+${r.earnedPoints}</div><div class="pb-lbl">Points earned · ${mult}x confidence</div></div><div class="stat-row"><div class="stat"><div class="num">${r.pct}%</div><div class="lbl">Score</div></div><div class="stat"><div class="num">${r.newLevel.toFixed(1)}</div><div class="lbl">New Level</div></div><div class="stat"><div class="num">${r.totalPoints}</div><div class="lbl">Total Points</div></div></div><button class="btn" id="nextBtn">Find another book</button><button class="btn secondary" id="dashBtn">See my progress</button></div>`);
+  const headline = (good ? CELEBRATE_GOOD : CELEBRATE_OK)[Math.floor(Math.random()*(good?CELEBRATE_GOOD:CELEBRATE_OK).length)];
+  const c = el(`<div class="card" style="text-align:center;"><h2>${headline}</h2><p class="muted" style="margin:6px 0 16px;">${r.correct} of ${r.total} correct</p>${r.badges.length ? `<div class="badge-row">${r.badges.map(b=>`<span class="badge-chip">${b.emoji} ${b.label}</span>`).join('')}</div>` : ''}<div class="points-banner"><div class="pb-num">+0</div><div class="pb-lbl">Points earned · ${mult}x confidence</div></div><div class="stat-row"><div class="stat"><div class="num">${r.pct}%</div><div class="lbl">Score</div></div><div class="stat"><div class="num">${r.totalPoints}</div><div class="lbl">Total Points</div></div></div><button class="btn" id="nextBtn">Find another book</button><button class="btn secondary" id="dashBtn">See my progress</button></div>`);
   c.querySelector('#nextBtn').onclick = ()=>{ STATE.screen='search'; STATE.searchResults=[]; STATE.searchQuery=''; render(); };
   c.querySelector('#dashBtn').onclick = ()=>{ STATE.screen='dashboard'; render(); };
+  if(!STATE.resultAnimated){
+    STATE.resultAnimated = true;
+    setTimeout(()=>{
+      const numEl = document.querySelector('.pb-num');
+      if(numEl) animateNumber(numEl, r.earnedPoints, 800);
+      fireConfetti();
+    }, 30);
+  }
   return c;
 }
 
 function screenDashboard(){
   const s = STATE.student;
-  const c = el(`<div><button class="backlink" id="back">&larr; Back</button><div class="card"><h2>${s.name}'s bookshelf</h2><p class="muted" style="margin:4px 0 0;"><span class="points-pill">${s.points||0} pts</span></p><div class="ladder" id="ladder"></div></div><div class="card"><h3 style="margin-bottom:8px;">History</h3><div id="hist"></div></div></div>`);
+  const c = el(`<div><button class="backlink" id="back">&larr; Back</button><div class="card"><h2>${s.alias}'s bookshelf</h2><p class="muted" style="margin:4px 0 0;"><span class="points-pill">${s.points||0} pts</span></p><div class="stat-row"><div class="stat"><div class="num">${s.history.length}</div><div class="lbl">Books Finished</div></div><div class="stat"><div class="num">${currentStreak(s.history)}</div><div class="lbl">Current Streak</div></div></div></div><div class="card"><h3 style="margin-bottom:8px;">History</h3><div id="hist"></div></div></div>`);
   c.querySelector('#back').onclick = ()=>{ STATE.screen='home'; render(); };
-  const ladder = c.querySelector('#ladder');
-  [8,7,6,5,4,3,2,1].forEach(lv=>{
-    const active = Math.round(s.level) === lv;
-    ladder.appendChild(el(`<div class="rung ${active?'active':''}"><div class="lvl">${lv}.0</div><div class="spine"></div></div>`));
-  });
   const hist = c.querySelector('#hist');
   if(s.history.length===0){ hist.innerHTML = `<div class="empty">No books finished yet — go find one!</div>`; }
   else {
@@ -431,26 +535,41 @@ function screenDashboard(){
   return c;
 }
 
-async function screenTeacher(){
-  const c = el(`<div><button class="backlink" id="back">&larr; Back</button><div class="card"><h2>Class roster</h2><div id="roster"><div class="loading">Loading students...</div></div></div></div>`);
-  c.querySelector('#back').onclick = ()=>{ STATE.screen='login'; render(); };
-  setTimeout(loadTeacherRoster, 0);
+function screenTeacher(){
+  if(!STATE.teacherAuthed) return screenTeacherLogin();
+  const c = el(`<div><button class="backlink" id="back">&larr; Back</button><div class="card"><h2>Class roster</h2><p class="muted" style="margin:2px 0 12px;">Alias, PIN, and progress — visible to you only.</p><div id="roster"></div></div></div>`);
+  c.querySelector('#back').onclick = ()=>{ STATE.teacherAuthed=false; STATE.teacherRows=null; STATE.screen='login'; render(); };
+  const rosterDiv = c.querySelector('#roster');
+  const rows = STATE.teacherRows || [];
+  if(rows.length===0){ rosterDiv.innerHTML = `<div class="empty">No students yet.</div>`; }
+  else {
+    rows.forEach(s=>{
+      rosterDiv.appendChild(el(`<div class="roster-row"><span>${s.alias} <span class="muted">PIN ${s.pin}</span></span><span class="pill">${(s.history||[]).length} books · ${s.points||0} pts</span></div>`));
+    });
+  }
   return c;
 }
 
-async function loadTeacherRoster(){
-  const rosterDiv = document.getElementById('roster');
-  if(!rosterDiv) return;
-  try{
-    const students = await loadRoster();
-    if(!students || students.length===0){ rosterDiv.innerHTML = `<div class="empty">No students yet.</div>`; return; }
-    rosterDiv.innerHTML = '';
-    students.forEach(s=>{
-      rosterDiv.appendChild(el(`<div class="roster-row"><span>${s.name}</span><span class="pill">Lvl ${s.level.toFixed(1)} · ${s.history.length} books · ${s.points||0} pts</span></div>`));
-    });
-  }catch(e){
-    rosterDiv.innerHTML = `<div class="empty">Couldn't load roster.</div>`;
-  }
+function screenTeacherLogin(){
+  const c = el(`<div class="card"><button class="backlink" id="back">&larr; Back</button><h2 style="margin-bottom:6px;">Teacher dashboard</h2><p class="muted" style="margin:0 0 14px;">Enter the teacher passcode.</p><input type="password" id="pc" placeholder="Passcode" /><button class="btn" id="goBtn">View roster</button><div id="err"></div></div>`);
+  c.querySelector('#back').onclick = ()=>{ STATE.screen='login'; render(); };
+  const pcInput = c.querySelector('#pc');
+  const tryAuth = ()=> teacherLogin(pcInput.value);
+  pcInput.addEventListener('keydown', e=>{ if(e.key==='Enter') tryAuth(); });
+  c.querySelector('#goBtn').onclick = tryAuth;
+  if(STATE.teacherError) c.querySelector('#err').appendChild(el(`<p class="error-text">${STATE.teacherError}</p>`));
+  return c;
+}
+
+async function teacherLogin(passcode){
+  STATE.loading=true; render();
+  const resp = await postJSON('/api/teacher/roster', { passcode });
+  STATE.loading=false;
+  if(!Array.isArray(resp)){ STATE.teacherError='Wrong passcode.'; render(); return; }
+  STATE.teacherAuthed = true;
+  STATE.teacherRows = resp;
+  STATE.teacherError = '';
+  render();
 }
 
 render();
