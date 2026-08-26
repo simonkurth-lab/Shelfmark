@@ -114,7 +114,7 @@ const STATE = {
   teacherPasscode: '', teacherError: '', teacherAuthed: false, teacherRows: null,
   searchResults: [], searchQuery: '', currentBook: null,
   quiz: null, quizAnswers: {}, loading: false, loadingMsg: '',
-  quizSetup: { count: 7, confidence: 'medium', challenge: 'onlevel' },
+  quizSetup: { count: 7, confidence: 'medium', challenge: 'onlevel', lang: 'en' },
   resultAnimated: false,
 };
 
@@ -131,6 +131,10 @@ const CHALLENGE = {
   easier:  { label: 'Easier',    sub: 'Simpler wording' },
   onlevel: { label: 'Just right', sub: 'Matches my grade' },
   harder:  { label: 'Harder',    sub: 'Push me a bit' },
+};
+const QUIZ_LANGS = {
+  en: { label: 'English', sub: 'Default' },
+  es: { label: 'Español', sub: 'Spanish' },
 };
 const CONFIDENCE = {
   low:    { label: 'Not sure',        sub: "Haven't read it closely, or it's been a while", mult: 1   },
@@ -450,6 +454,9 @@ function screenQuizSetup(){
     <p class="setup-label">How well do you know this book?</p>
     <p class="muted setup-sub">Higher confidence = bigger point swings, up or down.</p>
     <div class="choice-col" id="confCol"></div>
+    <p class="setup-label">Quiz language</p>
+    <p class="muted setup-sub">Optional — take the quiz in Spanish instead.</p>
+    <div class="choice-row" id="langRow"></div>
     <button class="btn coral" id="startBtn">Start quiz</button>
   </div></div>`);
   c.querySelector('#back').onclick = ()=>{ STATE.screen='book'; render(); };
@@ -478,6 +485,14 @@ function screenQuizSetup(){
     confCol.appendChild(btn);
   });
 
+  const langRow = c.querySelector('#langRow');
+  Object.keys(QUIZ_LANGS).forEach(key=>{
+    const l = QUIZ_LANGS[key];
+    const btn = el(`<button type="button" class="choice-btn ${setup.lang===key?'selected':''}"><span class="cb-main">${l.label}</span><span class="cb-sub">${l.sub}</span></button>`);
+    btn.onclick = ()=>{ STATE.quizSetup.lang = key; render(); };
+    langRow.appendChild(btn);
+  });
+
   c.querySelector('#startBtn').onclick = startQuiz;
   return c;
 }
@@ -489,9 +504,10 @@ async function startQuiz(){
   const count = STATE.quizSetup.count;
   const grade = STATE.student.grade || '35';
   const challenge = STATE.quizSetup.challenge;
+  const lang = STATE.quizSetup.lang;
   const quiz = await api('/api/quiz', {
     method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ olid: b.olid, title: b.title, author: b.author, summary: b.summary, count, grade, challenge })
+    body: JSON.stringify({ olid: b.olid, title: b.title, author: b.author, summary: b.summary, count, grade, challenge, lang })
   });
   STATE.quiz = quiz;
   STATE.quizAnswers = {};
