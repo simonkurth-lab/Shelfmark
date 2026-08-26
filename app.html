@@ -192,15 +192,26 @@ function currentStreak(history){
   return streak;
 }
 
-// Shared rank ladder: reachable via points (rewards quiz performance/volume)
-// OR words read (rewards tackling longer books) - whichever a student hits first.
+// Shared rank ladder, framed as a climb up Mount Everest: reachable via points
+// (rewards quiz performance/volume) OR words read (rewards tackling longer
+// books) - whichever a student hits first. 1,000,000 words is the summit -
+// many smaller checkpoints lead up to it so progress always feels close.
 const RANKS = [
   { name: 'Page Turner',          emoji: '📖', points: 0,    words: 0 },
-  { name: 'Bookworm',             emoji: '🐛', points: 50,   words: 8000 },
-  { name: 'Story Chaser',         emoji: '🏃', points: 150,  words: 25000 },
+  { name: 'Bookworm',             emoji: '🐛', points: 20,   words: 3000 },
+  { name: 'Story Chaser',         emoji: '🏃', points: 50,   words: 8000 },
+  { name: 'Trailblazer',          emoji: '🥾', points: 90,   words: 15000 },
+  { name: 'Base Camp',            emoji: '⛺', points: 150,  words: 25000 },
+  { name: 'Climber',              emoji: '🧗', points: 240,  words: 40000 },
   { name: 'Chapter Champion',     emoji: '⭐', points: 350,  words: 60000 },
-  { name: 'Legend of the Library',emoji: '🏛️', points: 700,  words: 120000 },
-  { name: 'Shelfmark Master',     emoji: '👑', points: 1200, words: 250000 },
+  { name: 'Camp One',             emoji: '🏔️', points: 550,  words: 90000 },
+  { name: 'Camp Two',             emoji: '🏔️', points: 800,  words: 130000 },
+  { name: 'High Camp',            emoji: '❄️', points: 1100, words: 180000 },
+  { name: 'Legend of the Library',emoji: '🏛️', points: 1500, words: 250000 },
+  { name: 'Summit Push',          emoji: '🚵', points: 2100, words: 350000 },
+  { name: 'Shelfmark Master',     emoji: '👑', points: 3000, words: 500000 },
+  { name: 'Everest Approach',     emoji: '🌄', points: 4200, words: 700000 },
+  { name: 'Summit of Everest',    emoji: '🏆', points: 6000, words: 1000000 },
 ];
 
 function getRankInfo(points, words){
@@ -671,7 +682,7 @@ function screenDashboard(){
     <div class="goal-block">
       <div class="goal-label"><span>Words read</span><span>${words.toLocaleString()} / ${rank.next.words.toLocaleString()}</span></div>
       <div class="goal-track"><div class="goal-fill words" style="width:${rank.wordsPct}%"></div></div>
-    </div>` : `<p class="muted" style="margin:0;">You've reached the top rank — legendary reader! 🎉</p>`}
+    </div>` : `<p class="muted" style="margin:0;">You've summited Mount Everest — legendary reader! 🏔️🏆</p>`}
   </div>
   <div class="card"><h3 style="margin-bottom:8px;">History</h3><div id="hist"></div></div></div>`);
   c.querySelector('#back').onclick = ()=>{ STATE.screen='home'; render(); };
