@@ -352,7 +352,7 @@ function screenHome(){
   if(STATE.loading) return el(`<div class="loading">${STATE.loadingMsg}</div>`);
   const s = STATE.student;
   const rank = getRankInfo(s.points, s.wordsRead);
-  const c = el(`<div><div class="card"><h2>Hi ${s.alias} 👋</h2><div class="pill gold" style="margin-top:6px;">${rank.current.emoji} ${rank.current.name}</div><div class="stat-row"><div class="stat"><div class="num">${s.points||0}</div><div class="lbl">Points</div></div><div class="stat"><div class="num">${s.history.length}</div><div class="lbl">Books Finished</div></div><div class="stat"><div class="num">${currentStreak(s.history)}</div><div class="lbl">Streak</div></div></div><button class="btn" id="searchBtn">Find a book</button><button class="btn secondary" id="dashBtn">My progress</button></div></div>`);
+  const c = el(`<div><a href="index.html" class="backlink" style="text-decoration:none;display:inline-block;">&larr; Back to home</a><div class="card"><h2>Hi ${s.alias} 👋</h2><div class="pill gold" style="margin-top:6px;">${rank.current.emoji} ${rank.current.name}</div><div class="stat-row"><div class="stat"><div class="num">${s.points||0}</div><div class="lbl">Points</div></div><div class="stat"><div class="num">${s.history.length}</div><div class="lbl">Books Finished</div></div><div class="stat"><div class="num">${currentStreak(s.history)}</div><div class="lbl">Streak</div></div></div><button class="btn" id="searchBtn">Find a book</button><button class="btn secondary" id="dashBtn">My progress</button></div></div>`);
   c.querySelector('#searchBtn').onclick = ()=>{ STATE.screen='search'; render(); };
   c.querySelector('#dashBtn').onclick = ()=>{ STATE.screen='dashboard'; render(); };
   return c;
