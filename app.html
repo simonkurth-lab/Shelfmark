@@ -91,6 +91,8 @@
   .goal-fill{height:100%;border-radius:20px;transition:width .4s ease;}
   .goal-fill.points{background:var(--coral);}
   .goal-fill.words{background:var(--forest);}
+  .already-done{background:#EEF4F1;border-radius:12px;padding:14px 16px;margin-top:14px;}
+  .already-done-title{font-family:'Baloo 2';font-weight:700;font-size:15px;color:var(--forest-dark);}
   .badge-row{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-bottom:16px;}
   .badge-chip{background:var(--forest);color:#fff;font-weight:800;font-size:12.5px;padding:6px 12px;border-radius:20px;animation:pop .35s cubic-bezier(.3,1.6,.4,1);}
   @keyframes pop{0%{transform:scale(0);opacity:0;}70%{transform:scale(1.12);}100%{transform:scale(1);opacity:1;}}
@@ -152,6 +154,13 @@ function lengthTag(pages){
   if(pages < 150) return 'Quick read';
   if(pages <= 320) return 'Standard length';
   return 'Chunky read';
+}
+
+function findPriorAttempt(history, book){
+  return (history||[]).find(h =>
+    (book.olid && h.olid && h.olid === book.olid) ||
+    (h.title||'').trim().toLowerCase() === (book.title||'').trim().toLowerCase()
+  );
 }
 
 function currentStreak(history){
@@ -405,9 +414,16 @@ function screenBook(){
   if(STATE.loading) return el(`<div class="loading">${STATE.loadingMsg}</div>`);
   const b = STATE.currentBook;
   const tag = lengthTag(b.pages);
-  const c = el(`<div><button class="backlink" id="back">&larr; Back to search</button><div class="card"><h2>${b.title}</h2><p class="muted" style="margin:2px 0 10px;">${b.author}</p>${tag ? `<span class="pill">${tag}</span>` : ''}<span class="pill gold">${b.genre||'Fiction'}</span><div class="stat-row"><div class="stat"><div class="num">${b.wordEstimate ? b.wordEstimate.toLocaleString() : '—'}</div><div class="lbl">Est. Words</div></div><div class="stat"><div class="num">${b.pages || '—'}</div><div class="lbl">Pages</div></div></div><p style="line-height:1.5;">${b.summary}</p><button class="btn coral" id="quizBtn">I finished it — take the quiz</button></div></div>`);
+  const prior = findPriorAttempt(STATE.student.history, b);
+  const actionHtml = prior
+    ? `<div class="already-done"><div class="already-done-title">✅ Already completed</div><p class="muted" style="margin:4px 0 0;">You scored ${prior.score}% and earned ${prior.points!=null ? '+'+prior.points+' pts' : ''} on ${prior.date}. Each book can only be quizzed once — go find something new!</p></div><button class="btn secondary" id="anotherBtn">Find another book</button>`
+    : `<button class="btn coral" id="quizBtn">I finished it — take the quiz</button>`;
+  const c = el(`<div><button class="backlink" id="back">&larr; Back to search</button><div class="card"><h2>${b.title}</h2><p class="muted" style="margin:2px 0 10px;">${b.author}</p>${tag ? `<span class="pill">${tag}</span>` : ''}<span class="pill gold">${b.genre||'Fiction'}</span><div class="stat-row"><div class="stat"><div class="num">${b.wordEstimate ? b.wordEstimate.toLocaleString() : '—'}</div><div class="lbl">Est. Words</div></div><div class="stat"><div class="num">${b.pages || '—'}</div><div class="lbl">Pages</div></div></div><p style="line-height:1.5;">${b.summary}</p>${actionHtml}</div></div>`);
   c.querySelector('#back').onclick = ()=>{ STATE.screen='search'; render(); };
-  c.querySelector('#quizBtn').onclick = ()=>{ STATE.screen='quizSetup'; render(); };
+  const quizBtn = c.querySelector('#quizBtn');
+  if(quizBtn) quizBtn.onclick = ()=>{ STATE.screen='quizSetup'; render(); };
+  const anotherBtn = c.querySelector('#anotherBtn');
+  if(anotherBtn) anotherBtn.onclick = ()=>{ STATE.screen='search'; STATE.searchResults=[]; STATE.searchQuery=''; render(); };
   return c;
 }
 
@@ -522,7 +538,7 @@ async function submitQuiz(){
   const prevWords = s.wordsRead||0;
   const prevRankIdx = getRankInfo(prevPoints, prevWords).rankIdx;
 
-  s.history.unshift({ title:b.title, score:pct, date:new Date().toISOString().slice(0,10), points:earnedPoints, count, confidence, words:b.wordEstimate||0 });
+  s.history.unshift({ title:b.title, olid:b.olid, score:pct, date:new Date().toISOString().slice(0,10), points:earnedPoints, count, confidence, words:b.wordEstimate||0 });
   s.points = prevPoints + earnedPoints;
   s.wordsRead = prevWords + (b.wordEstimate||0);
   await saveStudent(s.alias, s);
