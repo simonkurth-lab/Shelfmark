@@ -298,7 +298,8 @@ function buildScreen(){
   const wrap = el(`<div></div>`);
   wrap.appendChild(topbar());
   let body;
-  if(!STATE.classCode) body = screenClassPick();
+  if(STATE.screen==='teacher') body = screenTeacher();
+  else if(!STATE.classCode) body = screenClassPick();
   else if(STATE.screen==='login') body = screenLogin();
   else if(STATE.screen==='home') body = screenHome();
   else if(STATE.screen==='search') body = screenSearch();
@@ -307,7 +308,6 @@ function buildScreen(){
   else if(STATE.screen==='quiz') body = screenQuiz();
   else if(STATE.screen==='result') body = screenResult();
   else if(STATE.screen==='dashboard') body = screenDashboard();
-  else if(STATE.screen==='teacher') body = screenTeacher();
   wrap.appendChild(body);
   if(STATE.screen!=='login'){
     const note = el(`<div class="footer-note">Everyone here goes by an alias, not their real name. Ask your teacher if you forget your PIN.</div>`);
@@ -335,13 +335,14 @@ function logout(){
 }
 
 function screenClassPick(){
-  const c = el(`<div class="card"><h2 style="margin-bottom:6px;">Which class are you in?</h2><p class="muted" style="margin:0 0 14px;">Pick your class so you see the right classmates.</p><div id="classCol"></div></div>`);
+  const c = el(`<div class="card"><h2 style="margin-bottom:6px;">Which class are you in?</h2><p class="muted" style="margin:0 0 14px;">Pick your class so you see the right classmates.</p><div id="classCol"></div><button class="backlink" id="teacherBtn" style="margin-top:14px;margin-bottom:0;">Teacher dashboard</button></div>`);
   const col = c.querySelector('#classCol');
   CLASSES.forEach(cls=>{
     const btn = el(`<button type="button" class="btn secondary">${cls.label}</button>`);
     btn.onclick = ()=>{ STATE.classCode = cls.code; saveClass(cls.code); STATE.rosterLoaded = false; render(); };
     col.appendChild(btn);
   });
+  c.querySelector('#teacherBtn').onclick = ()=>{ STATE.screen='teacher'; render(); };
   return c;
 }
 
