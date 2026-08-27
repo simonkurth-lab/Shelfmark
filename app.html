@@ -85,6 +85,17 @@
   .footer-note{font-size:11.5px;color:var(--muted);text-align:center;margin-top:24px;line-height:1.5;}
   .roster-row{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid var(--line);}
   .roster-row:last-child{border-bottom:none;}
+  .class-group-head{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:6px;margin-bottom:12px;}
+  .class-group-head h3{font-size:16px;color:var(--forest-dark);}
+  .roster-table{width:100%;border-collapse:collapse;font-size:13.5px;}
+  .roster-table th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:var(--muted);font-weight:800;padding:6px 8px;border-bottom:1.5px solid var(--line);white-space:nowrap;}
+  .roster-table td{padding:8px;border-bottom:1px solid var(--line);white-space:nowrap;}
+  .roster-table tr:last-child td{border-bottom:none;}
+  @media print{
+    .topbar, .backlink, #printBtn, .footer-note{display:none !important;}
+    body{background:#fff;}
+    .card{box-shadow:none;border:1px solid #ccc;break-inside:avoid;}
+  }
   .divider{text-align:center;color:var(--muted);font-size:12px;font-weight:700;margin:16px 0 6px;text-transform:uppercase;letter-spacing:.05em;}
   .setup-label{font-weight:800;font-size:14.5px;margin:0 0 4px;}
   .setup-sub{margin:0 0 12px;}
@@ -895,16 +906,47 @@ function screenDashboard(){
   return c;
 }
 
+function groupTeacherRows(rows){
+  const byClass = {};
+  rows.forEach(s=>{
+    const code = s.classCode || 'default';
+    (byClass[code] = byClass[code] || []).push(s);
+  });
+  const knownOrder = CLASSES.map(cl=>cl.code);
+  const order = knownOrder.concat(Object.keys(byClass).filter(code=>!knownOrder.includes(code)));
+  return order
+    .filter(code=>byClass[code] && byClass[code].length)
+    .map(code=>({ code, label: classLabel(code), students: byClass[code] }));
+}
+
+function studentStats(s){
+  const hist = s.history || [];
+  const avgScore = hist.length ? Math.round(hist.reduce((sum,h)=>sum+(h.score||0),0) / hist.length) : null;
+  const rank = getRankInfo(s.points||0, s.wordsRead||0);
+  return { books: hist.length, avgScore, rank };
+}
+
 function screenTeacher(){
   if(!STATE.teacherAuthed) return screenTeacherLogin();
-  const c = el(`<div><button class="backlink" id="back">&larr; Back</button><div class="card"><h2>Class roster</h2><p class="muted" style="margin:2px 0 12px;">Alias, PIN, and progress — visible to you only.</p><div id="roster"></div></div></div>`);
-  c.querySelector('#back').onclick = ()=>{ STATE.teacherAuthed=false; STATE.teacherRows=null; STATE.screen='login'; render(); };
-  const rosterDiv = c.querySelector('#roster');
   const rows = STATE.teacherRows || [];
-  if(rows.length===0){ rosterDiv.innerHTML = `<div class="empty">No students yet.</div>`; }
-  else {
-    rows.forEach(s=>{
-      rosterDiv.appendChild(el(`<div class="roster-row"><span>${s.alias} <span class="muted">PIN ${s.pin} · ${classLabel(s.classCode)}</span></span><span class="pill">${(s.history||[]).length} books · ${s.points||0} pts</span></div>`));
+  const groups = groupTeacherRows(rows);
+  const c = el(`<div><button class="backlink" id="back">&larr; Back</button><div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;"><div><h2 style="margin-bottom:2px;">Class roster</h2><p class="muted" style="margin:0;">Alias, PIN, and progress — visible to you only.</p></div><button class="btn secondary" id="printBtn" style="width:auto;margin:0;padding:10px 18px;">🖨️ Print report</button></div></div><div id="groups"></div></div>`);
+  c.querySelector('#back').onclick = ()=>{ STATE.teacherAuthed=false; STATE.teacherRows=null; STATE.screen='login'; render(); };
+  c.querySelector('#printBtn').onclick = ()=> window.print();
+  const groupsDiv = c.querySelector('#groups');
+  if(groups.length===0){
+    groupsDiv.appendChild(el(`<div class="card"><div class="empty">No students yet.</div></div>`));
+  } else {
+    groups.forEach(g=>{
+      const scores = g.students.map(s=>studentStats(s).avgScore).filter(v=>v!=null);
+      const classAvg = scores.length ? Math.round(scores.reduce((a,b)=>a+b,0)/scores.length) : null;
+      const groupCard = el(`<div class="card class-group"><div class="class-group-head"><h3>${g.label}</h3><span class="muted">${g.students.length} student${g.students.length===1?'':'s'}${classAvg!=null ? ' · class avg '+classAvg+'%' : ''}</span></div><div style="overflow-x:auto;"><table class="roster-table"><thead><tr><th>Alias</th><th>PIN</th><th>Books</th><th>Avg score</th><th>Points</th><th>Rank</th></tr></thead><tbody></tbody></table></div></div>`);
+      const tbody = groupCard.querySelector('tbody');
+      g.students.forEach(s=>{
+        const stats = studentStats(s);
+        tbody.appendChild(el(`<tr><td>${s.alias}</td><td>${s.pin}</td><td>${stats.books}</td><td>${stats.avgScore!=null ? stats.avgScore+'%' : '—'}</td><td>${s.points||0}</td><td>${stats.rank.current.emoji} ${stats.rank.current.name}</td></tr>`));
+      });
+      groupsDiv.appendChild(groupCard);
     });
   }
   return c;
