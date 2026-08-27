@@ -56,6 +56,11 @@
   .speak-btn:hover{background:#F6F1E4;}
   .speak-btn.speaking{background:var(--coral);border-color:var(--coral);color:#fff;animation:pulse 1s ease-in-out infinite;}
   @keyframes pulse{0%,100%{transform:scale(1);}50%{transform:scale(1.08);}}
+  .speed-row{display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
+  .speed-label{font-size:12.5px;font-weight:800;color:var(--muted);}
+  .speed-btns{display:flex;gap:6px;}
+  .speed-btn{padding:5px 12px;border-radius:20px;border:1.5px solid var(--line);background:#fff;font-family:'Nunito';font-weight:700;font-size:12.5px;color:var(--ink);cursor:pointer;}
+  .speed-btn.selected{border-color:var(--forest);background:#EEF4F1;color:var(--forest-dark);}
   .opt{display:block;width:100%;text-align:left;padding:11px 14px;border-radius:10px;border:1.5px solid var(--line);background:#fff;margin-bottom:8px;cursor:pointer;font-family:'Nunito';font-weight:600;font-size:14.5px;color:var(--ink);}
   .opt.selected{border-color:var(--forest);background:#EEF4F1;}
   .loading{text-align:center;padding:30px 0;color:var(--muted);font-weight:700;}
@@ -124,6 +129,7 @@ const STATE = {
   searchResults: [], searchQuery: '', currentBook: null,
   quiz: null, quizAnswers: {}, loading: false, loadingMsg: '',
   quizSetup: { count: 7, confidence: 'medium', challenge: 'onlevel', bilingual: 0 },
+  speechRate: 0.95,
   resultAnimated: false,
 };
 
@@ -545,6 +551,13 @@ async function startQuiz(){
   render();
 }
 
+const SPEECH_RATES = [
+  { label: 'Slowest', rate: 0.5 },
+  { label: 'Slow', rate: 0.7 },
+  { label: 'Normal', rate: 0.95 },
+  { label: 'Fast', rate: 1.25 },
+];
+
 function quizSpeechText(q, qi){
   const letters = ['A','B','C','D','E','F'];
   const opts = q.options.map((o,oi)=>`${letters[oi]}. ${o}`).join('  ');
@@ -559,7 +572,7 @@ function speakQuizItem(btn, text){
   if(wasSpeaking) return;
   const utter = new SpeechSynthesisUtterance(text);
   utter.lang = 'en-US';
-  utter.rate = 0.95;
+  utter.rate = STATE.speechRate;
   utter.onend = utter.onerror = ()=> btn.classList.remove('speaking');
   btn.classList.add('speaking');
   synth.speak(utter);
@@ -567,8 +580,18 @@ function speakQuizItem(btn, text){
 
 function screenQuiz(){
   if(STATE.loading) return el(`<div class="loading">${STATE.loadingMsg}</div>`);
-  const c = el(`<div><button class="backlink" id="back">&larr; Back</button><div class="card"><h2 style="margin-bottom:14px;">Quick check: ${STATE.currentBook.title}</h2><div id="qs"></div><button class="btn" id="submitBtn">Submit answers</button></div></div>`);
+  const c = el(`<div><button class="backlink" id="back">&larr; Back</button><div class="card"><h2 style="margin-bottom:14px;">Quick check: ${STATE.currentBook.title}</h2><div class="speed-row" id="speedRow"><span class="speed-label">🔊 Narrator speed:</span><div class="speed-btns" id="speedBtns"></div></div><div id="qs"></div><button class="btn" id="submitBtn">Submit answers</button></div></div>`);
   c.querySelector('#back').onclick = ()=>{ STATE.screen='book'; render(); };
+  if('speechSynthesis' in window){
+    const speedBtns = c.querySelector('#speedBtns');
+    SPEECH_RATES.forEach(sr=>{
+      const b = el(`<button type="button" class="speed-btn ${STATE.speechRate===sr.rate?'selected':''}">${sr.label}</button>`);
+      b.onclick = ()=>{ STATE.speechRate = sr.rate; render(); };
+      speedBtns.appendChild(b);
+    });
+  } else {
+    c.querySelector('#speedRow').style.display = 'none';
+  }
   const qs = c.querySelector('#qs');
   STATE.quiz.questions.forEach((q,qi)=>{
     const qText = q.q_es
