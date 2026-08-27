@@ -43,12 +43,22 @@
   .step h3{font-size:16px;color:var(--forest-dark);margin-bottom:6px;}
   .step p{font-size:13.5px;color:var(--muted);line-height:1.5;margin:0;}
 
+  /* ---- Ranks ---- */
+  .ranks{padding:8px 0 64px;}
+  .rank-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;}
+  .rank-card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px 10px;text-align:center;}
+  .rank-card .remoji{font-size:28px;display:block;margin-bottom:8px;}
+  .rank-card .rname{font-family:'Baloo 2';font-weight:700;font-size:13px;color:var(--forest-dark);line-height:1.25;}
+  .rank-card.summit{background:linear-gradient(135deg,var(--gold),#E8B84D);border-color:transparent;}
+  .rank-card.summit .rname{color:#4A3300;}
+
   footer{text-align:center;padding:0 0 32px;color:var(--muted);font-size:12.5px;}
 
   @media (max-width: 860px){
     .hero{padding-bottom:36px;}
     .hero p{max-width:none;}
     .step-row{grid-template-columns:1fr;gap:28px;}
+    .rank-grid{grid-template-columns:repeat(3,1fr);}
   }
 </style>
 </head>
@@ -75,6 +85,31 @@
       <div class="step"><div class="num">1</div><h3>Pick a book</h3><p>Search for whatever you're reading right now, in class or at home.</p></div>
       <div class="step"><div class="num">2</div><h3>Finish it</h3><p>Read the whole thing, then come back and take the quiz.</p></div>
       <div class="step"><div class="num">3</div><h3>Earn your streak</h3><p>Rack up points, badges, and a growing shelf of finished books.</p></div>
+    </div>
+  </section>
+
+  <!-- Mirrors the RANKS ladder in app.html - update both if ranks change. -->
+  <section class="ranks">
+    <div class="section-head">
+      <h2>Climb the ranks</h2>
+      <p>Every book you finish earns points and words read — both push you up the mountain, all the way to the summit of Everest.</p>
+    </div>
+    <div class="rank-grid">
+      <div class="rank-card"><span class="remoji">📖</span><div class="rname">Page Turner</div></div>
+      <div class="rank-card"><span class="remoji">🐛</span><div class="rname">Bookworm</div></div>
+      <div class="rank-card"><span class="remoji">🏃</span><div class="rname">Story Chaser</div></div>
+      <div class="rank-card"><span class="remoji">🥾</span><div class="rname">Trailblazer</div></div>
+      <div class="rank-card"><span class="remoji">⛺</span><div class="rname">Base Camp</div></div>
+      <div class="rank-card"><span class="remoji">🧗</span><div class="rname">Climber</div></div>
+      <div class="rank-card"><span class="remoji">⭐</span><div class="rname">Chapter Champion</div></div>
+      <div class="rank-card"><span class="remoji">🏔️</span><div class="rname">Camp One</div></div>
+      <div class="rank-card"><span class="remoji">🏔️</span><div class="rname">Camp Two</div></div>
+      <div class="rank-card"><span class="remoji">❄️</span><div class="rname">High Camp</div></div>
+      <div class="rank-card"><span class="remoji">🏛️</span><div class="rname">Legend of the Library</div></div>
+      <div class="rank-card"><span class="remoji">🚵</span><div class="rname">Summit Push</div></div>
+      <div class="rank-card"><span class="remoji">👑</span><div class="rname">Piki Master</div></div>
+      <div class="rank-card"><span class="remoji">🌄</span><div class="rname">Everest Approach</div></div>
+      <div class="rank-card summit"><span class="remoji">🏆</span><div class="rname">Summit of Everest</div></div>
     </div>
   </section>
 
