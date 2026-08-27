@@ -50,7 +50,12 @@
   .stat .num{font-family:'Baloo 2';font-size:20px;color:var(--forest-dark);}
   .stat .lbl{font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.03em;}
   .quiz-q{margin-bottom:18px;}
-  .quiz-q .qtext{font-weight:800;margin-bottom:10px;font-size:15.5px;}
+  .quiz-q .qtext{font-weight:800;font-size:15.5px;}
+  .qtext-row{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:10px;}
+  .speak-btn{flex:none;width:32px;height:32px;border-radius:50%;border:1.5px solid var(--line);background:#fff;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;color:var(--forest-dark);}
+  .speak-btn:hover{background:#F6F1E4;}
+  .speak-btn.speaking{background:var(--coral);border-color:var(--coral);color:#fff;animation:pulse 1s ease-in-out infinite;}
+  @keyframes pulse{0%,100%{transform:scale(1);}50%{transform:scale(1.08);}}
   .opt{display:block;width:100%;text-align:left;padding:11px 14px;border-radius:10px;border:1.5px solid var(--line);background:#fff;margin-bottom:8px;cursor:pointer;font-family:'Nunito';font-weight:600;font-size:14.5px;color:var(--ink);}
   .opt.selected{border-color:var(--forest);background:#EEF4F1;}
   .loading{text-align:center;padding:30px 0;color:var(--muted);font-weight:700;}
@@ -231,7 +236,7 @@ function getRankInfo(points, words){
 }
 
 function el(html){ const d=document.createElement('div'); d.innerHTML=html.trim(); return d.firstChild; }
-function render(){ document.getElementById('app').innerHTML=''; document.getElementById('app').appendChild(buildScreen()); }
+function render(){ if('speechSynthesis' in window) window.speechSynthesis.cancel(); document.getElementById('app').innerHTML=''; document.getElementById('app').appendChild(buildScreen()); }
 
 async function api(path, opts){
   const res = await fetch(WORKER_URL + path, opts);
@@ -539,6 +544,26 @@ async function startQuiz(){
   render();
 }
 
+function quizSpeechText(q, qi){
+  const letters = ['A','B','C','D','E','F'];
+  const opts = q.options.map((o,oi)=>`${letters[oi]}. ${o}`).join('  ');
+  return `Question ${qi+1}. ${q.q}  ${opts}`;
+}
+
+function speakQuizItem(btn, text){
+  const synth = window.speechSynthesis;
+  const wasSpeaking = btn.classList.contains('speaking');
+  synth.cancel();
+  document.querySelectorAll('.speak-btn.speaking').forEach(b=>b.classList.remove('speaking'));
+  if(wasSpeaking) return;
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.lang = 'en-US';
+  utter.rate = 0.95;
+  utter.onend = utter.onerror = ()=> btn.classList.remove('speaking');
+  btn.classList.add('speaking');
+  synth.speak(utter);
+}
+
 function screenQuiz(){
   if(STATE.loading) return el(`<div class="loading">${STATE.loadingMsg}</div>`);
   const c = el(`<div><button class="backlink" id="back">&larr; Back</button><div class="card"><h2 style="margin-bottom:14px;">Quick check: ${STATE.currentBook.title}</h2><div id="qs"></div><button class="btn" id="submitBtn">Submit answers</button></div></div>`);
@@ -548,7 +573,13 @@ function screenQuiz(){
     const qText = q.q_es
       ? `<div class="bilingual-pair"><span>${qi+1}. ${q.q}</span><span class="es">${q.q_es}</span></div>`
       : `${qi+1}. ${q.q}`;
-    const qDiv = el(`<div class="quiz-q"><div class="qtext">${qText}</div></div>`);
+    const qDiv = el(`<div class="quiz-q"><div class="qtext-row"><div class="qtext">${qText}</div><button type="button" class="speak-btn" aria-label="Read question aloud" title="Read aloud">🔊</button></div></div>`);
+    const speakBtn = qDiv.querySelector('.speak-btn');
+    if('speechSynthesis' in window){
+      speakBtn.onclick = ()=> speakQuizItem(speakBtn, quizSpeechText(q, qi));
+    } else {
+      speakBtn.style.display = 'none';
+    }
     q.options.forEach((opt,oi)=>{
       const optEs = q.options_es && q.options_es[oi];
       const optHtml = optEs
