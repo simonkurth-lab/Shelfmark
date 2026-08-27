@@ -18,10 +18,12 @@
   .wrap{max-width:1000px;margin:0 auto;padding:0 24px;width:100%;}
 
   /* ---- Nav ---- */
-  .nav{display:flex;align-items:center;padding:24px 0;}
+  .nav{display:flex;align-items:center;justify-content:space-between;padding:24px 0;}
   .brand{display:flex;align-items:center;gap:10px;}
   .brand .mark{width:36px;height:36px;border-radius:9px;background:linear-gradient(160deg,var(--forest),var(--forest-dark));display:flex;align-items:center;justify-content:center;color:var(--gold);font-family:'Baloo 2';font-weight:800;font-size:17px;flex:none;}
   .brand-name{font-size:21px;color:var(--forest-dark);}
+  .nav-teacher{font-size:13.5px;font-weight:800;color:var(--forest-dark);border:1.5px solid var(--line);padding:9px 16px;border-radius:10px;}
+  .nav-teacher:hover{border-color:var(--forest-dark);}
 
   /* ---- Hero ---- */
   .hero{flex:1;display:flex;flex-direction:column;align-items:center;gap:26px;padding:8px 0 56px;text-align:center;}
@@ -74,6 +76,7 @@
 <div class="wrap">
   <nav class="nav">
     <div class="brand"><div class="mark">P</div><div class="brand-name">Piki</div></div>
+    <a href="app.html?teacher=1" class="nav-teacher">Teacher dashboard</a>
   </nav>
 
   <section class="hero">
