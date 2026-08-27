@@ -66,6 +66,14 @@
   .loading{text-align:center;padding:30px 0;color:var(--muted);font-weight:700;}
   .loading::before{content:'';display:block;width:34px;height:34px;margin:0 auto 14px;border:4px solid var(--line);border-top-color:var(--coral);border-radius:50%;animation:spin .8s linear infinite;}
   @keyframes spin{to{transform:rotate(360deg);}}
+  .loading-slide{margin-top:24px;animation:fadeSlide .5s ease;}
+  @keyframes fadeSlide{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+  .loading-rank{display:flex;flex-direction:column;align-items:center;gap:3px;}
+  .loading-rank .lr-emoji{font-size:36px;line-height:1;}
+  .loading-rank .lr-name{font-family:'Baloo 2';font-weight:800;font-size:16px;color:var(--forest-dark);}
+  .loading-rank .lr-sub{font-size:12px;color:var(--muted);font-weight:600;}
+  .loading-quote{max-width:320px;margin:0 auto;font-family:'Baloo 2';font-weight:700;font-size:15px;color:var(--forest-dark);line-height:1.4;}
+  .loading-quote .lq-who{margin-top:8px;font-size:12px;color:var(--muted);font-weight:700;}
   .backlink{background:none;border:none;color:var(--forest-dark);font-weight:800;font-size:14px;cursor:pointer;padding:0;margin-bottom:14px;font-family:inherit;}
   .empty{text-align:center;padding:40px 10px;color:var(--muted);}
   .history-row{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--line);font-size:14px;}
@@ -272,6 +280,28 @@ function getRankInfo(points, words){
     wordsPct = Math.min(100, Math.round(((words - current.words) / (next.words - current.words)) * 100));
   }
   return { rankIdx, current, next, pointsPct: Math.max(0,pointsPct), wordsPct: Math.max(0,wordsPct) };
+}
+
+// Shown one at a time, alternating with READING_QUOTES, while a quiz is
+// being generated - turns the wait into a little "climb the ranks" preview.
+const READING_QUOTES = [
+  { text: 'The more that you read, the more things you will know.', who: 'Dr. Seuss' },
+  { text: 'Once you learn to read, you will be forever free.', who: 'Frederick Douglass' },
+  { text: 'A reader lives a thousand lives before he dies.', who: 'George R.R. Martin' },
+  { text: 'There is no friend as loyal as a book.', who: 'Ernest Hemingway' },
+  { text: 'Today a reader, tomorrow a leader.', who: 'Margaret Fuller' },
+  { text: 'If you are going to get anywhere in life, you have to read a lot of books.', who: 'Roald Dahl' },
+  { text: 'You can find magic wherever you look. Sit back, relax, all you need is a book.', who: 'Dr. Seuss' },
+  { text: 'Reading is essential for those who seek to rise above the ordinary.', who: 'Jim Rohn' },
+];
+
+function quizLoadingSlide(idx){
+  if(idx % 2 === 0){
+    const rank = RANKS[Math.floor(idx/2) % RANKS.length];
+    return `<div class="loading-slide"><div class="loading-rank"><div class="lr-emoji">${rank.emoji}</div><div class="lr-name">${rank.name}</div><div class="lr-sub">Keep reading to climb toward it</div></div></div>`;
+  }
+  const q = READING_QUOTES[Math.floor(idx/2) % READING_QUOTES.length];
+  return `<div class="loading-slide"><div class="loading-quote">"${q.text}"<div class="lq-who">— ${q.who}</div></div></div>`;
 }
 
 function el(html){ const d=document.createElement('div'); d.innerHTML=html.trim(); return d.firstChild; }
@@ -580,20 +610,31 @@ function screenQuizSetup(){
 
 async function startQuiz(){
   if(!isTestingHours()){ STATE.screen='book'; render(); return; }
-  STATE.loading = true; STATE.loadingMsg = 'Writing your quiz...'; render();
+  STATE.loading = true; STATE.loadingMsg = 'Writing your quiz...'; STATE.screen = 'quiz'; STATE.quizLoadingIdx = 0;
+  render();
+  // Rotate a rank/quote every ~2.6s so the wait for the AI-written quiz
+  // doubles as a little motivational moment instead of a bare spinner.
+  const slideTimer = setInterval(()=>{
+    STATE.quizLoadingIdx++;
+    if(STATE.loading) render();
+  }, 2600);
+  const minWait = new Promise(resolve=>setTimeout(resolve, 4500));
   const b = STATE.currentBook;
   const count = STATE.quizSetup.count;
   const grade = STATE.student.grade || '35';
   const challenge = STATE.quizSetup.challenge;
   const bilingual = !!STATE.quizSetup.bilingual;
-  const quiz = await api('/api/quiz', {
-    method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ olid: b.olid, title: b.title, author: b.author, summary: b.summary, count, grade, challenge, bilingual })
-  });
+  const [quiz] = await Promise.all([
+    api('/api/quiz', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ olid: b.olid, title: b.title, author: b.author, summary: b.summary, count, grade, challenge, bilingual })
+    }),
+    minWait
+  ]);
+  clearInterval(slideTimer);
   STATE.quiz = quiz;
   STATE.quizAnswers = {};
   STATE.loading = false;
-  STATE.screen = 'quiz';
   render();
 }
 
@@ -625,7 +666,7 @@ function speakQuizItem(btn, text){
 }
 
 function screenQuiz(){
-  if(STATE.loading) return el(`<div class="loading">${STATE.loadingMsg}</div>`);
+  if(STATE.loading) return el(`<div class="loading">${STATE.loadingMsg}${quizLoadingSlide(STATE.quizLoadingIdx||0)}</div>`);
   const c = el(`<div><button class="backlink" id="back">&larr; Back</button><div class="card"><h2 style="margin-bottom:14px;">Quick check: ${STATE.currentBook.title}</h2><div class="speed-row" id="speedRow"><span class="speed-label">🔊 Narrator speed:</span><div class="speed-btns" id="speedBtns"></div></div><div id="qs"></div><button class="btn" id="submitBtn">Submit answers</button></div></div>`);
   c.querySelector('#back').onclick = ()=>{ STATE.screen='book'; render(); };
   if('speechSynthesis' in window){
