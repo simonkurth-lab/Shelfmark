@@ -736,6 +736,10 @@ function shelfColor(title){
   return SHELF_COLORS[h % SHELF_COLORS.length];
 }
 
+function shelfSpine(title){
+  return el(`<div class="spine" style="background:${shelfColor(title)}">${title}</div>`);
+}
+
 function screenDashboard(){
   const s = STATE.student;
   const words = s.wordsRead||0;
@@ -764,9 +768,15 @@ function screenDashboard(){
       const tipTitle = h.title.replace(/"/g,'&quot;');
       const tile = el(`<div class="shelf-book" title="${tipTitle} — ${h.score}%${h.points!=null ? ' · +'+h.points+' pts' : ''} · ${h.date}"></div>`);
       if(h.cover_i){
-        tile.appendChild(el(`<img src="https://covers.openlibrary.org/b/id/${h.cover_i}-M.jpg" loading="lazy" alt="">`));
+        const img = document.createElement('img');
+        img.loading = 'lazy';
+        img.alt = '';
+        img.onerror = ()=> img.replaceWith(shelfSpine(h.title));
+        img.onload = ()=>{ if(img.naturalWidth <= 1) img.replaceWith(shelfSpine(h.title)); };
+        img.src = `https://covers.openlibrary.org/b/id/${h.cover_i}-M.jpg`;
+        tile.appendChild(img);
       } else {
-        tile.appendChild(el(`<div class="spine" style="background:${shelfColor(h.title)}">${h.title}</div>`));
+        tile.appendChild(shelfSpine(h.title));
       }
       tile.appendChild(el(`<span class="shelf-badge ${badgeCls}">${h.score}%</span>`));
       shelf.appendChild(tile);
