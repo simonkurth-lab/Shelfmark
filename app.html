@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Shelfmark — Reading Tracker</title>
+<title>Piki — Read. Grow. Climb.</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@400;600;700;800&display=optional" rel="stylesheet">
 <style>
@@ -228,7 +228,7 @@ const RANKS = [
   { name: 'High Camp',            emoji: '❄️', points: 1100, words: 180000 },
   { name: 'Legend of the Library',emoji: '🏛️', points: 1500, words: 250000 },
   { name: 'Summit Push',          emoji: '🚵', points: 2100, words: 350000 },
-  { name: 'Shelfmark Master',     emoji: '👑', points: 3000, words: 500000 },
+  { name: 'Piki Master',          emoji: '👑', points: 3000, words: 500000 },
   { name: 'Everest Approach',     emoji: '🌄', points: 4200, words: 700000 },
   { name: 'Summit of Everest',    emoji: '🏆', points: 6000, words: 1000000 },
 ];
@@ -292,7 +292,7 @@ function buildScreen(){
 
 function topbar(){
   const bar = el(`<div class="topbar"></div>`);
-  const brand = el(`<a href="index.html" class="brand" style="text-decoration:none;color:inherit;cursor:pointer;"><div class="mark">S</div><div class="brand-name">Shelfmark</div></a>`);
+  const brand = el(`<a href="index.html" class="brand" style="text-decoration:none;color:inherit;cursor:pointer;"><div class="mark">P</div><div class="brand-name">Piki</div></a>`);
   bar.appendChild(brand);
   if(STATE.alias){
     const who = el(`<div class="who">${STATE.alias} <button id="switchBtn">switch</button></div>`);
