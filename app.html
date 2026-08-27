@@ -940,12 +940,14 @@ function screenTeacher(){
     groups.forEach(g=>{
       const scores = g.students.map(s=>studentStats(s).avgScore).filter(v=>v!=null);
       const classAvg = scores.length ? Math.round(scores.reduce((a,b)=>a+b,0)/scores.length) : null;
-      const groupCard = el(`<div class="card class-group"><div class="class-group-head"><h3>${g.label}</h3><span class="muted">${g.students.length} student${g.students.length===1?'':'s'}${classAvg!=null ? ' · class avg '+classAvg+'%' : ''}</span></div><div style="overflow-x:auto;"><table class="roster-table"><thead><tr><th>Alias</th><th>PIN</th><th>Books</th><th>Avg score</th><th>Points</th><th>Rank</th></tr></thead><tbody></tbody></table></div></div>`);
-      const tbody = groupCard.querySelector('tbody');
-      g.students.forEach(s=>{
+      // Built as one HTML string (not appended row-by-row) because a bare
+      // <tr>/<td> set via innerHTML on a div outside a real <table> parsing
+      // context gets silently dropped by the browser, leaving just text.
+      const rowsHtml = g.students.map(s=>{
         const stats = studentStats(s);
-        tbody.appendChild(el(`<tr><td>${s.alias}</td><td>${s.pin}</td><td>${stats.books}</td><td>${stats.avgScore!=null ? stats.avgScore+'%' : '—'}</td><td>${s.points||0}</td><td>${stats.rank.current.emoji} ${stats.rank.current.name}</td></tr>`));
-      });
+        return `<tr><td>${s.alias}</td><td>${s.pin}</td><td>${stats.books}</td><td>${stats.avgScore!=null ? stats.avgScore+'%' : '—'}</td><td>${s.points||0}</td><td>${stats.rank.current.emoji} ${stats.rank.current.name}</td></tr>`;
+      }).join('');
+      const groupCard = el(`<div class="card class-group"><div class="class-group-head"><h3>${g.label}</h3><span class="muted">${g.students.length} student${g.students.length===1?'':'s'}${classAvg!=null ? ' · class avg '+classAvg+'%' : ''}</span></div><div style="overflow-x:auto;"><table class="roster-table"><thead><tr><th>Alias</th><th>PIN</th><th>Books</th><th>Avg score</th><th>Points</th><th>Rank</th></tr></thead><tbody>${rowsHtml}</tbody></table></div></div>`);
       groupsDiv.appendChild(groupCard);
     });
   }
