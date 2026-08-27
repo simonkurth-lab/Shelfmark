@@ -183,6 +183,7 @@ const STATE = {
   quizSetup: { count: 7, confidence: 'medium', challenge: 'onlevel', bilingual: 0 },
   speechRate: 0.95,
   resultAnimated: false,
+  dailyLimitUnlocked: false, dailyLimitError: '',
 };
 
 // ---------- Points system ----------
@@ -241,6 +242,23 @@ function isTestingHours(){
   // const now = new Date();
   // const minutes = now.getHours()*60 + now.getMinutes();
   // return minutes >= TESTING_START_MIN && minutes <= TESTING_END_MIN;
+}
+
+// A generous daily reading budget in words - a whole short novel's worth.
+// Crossing it in one day (e.g. quizzing on several books back-to-back)
+// usually means a kid is speed-quizzing on books they haven't actually
+// read, so it requires a teacher passcode to keep going that day.
+const DAILY_WORD_LIMIT = 30000;
+
+function wordsReadToday(history){
+  const today = new Date().toISOString().slice(0,10);
+  return (history||[]).filter(h=>h.date===today).reduce((sum,h)=>sum+(h.words||0),0);
+}
+
+function overDailyLimit(book){
+  if(STATE.dailyLimitUnlocked) return false;
+  const soFar = wordsReadToday(STATE.student.history);
+  return (soFar + (book.wordEstimate||0)) > DAILY_WORD_LIMIT;
 }
 
 function findPriorAttempt(history, book){
@@ -346,6 +364,7 @@ function buildScreen(){
   else if(STATE.screen==='home') body = screenHome();
   else if(STATE.screen==='search') body = screenSearch();
   else if(STATE.screen==='book') body = screenBook();
+  else if(STATE.screen==='dailyLimit') body = screenDailyLimit();
   else if(STATE.screen==='quizSetup') body = screenQuizSetup();
   else if(STATE.screen==='quiz') body = screenQuiz();
   else if(STATE.screen==='result') body = screenResult();
@@ -373,6 +392,7 @@ function topbar(){
 function logout(){
   STATE.screen='login'; STATE.alias=null; STATE.student=null; STATE.rosterLoaded=false;
   STATE.loginMode='pick'; STATE.pendingAlias=null; STATE.loginError='';
+  STATE.dailyLimitUnlocked=false; STATE.dailyLimitError='';
   render();
 }
 
@@ -557,10 +577,36 @@ function screenBook(){
   const c = el(`<div><button class="backlink" id="back">&larr; Back to search</button><div class="card"><h2>${b.title}</h2><p class="muted" style="margin:2px 0 10px;">${b.author}</p>${tag ? `<span class="pill">${tag}</span>` : ''}<span class="pill gold">${b.genre||'Fiction'}</span><div class="stat-row"><div class="stat"><div class="num">${b.wordEstimate ? b.wordEstimate.toLocaleString() : '—'}</div><div class="lbl">Est. Words</div></div><div class="stat"><div class="num">${b.pages || '—'}</div><div class="lbl">Pages</div></div></div><p style="line-height:1.5;">${b.summary}</p>${actionHtml}</div></div>`);
   c.querySelector('#back').onclick = ()=>{ STATE.screen='search'; render(); };
   const quizBtn = c.querySelector('#quizBtn');
-  if(quizBtn) quizBtn.onclick = ()=>{ STATE.screen='quizSetup'; render(); };
+  if(quizBtn) quizBtn.onclick = ()=>{
+    STATE.screen = overDailyLimit(b) ? 'dailyLimit' : 'quizSetup';
+    render();
+  };
   const anotherBtn = c.querySelector('#anotherBtn');
   if(anotherBtn) anotherBtn.onclick = ()=>{ STATE.screen='search'; STATE.searchResults=[]; STATE.searchQuery=''; render(); };
   return c;
+}
+
+function screenDailyLimit(){
+  const soFar = wordsReadToday(STATE.student.history);
+  const c = el(`<div><button class="backlink" id="back">&larr; Back</button><div class="card"><h2 style="margin-bottom:6px;">Whoa, that's a lot of reading! 📚</h2><p class="muted" style="margin:0 0 14px;">You've already logged about ${soFar.toLocaleString()} words today, and this book would push you past ${DAILY_WORD_LIMIT.toLocaleString()} words for one day. If that's really true, ask your teacher for the passcode to keep going.</p><input type="password" id="pc" placeholder="Teacher passcode" /><button class="btn coral" id="goBtn">Unlock</button><div id="err"></div></div></div>`);
+  c.querySelector('#back').onclick = ()=>{ STATE.screen='book'; STATE.dailyLimitError=''; render(); };
+  const pcInput = c.querySelector('#pc');
+  const tryUnlock = ()=> unlockDailyLimit(pcInput.value);
+  pcInput.addEventListener('keydown', e=>{ if(e.key==='Enter') tryUnlock(); });
+  c.querySelector('#goBtn').onclick = tryUnlock;
+  if(STATE.dailyLimitError) c.querySelector('#err').appendChild(el(`<p class="error-text">${STATE.dailyLimitError}</p>`));
+  setTimeout(()=>pcInput.focus(), 0);
+  return c;
+}
+
+async function unlockDailyLimit(passcode){
+  if(!passcode){ STATE.dailyLimitError='Enter the teacher passcode.'; render(); return; }
+  const resp = await postJSON('/api/teacher/verify', { passcode });
+  if(!resp.ok){ STATE.dailyLimitError='Wrong passcode.'; render(); return; }
+  STATE.dailyLimitUnlocked = true;
+  STATE.dailyLimitError = '';
+  STATE.screen = 'quizSetup';
+  render();
 }
 
 function screenQuizSetup(){
