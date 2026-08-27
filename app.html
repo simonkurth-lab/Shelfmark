@@ -127,7 +127,32 @@
 // Point this at your Cloudflare Worker
 const WORKER_URL = 'https://api.readpiki.com';
 
+// Edit this list to match your actual classes/periods. `code` is stored
+// forever once students sign up under it, so avoid renaming codes later -
+// change the `label` instead if you just want the display text to change.
+const CLASSES = [
+  { code: 'period1', label: 'Period 1' },
+  { code: 'period2', label: 'Period 2' },
+  { code: 'period3', label: 'Period 3' },
+  { code: 'period4', label: 'Period 4' },
+];
+
+function getSavedClass(){
+  try { return localStorage.getItem('piki_class') || null; } catch(e){ return null; }
+}
+function saveClass(code){
+  try { localStorage.setItem('piki_class', code); } catch(e){}
+}
+function clearSavedClass(){
+  try { localStorage.removeItem('piki_class'); } catch(e){}
+}
+function classLabel(code){
+  const c = CLASSES.find(x=>x.code===code);
+  return c ? c.label : (code || 'Unassigned');
+}
+
 const STATE = {
+  classCode: getSavedClass(),
   screen: 'login', alias: null, student: null,
   roster: [], rosterLoaded: false,
   loginMode: 'pick', pendingAlias: null, loginError: '',
@@ -261,10 +286,10 @@ function postJSON(path, body){
 }
 
 async function loadRoster(){
-  return api('/api/roster');
+  return api('/api/roster?class=' + encodeURIComponent(STATE.classCode));
 }
 async function saveStudent(alias, data){
-  await postJSON('/api/student/' + encodeURIComponent(alias), data);
+  await postJSON('/api/student/' + encodeURIComponent(alias) + '?class=' + encodeURIComponent(STATE.classCode), data);
 }
 
 // ---------- Screens ----------
@@ -273,7 +298,8 @@ function buildScreen(){
   const wrap = el(`<div></div>`);
   wrap.appendChild(topbar());
   let body;
-  if(STATE.screen==='login') body = screenLogin();
+  if(!STATE.classCode) body = screenClassPick();
+  else if(STATE.screen==='login') body = screenLogin();
   else if(STATE.screen==='home') body = screenHome();
   else if(STATE.screen==='search') body = screenSearch();
   else if(STATE.screen==='book') body = screenBook();
@@ -308,11 +334,22 @@ function logout(){
   render();
 }
 
+function screenClassPick(){
+  const c = el(`<div class="card"><h2 style="margin-bottom:6px;">Which class are you in?</h2><p class="muted" style="margin:0 0 14px;">Pick your class so you see the right classmates.</p><div id="classCol"></div></div>`);
+  const col = c.querySelector('#classCol');
+  CLASSES.forEach(cls=>{
+    const btn = el(`<button type="button" class="btn secondary">${cls.label}</button>`);
+    btn.onclick = ()=>{ STATE.classCode = cls.code; saveClass(cls.code); STATE.rosterLoaded = false; render(); };
+    col.appendChild(btn);
+  });
+  return c;
+}
+
 function screenLogin(){
   if(STATE.loginMode==='pin') return screenLoginPin();
   if(STATE.loginMode==='signup') return screenSignup();
 
-  const c = el(`<div><a href="index.html" class="backlink" style="text-decoration:none;display:inline-block;">&larr; Back to home</a><div class="card"><h2 style="margin-bottom:6px;">Who's reading?</h2><p class="muted" style="margin:0 0 14px;">Pick your alias below.</p><div id="names"></div><div class="divider">New here?</div><button class="btn secondary" id="newBtn">Create an alias</button><button class="btn secondary" id="teacherBtn">Teacher dashboard</button></div></div>`);
+  const c = el(`<div><a href="index.html" class="backlink" style="text-decoration:none;display:inline-block;">&larr; Back to home</a><div class="card"><h2 style="margin-bottom:6px;">Who's reading?</h2><p class="muted" style="margin:0 0 14px;">Pick your alias below — ${classLabel(STATE.classCode)}.</p><div id="names"></div><div class="divider">New here?</div><button class="btn secondary" id="newBtn">Create an alias</button><button class="btn secondary" id="teacherBtn">Teacher dashboard</button><button class="backlink" id="switchClass" style="margin-top:14px;margin-bottom:0;">Not your class? Switch</button></div></div>`);
   const namesDiv = c.querySelector('#names');
   if(!STATE.rosterLoaded){
     namesDiv.innerHTML = `<div class="loading">Loading class list...</div>`;
@@ -328,6 +365,7 @@ function screenLogin(){
   }
   c.querySelector('#newBtn').onclick = ()=>{ STATE.loginMode='signup'; STATE.signupAlias=''; STATE.signupPin=''; STATE.loginError=''; render(); };
   c.querySelector('#teacherBtn').onclick = ()=>{ STATE.screen='teacher'; render(); };
+  c.querySelector('#switchClass').onclick = ()=>{ STATE.classCode=null; clearSavedClass(); STATE.rosterLoaded=false; render(); };
   return c;
 }
 
@@ -369,7 +407,7 @@ async function doSignup(alias, pin){
   if(!alias){ STATE.loginError='Pick an alias first.'; render(); return; }
   if(!/^\d{4}$/.test(pin||'')){ STATE.loginError='PIN must be exactly 4 digits.'; render(); return; }
   STATE.loading=true; STATE.loadingMsg='Setting up your shelf...'; render();
-  const resp = await postJSON('/api/signup', { alias, pin, grade: STATE.signupGrade });
+  const resp = await postJSON('/api/signup', { alias, pin, grade: STATE.signupGrade, classCode: STATE.classCode });
   STATE.loading=false;
   if(resp.error==='alias_taken'){ STATE.loginError='That alias is taken — try another.'; render(); return; }
   if(resp.error){ STATE.loginError='Something went wrong. Try again.'; render(); return; }
@@ -383,7 +421,7 @@ async function doSignup(alias, pin){
 async function doLogin(alias, pin){
   if(!/^\d{4}$/.test(pin||'')){ STATE.loginError='Enter your 4-digit PIN.'; render(); return; }
   STATE.loading=true; STATE.loadingMsg='Loading your bookshelf...'; render();
-  const resp = await postJSON('/api/login', { alias, pin });
+  const resp = await postJSON('/api/login', { alias, pin, classCode: STATE.classCode });
   STATE.loading=false;
   if(resp.error==='wrong_pin'){ STATE.loginError='Wrong PIN — try again.'; render(); return; }
   if(resp.error){ STATE.loginError='Could not find that alias.'; render(); return; }
@@ -801,7 +839,7 @@ function screenTeacher(){
   if(rows.length===0){ rosterDiv.innerHTML = `<div class="empty">No students yet.</div>`; }
   else {
     rows.forEach(s=>{
-      rosterDiv.appendChild(el(`<div class="roster-row"><span>${s.alias} <span class="muted">PIN ${s.pin}</span></span><span class="pill">${(s.history||[]).length} books · ${s.points||0} pts</span></div>`));
+      rosterDiv.appendChild(el(`<div class="roster-row"><span>${s.alias} <span class="muted">PIN ${s.pin} · ${classLabel(s.classCode)}</span></span><span class="pill">${(s.history||[]).length} books · ${s.points||0} pts</span></div>`));
     });
   }
   return c;
