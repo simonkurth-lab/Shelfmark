@@ -63,6 +63,7 @@
   .speed-btn.selected{border-color:var(--forest);background:#EEF4F1;color:var(--forest-dark);}
   .opt{display:block;width:100%;text-align:left;padding:11px 14px;border-radius:10px;border:1.5px solid var(--line);background:#fff;margin-bottom:8px;cursor:pointer;font-family:'Nunito';font-weight:600;font-size:14.5px;color:var(--ink);}
   .opt.selected{border-color:var(--forest);background:#EEF4F1;}
+  .opt.reading{border-color:var(--coral);background:#FDF2ED;box-shadow:0 0 0 2px rgba(232,115,74,0.2);}
   .loading{text-align:center;padding:30px 0;color:var(--muted);font-weight:700;}
   .loading::before{content:'';display:block;width:34px;height:34px;margin:0 auto 14px;border:4px solid var(--line);border-top-color:var(--coral);border-radius:50%;animation:spin .8s linear infinite;}
   @keyframes spin{to{transform:rotate(360deg);}}
@@ -305,7 +306,7 @@ function quizLoadingSlide(idx){
 }
 
 function el(html){ const d=document.createElement('div'); d.innerHTML=html.trim(); return d.firstChild; }
-function render(){ if('speechSynthesis' in window) window.speechSynthesis.cancel(); document.getElementById('app').innerHTML=''; document.getElementById('app').appendChild(buildScreen()); }
+function render(){ stopQuizSpeech(); document.getElementById('app').innerHTML=''; document.getElementById('app').appendChild(buildScreen()); }
 
 async function api(path, opts){
   const res = await fetch(WORKER_URL + path, opts);
@@ -645,24 +646,46 @@ const SPEECH_RATES = [
   { label: 'Fast', rate: 1.25 },
 ];
 
-function quizSpeechText(q, qi){
-  const letters = ['A','B','C','D','E','F'];
-  const opts = q.options.map((o,oi)=>`${letters[oi]}. ${o}`).join('  ');
-  return `Question ${qi+1}. ${q.q}  ${opts}`;
+let speechToken = 0;
+function stopQuizSpeech(){
+  if(!('speechSynthesis' in window)) return;
+  speechToken++;
+  window.speechSynthesis.cancel();
+  document.querySelectorAll('.speak-btn.speaking').forEach(b=>b.classList.remove('speaking'));
+  document.querySelectorAll('.opt.reading').forEach(o=>o.classList.remove('reading'));
 }
 
-function speakQuizItem(btn, text){
-  const synth = window.speechSynthesis;
+// Speaks the question, then each answer choice as its own utterance (rather
+// than one long block) so the currently-read choice can be highlighted as
+// it's spoken.
+function speakQuizItem(btn, qDiv, q, qi){
   const wasSpeaking = btn.classList.contains('speaking');
-  synth.cancel();
-  document.querySelectorAll('.speak-btn.speaking').forEach(b=>b.classList.remove('speaking'));
+  stopQuizSpeech();
   if(wasSpeaking) return;
-  const utter = new SpeechSynthesisUtterance(text);
-  utter.lang = 'en-US';
-  utter.rate = STATE.speechRate;
-  utter.onend = utter.onerror = ()=> btn.classList.remove('speaking');
+
+  const myToken = speechToken;
+  const letters = ['A','B','C','D','E','F'];
+  const optEls = qDiv.querySelectorAll('.opt');
+  const parts = [{ text: `Question ${qi+1}. ${q.q}` }];
+  q.options.forEach((opt,oi)=>{ parts.push({ text: `${letters[oi]}. ${opt}`, el: optEls[oi] }); });
+
   btn.classList.add('speaking');
-  synth.speak(utter);
+  let i = 0;
+  function speakNext(){
+    if(myToken !== speechToken) return; // superseded by a stop or new playback
+    if(i >= parts.length){ btn.classList.remove('speaking'); return; }
+    const part = parts[i++];
+    const utter = new SpeechSynthesisUtterance(part.text);
+    utter.lang = 'en-US';
+    utter.rate = STATE.speechRate;
+    if(part.el) utter.onstart = ()=>{ if(myToken===speechToken) part.el.classList.add('reading'); };
+    utter.onend = utter.onerror = ()=>{
+      if(part.el) part.el.classList.remove('reading');
+      speakNext();
+    };
+    window.speechSynthesis.speak(utter);
+  }
+  speakNext();
 }
 
 function screenQuiz(){
@@ -687,7 +710,7 @@ function screenQuiz(){
     const qDiv = el(`<div class="quiz-q"><div class="qtext-row"><div class="qtext">${qText}</div><button type="button" class="speak-btn" aria-label="Read question aloud" title="Read aloud">🔊</button></div></div>`);
     const speakBtn = qDiv.querySelector('.speak-btn');
     if('speechSynthesis' in window){
-      speakBtn.onclick = ()=> speakQuizItem(speakBtn, quizSpeechText(q, qi));
+      speakBtn.onclick = ()=> speakQuizItem(speakBtn, qDiv, q, qi);
     } else {
       speakBtn.style.display = 'none';
     }
