@@ -178,10 +178,11 @@ function lengthTag(pages){
 const TESTING_START_MIN = 7*60 + 40;  // 7:40 AM
 const TESTING_END_MIN = 14*60 + 40;   // 2:40 PM
 function isTestingHours(){
-  if(new URLSearchParams(location.search).get('preview') === '1') return true; // teacher testing bypass
-  const now = new Date();
-  const minutes = now.getHours()*60 + now.getMinutes();
-  return minutes >= TESTING_START_MIN && minutes <= TESTING_END_MIN;
+  return true; // time window disabled while developing after hours — restore the check below before going live
+  // if(new URLSearchParams(location.search).get('preview') === '1') return true; // teacher testing bypass
+  // const now = new Date();
+  // const minutes = now.getHours()*60 + now.getMinutes();
+  // return minutes >= TESTING_START_MIN && minutes <= TESTING_END_MIN;
 }
 
 function findPriorAttempt(history, book){
