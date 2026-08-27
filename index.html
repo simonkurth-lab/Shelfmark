@@ -47,10 +47,17 @@
   .ranks{padding:8px 0 64px;}
   .rank-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;}
   .rank-card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px 10px;text-align:center;}
+  .rank-card summary{cursor:pointer;list-style:none;padding:0;margin:0;}
+  .rank-card summary::-webkit-details-marker{display:none;}
+  .rank-card summary::marker{content:'';}
   .rank-card .remoji{font-size:28px;display:block;margin-bottom:8px;}
   .rank-card .rname{font-family:'Baloo 2';font-weight:700;font-size:13px;color:var(--forest-dark);line-height:1.25;}
+  .rank-card .rarrow{display:block;margin-top:4px;font-size:10px;color:var(--muted);transition:transform .2s ease;}
+  .rank-card[open] .rarrow{transform:rotate(180deg);}
+  .rank-card .rreq{margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);font-size:11.5px;color:var(--muted);font-weight:700;}
   .rank-card.summit{background:linear-gradient(135deg,var(--gold),#E8B84D);border-color:transparent;}
   .rank-card.summit .rname{color:#4A3300;}
+  .rank-card.summit .rarrow,.rank-card.summit .rreq{color:#4A3300;opacity:.75;border-top-color:rgba(74,51,0,0.25);}
 
   footer{text-align:center;padding:0 0 32px;color:var(--muted);font-size:12.5px;}
 
@@ -92,24 +99,24 @@
   <section class="ranks">
     <div class="section-head">
       <h2>Climb the ranks</h2>
-      <p>Every book you finish earns points and words read — both push you up the mountain, all the way to the summit of Everest.</p>
+      <p>Every book you finish earns points and words read — both push you up the mountain, all the way to the summit of Everest. Tap a rank to see what it takes.</p>
     </div>
     <div class="rank-grid">
-      <div class="rank-card"><span class="remoji">📖</span><div class="rname">Page Turner</div></div>
-      <div class="rank-card"><span class="remoji">🐛</span><div class="rname">Bookworm</div></div>
-      <div class="rank-card"><span class="remoji">🏃</span><div class="rname">Story Chaser</div></div>
-      <div class="rank-card"><span class="remoji">🥾</span><div class="rname">Trailblazer</div></div>
-      <div class="rank-card"><span class="remoji">⛺</span><div class="rname">Base Camp</div></div>
-      <div class="rank-card"><span class="remoji">🧗</span><div class="rname">Climber</div></div>
-      <div class="rank-card"><span class="remoji">⭐</span><div class="rname">Chapter Champion</div></div>
-      <div class="rank-card"><span class="remoji">🏔️</span><div class="rname">Camp One</div></div>
-      <div class="rank-card"><span class="remoji">🏔️</span><div class="rname">Camp Two</div></div>
-      <div class="rank-card"><span class="remoji">❄️</span><div class="rname">High Camp</div></div>
-      <div class="rank-card"><span class="remoji">🏛️</span><div class="rname">Legend of the Library</div></div>
-      <div class="rank-card"><span class="remoji">🚵</span><div class="rname">Summit Push</div></div>
-      <div class="rank-card"><span class="remoji">👑</span><div class="rname">Piki Master</div></div>
-      <div class="rank-card"><span class="remoji">🌄</span><div class="rname">Everest Approach</div></div>
-      <div class="rank-card summit"><span class="remoji">🏆</span><div class="rname">Summit of Everest</div></div>
+      <details class="rank-card"><summary><span class="remoji">📖</span><div class="rname">Page Turner</div><span class="rarrow">▾</span></summary><div class="rreq">Where every reader starts</div></details>
+      <details class="rank-card"><summary><span class="remoji">🐛</span><div class="rname">Bookworm</div><span class="rarrow">▾</span></summary><div class="rreq">20 pts or 3,000 words</div></details>
+      <details class="rank-card"><summary><span class="remoji">🏃</span><div class="rname">Story Chaser</div><span class="rarrow">▾</span></summary><div class="rreq">50 pts or 8,000 words</div></details>
+      <details class="rank-card"><summary><span class="remoji">🥾</span><div class="rname">Trailblazer</div><span class="rarrow">▾</span></summary><div class="rreq">90 pts or 15,000 words</div></details>
+      <details class="rank-card"><summary><span class="remoji">⛺</span><div class="rname">Base Camp</div><span class="rarrow">▾</span></summary><div class="rreq">150 pts or 25,000 words</div></details>
+      <details class="rank-card"><summary><span class="remoji">🧗</span><div class="rname">Climber</div><span class="rarrow">▾</span></summary><div class="rreq">240 pts or 40,000 words</div></details>
+      <details class="rank-card"><summary><span class="remoji">⭐</span><div class="rname">Chapter Champion</div><span class="rarrow">▾</span></summary><div class="rreq">350 pts or 60,000 words</div></details>
+      <details class="rank-card"><summary><span class="remoji">🏔️</span><div class="rname">Camp One</div><span class="rarrow">▾</span></summary><div class="rreq">550 pts or 90,000 words</div></details>
+      <details class="rank-card"><summary><span class="remoji">🏔️</span><div class="rname">Camp Two</div><span class="rarrow">▾</span></summary><div class="rreq">800 pts or 130,000 words</div></details>
+      <details class="rank-card"><summary><span class="remoji">❄️</span><div class="rname">High Camp</div><span class="rarrow">▾</span></summary><div class="rreq">1,100 pts or 180,000 words</div></details>
+      <details class="rank-card"><summary><span class="remoji">🏛️</span><div class="rname">Legend of the Library</div><span class="rarrow">▾</span></summary><div class="rreq">1,500 pts or 250,000 words</div></details>
+      <details class="rank-card"><summary><span class="remoji">🚵</span><div class="rname">Summit Push</div><span class="rarrow">▾</span></summary><div class="rreq">2,100 pts or 350,000 words</div></details>
+      <details class="rank-card"><summary><span class="remoji">👑</span><div class="rname">Piki Master</div><span class="rarrow">▾</span></summary><div class="rreq">3,000 pts or 500,000 words</div></details>
+      <details class="rank-card"><summary><span class="remoji">🌄</span><div class="rname">Everest Approach</div><span class="rarrow">▾</span></summary><div class="rreq">4,200 pts or 700,000 words</div></details>
+      <details class="rank-card summit"><summary><span class="remoji">🏆</span><div class="rname">Summit of Everest</div><span class="rarrow">▾</span></summary><div class="rreq">6,000 pts or 1,000,000 words</div></details>
     </div>
   </section>
 
