@@ -189,6 +189,7 @@ const STATE = {
   speechRate: 0.95,
   resultAnimated: false,
   dailyLimitUnlocked: false, dailyLimitError: '',
+  manualTitle: '', manualAuthor: '', manualError: '',
 };
 
 // ---------- Points system ----------
@@ -369,6 +370,7 @@ function buildScreen(){
   else if(STATE.screen==='login') body = screenLogin();
   else if(STATE.screen==='home') body = screenHome();
   else if(STATE.screen==='search') body = screenSearch();
+  else if(STATE.screen==='manualBook') body = screenManualBook();
   else if(STATE.screen==='book') body = screenBook();
   else if(STATE.screen==='dailyLimit') body = screenDailyLimit();
   else if(STATE.screen==='quizSetup') body = screenQuizSetup();
@@ -521,11 +523,62 @@ function screenSearch(){
   else if(STATE.searchResults.length===0){ resultsDiv.innerHTML = `<div class="empty">Search for a title or author to get started.</div>`; }
   else {
     STATE.searchResults.forEach(b=>{
-      const row = el(`<div class="book-row">${b.cover_i ? `<img class="cover" src="https://covers.openlibrary.org/b/id/${b.cover_i}-S.jpg">` : `<div class="cover"></div>`}<div><div class="book-title">${b.title}</div><div class="book-author">${(b.author_name||['Unknown']).join(', ')}</div></div></div>`);
+      const coverSrc = b.coverUrl || (b.cover_i ? `https://covers.openlibrary.org/b/id/${b.cover_i}-S.jpg` : null);
+      const row = el(`<div class="book-row">${coverSrc ? `<img class="cover" src="${coverSrc}">` : `<div class="cover"></div>`}<div><div class="book-title">${b.title}</div><div class="book-author">${(b.author_name||['Unknown']).join(', ')}</div></div></div>`);
       row.onclick = ()=> openBook(b);
       resultsDiv.appendChild(row);
     });
   }
+  if(!STATE.loading){
+    const manualBtn = el(`<button class="backlink" id="manualBtn" style="margin-top:14px;margin-bottom:0;">Can't find your book? Add it yourself &rarr;</button>`);
+    manualBtn.onclick = ()=>{ STATE.screen='manualBook'; STATE.manualTitle=''; STATE.manualAuthor=''; STATE.manualError=''; render(); };
+    resultsDiv.appendChild(manualBtn);
+  }
+  return c;
+}
+
+// Open Library's catalog has real gaps, especially for smaller/newer
+// children's nonfiction - it can genuinely return zero results for a book
+// that exists. When that happens, fall back to Google Books, which pulls
+// from publisher/distributor catalogs and has much broader coverage.
+async function searchGoogleBooks(q){
+  try{
+    const resp = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&maxResults=8&printType=books`);
+    const data = await resp.json();
+    return (data.items||[]).filter(it=>it.volumeInfo && it.volumeInfo.title).map(it=>{
+      const vi = it.volumeInfo;
+      const year = vi.publishedDate ? parseInt(vi.publishedDate.slice(0,4), 10) : null;
+      const cover = vi.imageLinks && (vi.imageLinks.thumbnail || vi.imageLinks.smallThumbnail);
+      return {
+        title: vi.title + (vi.subtitle ? ': ' + vi.subtitle : ''),
+        author_name: vi.authors || ['Unknown'],
+        key: '/works/gbooks:' + it.id,
+        number_of_pages_median: vi.pageCount || null,
+        first_publish_year: isNaN(year) ? null : year,
+        coverUrl: cover ? cover.replace(/^http:/, 'https:') : null,
+        description: vi.description || '',
+        source: 'gbooks',
+      };
+    });
+  }catch(e){ return []; }
+}
+
+function screenManualBook(){
+  const c = el(`<div><button class="backlink" id="back">&larr; Back</button><div class="card"><h2 style="margin-bottom:6px;">Add your book</h2><p class="muted" style="margin:0 0 14px;">Can't find it in search? Type the title and author yourself and we'll still write you a quiz.</p><input type="text" id="titleInput" placeholder="Book title" maxlength="120" value="${STATE.manualTitle.replace(/"/g,'')}" /><br><br><input type="text" id="authorInput" placeholder="Author (optional)" maxlength="80" value="${STATE.manualAuthor.replace(/"/g,'')}" /><button class="btn coral" id="goBtn" style="margin-top:16px;">Continue</button><div id="err"></div></div></div>`);
+  c.querySelector('#back').onclick = ()=>{ STATE.screen='search'; STATE.manualError=''; render(); };
+  const titleInput = c.querySelector('#titleInput');
+  const authorInput = c.querySelector('#authorInput');
+  titleInput.addEventListener('input', ()=>{ STATE.manualTitle = titleInput.value; });
+  authorInput.addEventListener('input', ()=>{ STATE.manualAuthor = authorInput.value; });
+  const tryGo = ()=>{
+    const title = titleInput.value.trim();
+    if(!title){ STATE.manualError='Enter the book title.'; render(); return; }
+    openManualBook(title, authorInput.value.trim());
+  };
+  authorInput.addEventListener('keydown', e=>{ if(e.key==='Enter') tryGo(); });
+  c.querySelector('#goBtn').onclick = tryGo;
+  if(STATE.manualError) c.querySelector('#err').appendChild(el(`<p class="error-text">${STATE.manualError}</p>`));
+  setTimeout(()=>titleInput.focus(), 0);
   return c;
 }
 
@@ -537,7 +590,9 @@ async function runSearch(){
   try{
     const resp = await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(q)}&fields=title,author_name,key,number_of_pages_median,first_publish_year,cover_i&limit=10`);
     const data = await resp.json();
-    STATE.searchResults = (data.docs||[]).filter(d=>d.title).slice(0,8);
+    let results = (data.docs||[]).filter(d=>d.title).slice(0,8);
+    if(results.length===0) results = await searchGoogleBooks(q);
+    STATE.searchResults = results;
   }catch(e){ STATE.searchResults = []; }
   STATE.loading = false;
   render();
@@ -546,12 +601,14 @@ async function runSearch(){
 async function openBook(b){
   STATE.loading = true; STATE.loadingMsg = 'Reading up on this book...'; render();
   const olid = b.key.replace('/works/','');
-  let description = '';
-  try{
-    const workResp = await fetch(`https://openlibrary.org${b.key}.json`);
-    const work = await workResp.json();
-    description = typeof work.description === 'string' ? work.description : (work.description && work.description.value) || '';
-  }catch(e){}
+  let description = b.description || '';
+  if(b.source !== 'gbooks'){
+    try{
+      const workResp = await fetch(`https://openlibrary.org${b.key}.json`);
+      const work = await workResp.json();
+      description = typeof work.description === 'string' ? work.description : (work.description && work.description.value) || '';
+    }catch(e){}
+  }
 
   const pages = b.number_of_pages_median || null;
 
@@ -563,7 +620,27 @@ async function openBook(b){
   STATE.currentBook = {
     title: b.title, author: (b.author_name||['Unknown']).join(', '),
     pages, wordEstimate: meta.estimatedWordCount || null, summary: meta.summary, genre: meta.genre,
-    olid, cover_i: b.cover_i || null
+    olid, cover_i: b.cover_i || null, coverUrl: b.coverUrl || null
+  };
+  STATE.loading = false;
+  STATE.screen = 'book';
+  render();
+}
+
+async function openManualBook(title, author){
+  STATE.loading = true; STATE.loadingMsg = 'Reading up on this book...'; render();
+  const slug = s=>(s||'').toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,60);
+  const olid = 'manual:' + slug(title) + (author ? '-' + slug(author) : '');
+
+  const meta = await api('/api/book-meta', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ olid, title, author: author || 'Unknown', year: null, description: '' })
+  });
+
+  STATE.currentBook = {
+    title, author: author || 'Unknown',
+    pages: null, wordEstimate: meta.estimatedWordCount || null, summary: meta.summary, genre: meta.genre,
+    olid, cover_i: null, coverUrl: null
   };
   STATE.loading = false;
   STATE.screen = 'book';
@@ -823,7 +900,7 @@ async function submitQuiz(){
   const prevWords = s.wordsRead||0;
   const prevRankIdx = getRankInfo(prevPoints, prevWords).rankIdx;
 
-  s.history.unshift({ title:b.title, olid:b.olid, cover_i:b.cover_i||null, score:pct, date:new Date().toISOString().slice(0,10), points:earnedPoints, count, confidence, words:b.wordEstimate||0 });
+  s.history.unshift({ title:b.title, olid:b.olid, cover_i:b.cover_i||null, coverUrl:b.coverUrl||null, score:pct, date:new Date().toISOString().slice(0,10), points:earnedPoints, count, confidence, words:b.wordEstimate||0 });
   s.points = prevPoints + earnedPoints;
   s.wordsRead = prevWords + (b.wordEstimate||0);
   await saveStudent(s.alias, s);
@@ -933,13 +1010,14 @@ function screenDashboard(){
       const badgeCls = h.points>0 ? 'good' : 'low';
       const tipTitle = h.title.replace(/"/g,'&quot;');
       const tile = el(`<div class="shelf-book" title="${tipTitle} — ${h.score}%${h.points!=null ? ' · +'+h.points+' pts' : ''} · ${h.date}"></div>`);
-      if(h.cover_i){
+      const coverSrc = h.coverUrl || (h.cover_i ? `https://covers.openlibrary.org/b/id/${h.cover_i}-M.jpg` : null);
+      if(coverSrc){
         const img = document.createElement('img');
         img.loading = 'lazy';
         img.alt = '';
         img.onerror = ()=> img.replaceWith(shelfSpine(h.title));
         img.onload = ()=>{ if(img.naturalWidth <= 1) img.replaceWith(shelfSpine(h.title)); };
-        img.src = `https://covers.openlibrary.org/b/id/${h.cover_i}-M.jpg`;
+        img.src = coverSrc;
         tile.appendChild(img);
       } else {
         tile.appendChild(shelfSpine(h.title));
