@@ -111,6 +111,13 @@
   .confetti-piece{position:fixed;top:-10px;pointer-events:none;z-index:9999;}
   .bilingual-pair{display:flex;flex-wrap:wrap;column-gap:14px;row-gap:2px;align-items:baseline;}
   .bilingual-pair .es{color:var(--muted);font-style:italic;font-weight:600;}
+  .shelf-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:12px;}
+  .shelf-book{position:relative;aspect-ratio:2/3;border-radius:6px;overflow:hidden;box-shadow:0 2px 6px rgba(43,33,24,0.2);background:var(--line);}
+  .shelf-book img{width:100%;height:100%;object-fit:cover;display:block;}
+  .shelf-book .spine{width:100%;height:100%;display:flex;align-items:center;justify-content:center;text-align:center;padding:6px 5px;color:#fff;font-family:'Baloo 2';font-weight:700;font-size:11px;line-height:1.25;}
+  .shelf-badge{position:absolute;top:3px;right:3px;color:#fff;font-size:9.5px;font-weight:800;padding:2px 5px;border-radius:8px;line-height:1.3;}
+  .shelf-badge.good{background:var(--forest-dark);}
+  .shelf-badge.low{background:var(--coral);}
 </style>
 </head>
 <body>
@@ -449,7 +456,7 @@ async function openBook(b){
   STATE.currentBook = {
     title: b.title, author: (b.author_name||['Unknown']).join(', '),
     pages, wordEstimate: meta.estimatedWordCount || null, summary: meta.summary, genre: meta.genre,
-    olid
+    olid, cover_i: b.cover_i || null
   };
   STATE.loading = false;
   STATE.screen = 'book';
@@ -650,7 +657,7 @@ async function submitQuiz(){
   const prevWords = s.wordsRead||0;
   const prevRankIdx = getRankInfo(prevPoints, prevWords).rankIdx;
 
-  s.history.unshift({ title:b.title, olid:b.olid, score:pct, date:new Date().toISOString().slice(0,10), points:earnedPoints, count, confidence, words:b.wordEstimate||0 });
+  s.history.unshift({ title:b.title, olid:b.olid, cover_i:b.cover_i||null, score:pct, date:new Date().toISOString().slice(0,10), points:earnedPoints, count, confidence, words:b.wordEstimate||0 });
   s.points = prevPoints + earnedPoints;
   s.wordsRead = prevWords + (b.wordEstimate||0);
   await saveStudent(s.alias, s);
@@ -722,6 +729,13 @@ function screenResult(){
   return c;
 }
 
+const SHELF_COLORS = ['#2F5D50','#8A3B2B','#B98A2E','#2C3E66','#5B4636'];
+function shelfColor(title){
+  let h = 0;
+  for(let i=0;i<title.length;i++) h = (h*31 + title.charCodeAt(i)) >>> 0;
+  return SHELF_COLORS[h % SHELF_COLORS.length];
+}
+
 function screenDashboard(){
   const s = STATE.student;
   const words = s.wordsRead||0;
@@ -739,8 +753,25 @@ function screenDashboard(){
       <div class="goal-track"><div class="goal-fill words" style="width:${rank.wordsPct}%"></div></div>
     </div>` : `<p class="muted" style="margin:0;">You've summited Mount Everest — legendary reader! 🏔️🏆</p>`}
   </div>
+  <div class="card"><h3 style="margin-bottom:2px;">My Shelf</h3><p class="muted" style="margin:0 0 14px;">Every book you've finished, in order.</p><div class="shelf-grid" id="shelf"></div></div>
   <div class="card"><h3 style="margin-bottom:8px;">History</h3><div id="hist"></div></div></div>`);
   c.querySelector('#back').onclick = ()=>{ STATE.screen='home'; render(); };
+  const shelf = c.querySelector('#shelf');
+  if(s.history.length===0){ shelf.innerHTML = `<div class="empty">No books finished yet — go find one!</div>`; }
+  else {
+    s.history.forEach(h=>{
+      const badgeCls = h.points>0 ? 'good' : 'low';
+      const tipTitle = h.title.replace(/"/g,'&quot;');
+      const tile = el(`<div class="shelf-book" title="${tipTitle} — ${h.score}%${h.points!=null ? ' · +'+h.points+' pts' : ''} · ${h.date}"></div>`);
+      if(h.cover_i){
+        tile.appendChild(el(`<img src="https://covers.openlibrary.org/b/id/${h.cover_i}-M.jpg" loading="lazy" alt="">`));
+      } else {
+        tile.appendChild(el(`<div class="spine" style="background:${shelfColor(h.title)}">${h.title}</div>`));
+      }
+      tile.appendChild(el(`<span class="shelf-badge ${badgeCls}">${h.score}%</span>`));
+      shelf.appendChild(tile);
+    });
+  }
   const hist = c.querySelector('#hist');
   if(s.history.length===0){ hist.innerHTML = `<div class="empty">No books finished yet — go find one!</div>`; }
   else {
