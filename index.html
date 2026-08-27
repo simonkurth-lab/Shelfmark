@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Shelfmark — Track Your Reading, Fuel Your Adventure</title>
+<title>Shelfmark — Let's Read!</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@400;600;700;800&display=optional" rel="stylesheet">
 <style>
@@ -13,31 +13,24 @@
     --night-a:#1F423A; --night-b:#1B2A4A; --night-c:#141B36;
   }
   *{box-sizing:border-box;}
-  html{scroll-behavior:smooth;}
-  body{margin:0;background:var(--paper);color:var(--ink);font-family:'Nunito',sans-serif;-webkit-font-smoothing:antialiased;overflow-x:hidden;}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:'Nunito',sans-serif;-webkit-font-smoothing:antialiased;overflow-x:hidden;min-height:100vh;display:flex;flex-direction:column;}
   h1,h2,h3,.display{font-family:'Baloo 2',sans-serif;font-weight:700;margin:0;}
   a{text-decoration:none;}
-  .wrap{max-width:1120px;margin:0 auto;padding:0 24px;}
+  .wrap{max-width:1000px;margin:0 auto;padding:0 24px;width:100%;}
 
   /* ---- Nav ---- */
-  .nav{display:flex;align-items:center;justify-content:space-between;padding:20px 0;}
+  .nav{display:flex;align-items:center;padding:24px 0;}
   .brand{display:flex;align-items:center;gap:10px;}
   .brand .mark{width:36px;height:36px;border-radius:9px;background:linear-gradient(160deg,var(--forest),var(--forest-dark));display:flex;align-items:center;justify-content:center;color:var(--gold);font-family:'Baloo 2';font-weight:800;font-size:17px;flex:none;}
   .brand-name{font-size:21px;color:var(--forest-dark);}
-  .nav-login{background:transparent;border:1.5px solid var(--forest-dark);color:var(--forest-dark);font-family:'Nunito';font-weight:800;font-size:14px;padding:9px 18px;border-radius:10px;cursor:pointer;}
-  .nav-login:hover{background:var(--forest-dark);color:#fff;}
 
   /* ---- Hero ---- */
-  .hero{display:grid;grid-template-columns:1.05fr 1fr;gap:40px;align-items:center;padding:36px 0 64px;}
-  .hero h1{font-size:42px;line-height:1.12;color:var(--forest-dark);}
+  .hero{flex:1;display:grid;grid-template-columns:1.05fr 1fr;gap:44px;align-items:center;padding:20px 0 56px;}
+  .hero h1{font-size:44px;line-height:1.14;color:var(--forest-dark);}
   .hero h1 .accent{color:var(--coral);}
-  .hero p{font-size:16.5px;color:var(--muted);line-height:1.6;margin:16px 0 26px;max-width:440px;}
-  .hero-ctas{display:flex;gap:12px;flex-wrap:wrap;}
-  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-family:'Nunito';font-weight:800;font-size:15px;padding:14px 26px;border-radius:12px;cursor:pointer;border:none;}
-  .btn-primary{background:var(--coral);color:#fff;}
-  .btn-primary:hover{background:#cf5f38;}
-  .btn-ghost{background:transparent;color:var(--forest-dark);border:1.5px solid var(--line);}
-  .btn-ghost:hover{border-color:var(--forest-dark);}
+  .hero p{font-size:17px;color:var(--muted);line-height:1.6;margin:18px 0 28px;max-width:440px;}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-family:'Nunito';font-weight:800;font-size:18px;padding:16px 34px;border-radius:14px;cursor:pointer;border:none;background:var(--coral);color:#fff;}
+  .btn:hover{background:#cf5f38;}
 
   .hero-art{position:relative;border-radius:24px;overflow:hidden;aspect-ratio:1/0.82;background:linear-gradient(150deg,var(--night-a) 0%, var(--night-b) 55%, var(--night-c) 100%);}
   .hero-art .star{position:absolute;background:var(--gold);border-radius:50%;opacity:.85;animation:twinkle 2.6s ease-in-out infinite;}
@@ -46,57 +39,12 @@
   .hero-tree{position:absolute;bottom:0;left:0;right:0;}
   .hero-caption{position:absolute;left:22px;bottom:18px;color:#fff;font-family:'Baloo 2';font-weight:700;font-size:15px;opacity:.9;text-shadow:0 2px 8px rgba(0,0,0,.4);}
 
-  /* ---- Features ---- */
-  .section-head{text-align:center;max-width:560px;margin:0 auto 36px;}
-  .section-head h2{font-size:28px;color:var(--forest-dark);}
-  .section-head p{color:var(--muted);margin-top:8px;font-size:15px;}
-  .features{padding:56px 0;}
-  .feat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;}
-  .feat-card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:24px 20px;text-align:left;}
-  .feat-card .icon{width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:14px;}
-  .feat-card h3{font-size:16px;color:var(--forest-dark);margin-bottom:6px;}
-  .feat-card p{font-size:13.5px;color:var(--muted);line-height:1.5;margin:0;}
-  .icon.i1{background:#EEF4F1;} .icon.i2{background:#FDF2ED;} .icon.i3{background:#FBF0DA;} .icon.i4{background:#EAF2FB;}
-
-  /* ---- Badges showcase ---- */
-  .badges{background:var(--forest-dark);padding:64px 0;}
-  .badges .section-head h2,.badges .section-head p{color:#fff;}
-  .badges .section-head p{opacity:.75;}
-  .badge-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;}
-  .badge-card{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.14);border-radius:16px;padding:22px 16px;text-align:center;color:#fff;}
-  .badge-card .emoji{font-size:30px;display:block;margin-bottom:10px;}
-  .badge-card .name{font-family:'Baloo 2';font-weight:700;font-size:14.5px;}
-  .badge-card .desc{font-size:12px;opacity:.7;margin-top:4px;line-height:1.4;}
-
-  /* ---- Quote ---- */
-  .quote-wrap{padding:64px 24px;}
-  .quote{max-width:720px;margin:0 auto;background:linear-gradient(135deg,var(--gold),#E8B84D);border-radius:22px;padding:44px 40px;text-align:center;color:#4A3300;}
-  .quote .mark-q{font-family:'Baloo 2';font-size:40px;line-height:0.5;opacity:.5;}
-  .quote p{font-family:'Baloo 2';font-weight:700;font-size:24px;line-height:1.35;margin:14px 0 10px;}
-  .quote .who{font-size:13px;font-weight:800;opacity:.75;}
-
-  /* ---- Steps ---- */
-  .steps{padding:56px 0 72px;}
-  .step-row{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;}
-  .step{text-align:center;padding:0 12px;}
-  .step .num{width:38px;height:38px;border-radius:50%;background:var(--forest);color:#fff;font-family:'Baloo 2';font-weight:700;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;}
-  .step h3{font-size:16px;color:var(--forest-dark);margin-bottom:6px;}
-  .step p{font-size:13.5px;color:var(--muted);line-height:1.5;margin:0;}
-
-  /* ---- Closing CTA ---- */
-  .cta-footer{background:linear-gradient(150deg,var(--night-a),var(--night-c));border-radius:26px;margin:0 24px 60px;padding:56px 40px;text-align:center;color:#fff;position:relative;overflow:hidden;}
-  .cta-footer h2{font-size:30px;}
-  .cta-footer .accent{color:var(--gold);}
-  .cta-footer p{opacity:.75;margin:12px 0 26px;font-size:15px;}
-  .cta-footer .star{position:absolute;background:var(--gold);border-radius:50%;opacity:.6;animation:twinkle 3s ease-in-out infinite;}
-
-  footer{text-align:center;padding:0 0 40px;color:var(--muted);font-size:12.5px;}
+  footer{text-align:center;padding:0 0 32px;color:var(--muted);font-size:12.5px;}
 
   @media (max-width: 860px){
-    .hero{grid-template-columns:1fr;padding-bottom:40px;}
+    .hero{grid-template-columns:1fr;padding-bottom:36px;}
     .hero h1{font-size:32px;}
-    .feat-grid,.badge-grid{grid-template-columns:repeat(2,1fr);}
-    .step-row{grid-template-columns:1fr;gap:28px;}
+    .hero p{max-width:none;}
   }
 </style>
 </head>
@@ -105,17 +53,13 @@
 <div class="wrap">
   <nav class="nav">
     <div class="brand"><div class="mark">S</div><div class="brand-name">Shelfmark</div></div>
-    <a href="app.html"><button class="nav-login">Log in</button></a>
   </nav>
 
   <section class="hero">
     <div class="hero-text">
-      <h1>Track Your Reading.<br>Fuel Your <span class="accent">Adventure</span>.</h1>
-      <p>Shelfmark helps you keep a running record of every book you finish — quiz yourself on what you read, earn points and badges, and watch your reading streak grow.</p>
-      <div class="hero-ctas">
-        <a href="app.html"><button class="btn btn-primary">Get Started</button></a>
-        <a href="#features"><button class="btn btn-ghost">Learn More</button></a>
-      </div>
+      <h1>Ready for your next reading <span class="accent">adventure</span>?</h1>
+      <p>Pick a book, read the whole thing, then come tell us about it. Earn points and badges along the way!</p>
+      <a href="app.html"><button class="btn">Start Reading</button></a>
     </div>
     <div class="hero-art" aria-hidden="true">
       <div class="moon"></div>
@@ -141,81 +85,7 @@
     </div>
   </section>
 
-  <section class="features" id="features">
-    <div class="section-head">
-      <h2>Everything you need to fall in love with reading</h2>
-      <p>Search any book, prove you read it, and see your progress add up.</p>
-    </div>
-    <div class="feat-grid">
-      <div class="feat-card">
-        <div class="icon i1">🔍</div>
-        <h3>Find any book</h3>
-        <p>Search millions of titles and get a quick summary before you dive in.</p>
-      </div>
-      <div class="feat-card">
-        <div class="icon i2">📝</div>
-        <h3>Quiz yourself</h3>
-        <p>Finish a book and take a quick comprehension check — pick 5, 7, or 10 questions.</p>
-      </div>
-      <div class="feat-card">
-        <div class="icon i3">🏆</div>
-        <h3>Earn points</h3>
-        <p>Score well and bet on your own confidence for bonus points.</p>
-      </div>
-      <div class="feat-card">
-        <div class="icon i4">🔒</div>
-        <h3>Stay private</h3>
-        <p>Sign in with a made-up alias and your own PIN — no real names shown.</p>
-      </div>
-    </div>
-  </section>
-
-  <section class="steps">
-    <div class="section-head">
-      <h2>How it works</h2>
-    </div>
-    <div class="step-row">
-      <div class="step"><div class="num">1</div><h3>Pick a book</h3><p>Search for whatever you're reading right now, in class or at home.</p></div>
-      <div class="step"><div class="num">2</div><h3>Finish it</h3><p>Read the whole thing, then come back and take the quiz.</p></div>
-      <div class="step"><div class="num">3</div><h3>Earn your streak</h3><p>Rack up points, badges, and a growing shelf of finished books.</p></div>
-    </div>
-  </section>
-</div>
-
-<section class="badges">
-  <div class="wrap">
-    <div class="section-head">
-      <h2>Every book leaves a mark</h2>
-      <p>Badges pop up automatically as you read.</p>
-    </div>
-    <div class="badge-grid">
-      <div class="badge-card"><span class="emoji">🌱</span><div class="name">First Book</div><div class="desc">Finish your very first quiz</div></div>
-      <div class="badge-card"><span class="emoji">💯</span><div class="name">Perfect Score</div><div class="desc">Ace every question</div></div>
-      <div class="badge-card"><span class="emoji">🔥</span><div class="name">Reading Streak</div><div class="desc">String together passing scores</div></div>
-      <div class="badge-card"><span class="emoji">🏆</span><div class="name">Point Milestones</div><div class="desc">Cross 50, 100, 250 points and beyond</div></div>
-    </div>
-  </div>
-</section>
-
-<div class="wrap">
-  <div class="quote-wrap">
-    <div class="quote">
-      <div class="mark-q">"</div>
-      <p>The more that you read, the more things you will know.</p>
-      <div class="who">— Dr. Seuss</div>
-    </div>
-  </div>
-
-  <div class="cta-footer">
-    <div class="star" style="top:16%;left:10%;width:4px;height:4px;"></div>
-    <div class="star" style="top:70%;left:88%;width:3px;height:3px;animation-delay:.7s;"></div>
-    <div class="star" style="top:20%;left:80%;width:3px;height:3px;animation-delay:1.1s;"></div>
-    <h2>Read. Reflect. <span class="accent">Grow.</span></h2>
-    <p>Shelfmark makes reading more meaningful — one book, one quiz, one badge at a time.</p>
-    <a href="app.html"><button class="btn btn-primary">Join the Journey</button></a>
-  </div>
-
-  <footer>Shelfmark — a reading tracker for curious kids.</footer>
+  <footer>Shelfmark — made for kids who love to read.</footer>
 </div>
 
 </body>
