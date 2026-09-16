@@ -23,6 +23,7 @@
   .who button{background:none;border:none;color:var(--coral);font-weight:800;cursor:pointer;padding:0;margin-left:6px;font-family:inherit;font-size:13px;}
   .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;margin-bottom:16px;box-shadow:0 1px 2px rgba(43,33,24,0.04);}
   input[type=text],input[type=password]{width:100%;padding:13px 14px;border-radius:10px;border:1.5px solid var(--line);font-family:'Nunito';font-size:16px;font-weight:600;color:var(--ink);background:#fff;}
+  select.class-filter{padding:9px 12px;border-radius:10px;border:1.5px solid var(--line);font-family:'Nunito';font-size:13.5px;font-weight:700;color:var(--ink);background:#fff;}
   input[type=text]:focus,input[type=password]:focus{outline:2px solid var(--forest);outline-offset:1px;}
   input.pin-input{letter-spacing:8px;font-size:22px;text-align:center;font-weight:800;}
   .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:var(--forest);color:#fff;border:none;border-radius:10px;padding:13px 20px;font-family:'Nunito';font-weight:800;font-size:15px;cursor:pointer;width:100%;margin-top:12px;}
@@ -204,7 +205,7 @@ const STATE = {
   loginMode: 'pick', pendingAlias: null, loginError: '',
   signupAlias: '', signupPin: '', signupGrade: '35',
   teacherPasscode: '', teacherError: '', teacherAuthed: false, teacherRows: null,
-  teacherManagingAlias: null, teacherManagingClass: null,
+  teacherManagingAlias: null, teacherManagingClass: null, teacherClassFilter: 'all',
   searchResults: [], searchQuery: '', currentBook: null,
   quiz: null, quizAnswers: {}, loading: false, loadingMsg: '',
   quizSetup: { count: 7, confidence: 'medium', challenge: 'onlevel', bilingual: 0 },
@@ -1248,6 +1249,23 @@ function groupTeacherRows(rows){
     .map(code=>({ code, label: classLabel(code), students: byClass[code] }));
 }
 
+function filterRowsByClass(rows, classFilter){
+  if(!classFilter || classFilter === 'all') return rows;
+  return rows.filter(s => (s.classCode||'default') === classFilter);
+}
+
+// Builds a <select> for filtering the roster/summary/print views down to one
+// class - options come from whatever classes actually have students, not
+// the static CLASSES list, so it stays correct even with legacy/unknown codes.
+function classFilterSelect(rows){
+  const groups = groupTeacherRows(rows);
+  const options = [`<option value="all"${STATE.teacherClassFilter==='all'?' selected':''}>All classes</option>`]
+    .concat(groups.map(g=>`<option value="${g.code}"${STATE.teacherClassFilter===g.code?' selected':''}>${g.label}</option>`));
+  const select = el(`<select class="class-filter">${options.join('')}</select>`);
+  select.onchange = ()=>{ STATE.teacherClassFilter = select.value; render(); };
+  return select;
+}
+
 function studentStats(s){
   const hist = s.history || [];
   const avgScore = hist.length ? Math.round(hist.reduce((sum,h)=>sum+(h.score||0),0) / hist.length) : null;
@@ -1258,11 +1276,12 @@ function studentStats(s){
 function screenTeacher(){
   if(!STATE.teacherAuthed) return screenTeacherLogin();
   const rows = STATE.teacherRows || [];
-  const groups = groupTeacherRows(rows);
-  const c = el(`<div><button class="backlink" id="back">&larr; Back</button><div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;"><div><h2 style="margin-bottom:2px;">Class roster</h2><p class="muted" style="margin:0;">Alias, PIN, and progress — visible to you only.</p></div><div style="display:flex;gap:8px;flex-wrap:wrap;"><button class="btn secondary" id="summaryBtn" style="width:auto;margin:0;padding:10px 18px;">📊 Summary report</button><button class="btn secondary" id="printBtn" style="width:auto;margin:0;padding:10px 18px;">🖨️ Print report</button></div></div></div><div id="groups"></div></div>`);
+  const groups = groupTeacherRows(filterRowsByClass(rows, STATE.teacherClassFilter));
+  const c = el(`<div><button class="backlink" id="back">&larr; Back</button><div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;"><div><h2 style="margin-bottom:2px;">Class roster</h2><p class="muted" style="margin:0;">Alias, PIN, and progress — visible to you only.</p></div><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;"><span id="filterSlot"></span><button class="btn secondary" id="summaryBtn" style="width:auto;margin:0;padding:10px 18px;">📊 Summary report</button><button class="btn secondary" id="printBtn" style="width:auto;margin:0;padding:10px 18px;">🖨️ Print report</button></div></div></div><div id="groups"></div></div>`);
   c.querySelector('#back').onclick = ()=>{ STATE.teacherAuthed=false; STATE.teacherRows=null; STATE.teacherPasscode=''; STATE.screen='login'; render(); };
   c.querySelector('#printBtn').onclick = ()=> window.print();
   c.querySelector('#summaryBtn').onclick = ()=>{ STATE.screen='teacherSummary'; render(); };
+  c.querySelector('#filterSlot').replaceWith(classFilterSelect(rows));
   const groupsDiv = c.querySelector('#groups');
   if(groups.length===0){
     groupsDiv.appendChild(el(`<div class="card"><div class="empty">No students yet.</div></div>`));
@@ -1294,7 +1313,8 @@ function screenTeacher(){
 }
 
 function screenTeacherSummary(){
-  const rows = STATE.teacherRows || [];
+  const allRows = STATE.teacherRows || [];
+  const rows = filterRowsByClass(allRows, STATE.teacherClassFilter);
   const attempts = rows.flatMap(s => (s.history||[]).map(h => ({ ...h, alias: s.alias, classCode: s.classCode })));
   const totalStudents = rows.length;
   const totalBooks = attempts.length;
@@ -1328,9 +1348,11 @@ function screenTeacherSummary(){
   const recentRowsHtml = recent.map(a=>`<tr><td>${a.date}</td><td>${a.alias}</td><td>${classLabel(a.classCode)}</td><td>${a.title}</td><td>${a.score}%</td></tr>`).join('');
   const recentSection = recent.length===0 ? `<div class="empty">No quizzes yet.</div>` : `<div style="overflow-x:auto;"><table class="roster-table"><thead><tr><th>Date</th><th>Student</th><th>Class</th><th>Book</th><th>Score</th></tr></thead><tbody>${recentRowsHtml}</tbody></table></div>`;
 
-  const c = el(`<div><button class="backlink" id="back">&larr; Back to roster</button><div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;"><h2 style="margin-bottom:2px;">Summary report</h2><button class="btn secondary" id="printBtn" style="width:auto;margin:0;padding:10px 18px;">🖨️ Print</button></div><p class="muted" style="margin:0;">A snapshot across all classes, as of right now.</p><div class="stat-row"><div class="stat"><div class="num">${totalStudents}</div><div class="lbl">Students</div></div><div class="stat"><div class="num">${totalBooks}</div><div class="lbl">Books finished</div></div><div class="stat"><div class="num">${avgScore!=null?avgScore+'%':'—'}</div><div class="lbl">Avg score</div></div><div class="stat"><div class="num">${totalPoints}</div><div class="lbl">Total points</div></div></div></div><div class="card"><h3 style="margin-bottom:10px;">By class</h3>${classSection}</div><div class="card"><h3 style="margin-bottom:10px;">Top readers</h3>${topReadersSection}</div><div class="card"><h3 style="margin-bottom:10px;">Most-read books</h3>${topBooksSection}</div><div class="card"><h3 style="margin-bottom:10px;">Recent activity</h3>${recentSection}</div></div>`);
+  const scopeLabel = STATE.teacherClassFilter==='all' ? 'across all classes' : 'for ' + classLabel(STATE.teacherClassFilter);
+  const c = el(`<div><button class="backlink" id="back">&larr; Back to roster</button><div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;"><h2 style="margin-bottom:2px;">Summary report</h2><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;"><span id="filterSlot"></span><button class="btn secondary" id="printBtn" style="width:auto;margin:0;padding:10px 18px;">🖨️ Print</button></div></div><p class="muted" style="margin:0;">A snapshot ${scopeLabel}, as of right now.</p><div class="stat-row"><div class="stat"><div class="num">${totalStudents}</div><div class="lbl">Students</div></div><div class="stat"><div class="num">${totalBooks}</div><div class="lbl">Books finished</div></div><div class="stat"><div class="num">${avgScore!=null?avgScore+'%':'—'}</div><div class="lbl">Avg score</div></div><div class="stat"><div class="num">${totalPoints}</div><div class="lbl">Total points</div></div></div></div><div class="card"><h3 style="margin-bottom:10px;">By class</h3>${classSection}</div><div class="card"><h3 style="margin-bottom:10px;">Top readers</h3>${topReadersSection}</div><div class="card"><h3 style="margin-bottom:10px;">Most-read books</h3>${topBooksSection}</div><div class="card"><h3 style="margin-bottom:10px;">Recent activity</h3>${recentSection}</div></div>`);
   c.querySelector('#back').onclick = ()=>{ STATE.screen='teacher'; render(); };
   c.querySelector('#printBtn').onclick = ()=> window.print();
+  c.querySelector('#filterSlot').replaceWith(classFilterSelect(allRows));
   return c;
 }
 
