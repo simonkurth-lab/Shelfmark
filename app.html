@@ -66,6 +66,15 @@
   .opt{display:block;width:100%;text-align:left;padding:11px 14px;border-radius:10px;border:1.5px solid var(--line);background:#fff;margin-bottom:8px;cursor:pointer;font-family:'Nunito';font-weight:600;font-size:14.5px;color:var(--ink);}
   .opt.selected{border-color:var(--forest);background:#EEF4F1;}
   .opt.reading{border-color:var(--coral);background:#FDF2ED;box-shadow:0 0 0 2px rgba(232,115,74,0.2);}
+  .qtext.reading{color:var(--coral);}
+  .word-reading{background:var(--gold);border-radius:4px;box-shadow:0 0 0 2px var(--gold);}
+  .review-list{margin-top:14px;text-align:left;}
+  .review-q{padding:10px 12px;border-radius:10px;margin-bottom:8px;border:1.5px solid var(--line);font-size:13.5px;}
+  .review-q.correct{border-color:#BFE0D2;background:#F3FAF6;}
+  .review-q.incorrect{border-color:#F4C7B4;background:#FDF2ED;}
+  .review-q-head{font-weight:800;margin-bottom:4px;color:var(--ink);}
+  .review-answer{color:var(--muted);}
+  .review-correct{color:var(--forest-dark);font-weight:700;margin-top:2px;}
   .loading{text-align:center;padding:30px 0;color:var(--muted);font-weight:700;}
   .loading::before{content:'';display:block;width:34px;height:34px;margin:0 auto 14px;border:4px solid var(--line);border-top-color:var(--coral);border-radius:50%;animation:spin .8s linear infinite;}
   @keyframes spin{to{transform:rotate(360deg);}}
@@ -824,12 +833,44 @@ function stopQuizSpeech(){
   speechToken++;
   window.speechSynthesis.cancel();
   document.querySelectorAll('.speak-btn.speaking').forEach(b=>b.classList.remove('speaking'));
-  document.querySelectorAll('.opt.reading').forEach(o=>o.classList.remove('reading'));
+  document.querySelectorAll('.opt.reading, .qtext.reading').forEach(o=>o.classList.remove('reading'));
+  document.querySelectorAll('.word-reading').forEach(w=>w.classList.remove('word-reading'));
 }
 
-// Speaks the question, then each answer choice as its own utterance (rather
-// than one long block) so the currently-read choice can be highlighted as
-// it's spoken.
+// Splits `container`'s visible primary text (skipping a bilingual Spanish
+// subtitle if present) into word spans matching `spokenText` exactly, so
+// SpeechSynthesisUtterance's per-word `boundary` events can drive a
+// karaoke-style highlight as each word is read. Returns null if the text
+// can't be matched (falls back to whole-element highlighting only).
+function prepareWordHighlight(container, spokenText){
+  const target = container.querySelector('.bilingual-pair > span:not(.es)') || container;
+  const full = target.textContent;
+  const idx = full.lastIndexOf(spokenText);
+  if(idx === -1) return null;
+  const prefix = full.slice(0, idx);
+  const original = target.innerHTML;
+  target.textContent = '';
+  if(prefix) target.appendChild(document.createTextNode(prefix));
+  const words = [];
+  const re = /\S+/g;
+  let m, lastEnd = 0;
+  while((m = re.exec(spokenText))){
+    if(m.index > lastEnd) target.appendChild(document.createTextNode(spokenText.slice(lastEnd, m.index)));
+    const span = document.createElement('span');
+    span.className = 'word';
+    span.textContent = m[0];
+    target.appendChild(span);
+    words.push({ start: m.index, end: m.index + m[0].length, el: span });
+    lastEnd = m.index + m[0].length;
+  }
+  if(lastEnd < spokenText.length) target.appendChild(document.createTextNode(spokenText.slice(lastEnd)));
+  return { words, restore(){ target.innerHTML = original; } };
+}
+
+// Speaks a short lead-in ("Question 1.", "A.") for context, then the exact
+// visible text of the question/option as its own utterance so per-word
+// `boundary` events line up with the word spans built above, highlighting
+// each word as it's read aloud.
 function speakQuizItem(btn, qDiv, q, qi){
   const wasSpeaking = btn.classList.contains('speaking');
   stopQuizSpeech();
@@ -838,24 +879,41 @@ function speakQuizItem(btn, qDiv, q, qi){
   const myToken = speechToken;
   const letters = ['A','B','C','D','E','F'];
   const optEls = qDiv.querySelectorAll('.opt');
-  const parts = [{ text: `Question ${qi+1}. ${q.q}` }];
-  q.options.forEach((opt,oi)=>{ parts.push({ text: `${letters[oi]}. ${opt}`, el: optEls[oi] }); });
+  const qtextEl = qDiv.querySelector('.qtext');
+  const items = [{ lead: `Question ${qi+1}.`, text: q.q, el: qtextEl }];
+  q.options.forEach((opt,oi)=>{ items.push({ lead: `${letters[oi]}.`, text: opt, el: optEls[oi] }); });
 
   btn.classList.add('speaking');
   let i = 0;
-  function speakNext(){
-    if(myToken !== speechToken) return; // superseded by a stop or new playback
-    if(i >= parts.length){ btn.classList.remove('speaking'); return; }
-    const part = parts[i++];
-    const utter = new SpeechSynthesisUtterance(part.text);
+  function speak(text, onDone){
+    const utter = new SpeechSynthesisUtterance(text);
     utter.lang = 'en-US';
     utter.rate = STATE.speechRate;
-    if(part.el) utter.onstart = ()=>{ if(myToken===speechToken) part.el.classList.add('reading'); };
-    utter.onend = utter.onerror = ()=>{
-      if(part.el) part.el.classList.remove('reading');
-      speakNext();
-    };
-    window.speechSynthesis.speak(utter);
+    utter.onend = utter.onerror = onDone;
+    return utter;
+  }
+  function speakNext(){
+    if(myToken !== speechToken) return; // superseded by a stop or new playback
+    if(i >= items.length){ btn.classList.remove('speaking'); return; }
+    const item = items[i++];
+    window.speechSynthesis.speak(speak(item.lead, ()=>{
+      if(myToken !== speechToken) return;
+      item.el.classList.add('reading');
+      const highlight = prepareWordHighlight(item.el, item.text);
+      const bodyUtter = speak(item.text, ()=>{
+        item.el.classList.remove('reading');
+        if(highlight && myToken===speechToken) highlight.restore();
+        speakNext();
+      });
+      if(highlight){
+        bodyUtter.onboundary = (e)=>{
+          if(myToken !== speechToken || (e.name && e.name !== 'word')) return;
+          const current = highlight.words.find(w=> e.charIndex>=w.start && e.charIndex<w.end);
+          highlight.words.forEach(w=>w.el.classList.toggle('word-reading', w===current));
+        };
+      }
+      window.speechSynthesis.speak(bodyUtter);
+    }));
   }
   speakNext();
 }
@@ -920,7 +978,12 @@ function computeBadges(s, r, prevPoints, prevWords, prevRankIdx){
 async function submitQuiz(){
   const qs = STATE.quiz.questions;
   let correct = 0;
-  qs.forEach((q,qi)=>{ if(STATE.quizAnswers[qi]===q.correctIndex) correct++; });
+  const review = qs.map((q,qi)=>{
+    const chosenIndex = STATE.quizAnswers[qi];
+    const isCorrect = chosenIndex === q.correctIndex;
+    if(isCorrect) correct++;
+    return { q: q.q, options: q.options, correctIndex: q.correctIndex, chosenIndex, isCorrect };
+  });
   const pct = Math.round((correct/qs.length)*100);
 
   const b = STATE.currentBook;
@@ -937,11 +1000,12 @@ async function submitQuiz(){
   s.wordsRead = prevWords + (b.wordEstimate||0);
   await saveStudent(s.alias, s);
 
-  const result = { correct, total: qs.length, pct, earnedPoints, totalPoints: s.points, confidence };
+  const result = { correct, total: qs.length, pct, earnedPoints, totalPoints: s.points, confidence, review };
   result.badges = computeBadges(s, result, prevPoints, prevWords, prevRankIdx);
 
   STATE.quizResult = result;
   STATE.resultAnimated = false;
+  STATE.showReview = false;
   STATE.screen = 'result';
   render();
 }
@@ -984,15 +1048,26 @@ function fireConfetti(){
   }
 }
 
+function renderReviewList(review){
+  return review.map((r,i)=>{
+    const chosenText = r.chosenIndex!=null ? r.options[r.chosenIndex] : '(no answer)';
+    const correctText = r.options[r.correctIndex];
+    return `<div class="review-q ${r.isCorrect?'correct':'incorrect'}"><div class="review-q-head">${r.isCorrect?'✅':'❌'} ${i+1}. ${r.q}</div><div class="review-answer">Your answer: ${chosenText}</div>${!r.isCorrect ? `<div class="review-correct">Correct answer: ${correctText}</div>` : ''}</div>`;
+  }).join('');
+}
+
 function screenResult(){
   const r = STATE.quizResult;
   const good = meetsMastery(r.correct, r.total);
   const mult = (CONFIDENCE[r.confidence] || CONFIDENCE.medium).mult;
   const headline = (good ? CELEBRATE_GOOD : CELEBRATE_OK)[Math.floor(Math.random()*(good?CELEBRATE_GOOD:CELEBRATE_OK).length)];
   const masteryNote = !good ? `<p class="muted" style="margin:0 0 14px;">Quizzes need 80% or higher to earn points — this one still counts as finished, just no points this time.</p>` : '';
-  const c = el(`<div class="card" style="text-align:center;"><h2>${headline}</h2><p class="muted" style="margin:6px 0 16px;">${r.correct} of ${r.total} correct</p>${masteryNote}${r.badges.length ? `<div class="badge-row">${r.badges.map(b=>`<span class="badge-chip">${b.emoji} ${b.label}</span>`).join('')}</div>` : ''}<div class="points-banner"><div class="pb-num">+0</div><div class="pb-lbl">Points earned · ${mult}x confidence</div></div><div class="stat-row"><div class="stat"><div class="num">${r.pct}%</div><div class="lbl">Score</div></div><div class="stat"><div class="num">${r.totalPoints}</div><div class="lbl">Total Points</div></div></div><button class="btn" id="nextBtn">Find another book</button><button class="btn secondary" id="dashBtn">See my progress</button></div>`);
+  const reviewSection = r.review ? `<button type="button" class="btn secondary" id="reviewToggle">${STATE.showReview ? 'Hide' : 'Review'} your answers</button>${STATE.showReview ? `<div class="review-list">${renderReviewList(r.review)}</div>` : ''}` : '';
+  const c = el(`<div class="card" style="text-align:center;"><h2>${headline}</h2><p class="muted" style="margin:6px 0 16px;">${r.correct} of ${r.total} correct</p>${masteryNote}${r.badges.length ? `<div class="badge-row">${r.badges.map(b=>`<span class="badge-chip">${b.emoji} ${b.label}</span>`).join('')}</div>` : ''}<div class="points-banner"><div class="pb-num">+0</div><div class="pb-lbl">Points earned · ${mult}x confidence</div></div><div class="stat-row"><div class="stat"><div class="num">${r.pct}%</div><div class="lbl">Score</div></div><div class="stat"><div class="num">${r.totalPoints}</div><div class="lbl">Total Points</div></div></div>${reviewSection}<button class="btn" id="nextBtn">Find another book</button><button class="btn secondary" id="dashBtn">See my progress</button></div>`);
   c.querySelector('#nextBtn').onclick = ()=>{ STATE.screen='search'; STATE.searchResults=[]; STATE.searchQuery=''; render(); };
   c.querySelector('#dashBtn').onclick = ()=>{ STATE.screen='dashboard'; render(); };
+  const reviewBtn = c.querySelector('#reviewToggle');
+  if(reviewBtn) reviewBtn.onclick = ()=>{ STATE.showReview = !STATE.showReview; render(); };
   if(!STATE.resultAnimated){
     STATE.resultAnimated = true;
     setTimeout(()=>{
