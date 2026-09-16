@@ -13,23 +13,13 @@
   }
   *{box-sizing:border-box;}
   body{margin:0;background:var(--paper);color:var(--ink);font-family:'Nunito',sans-serif;-webkit-font-smoothing:antialiased;}
-  body.class-pick-bg{
-    background-image:linear-gradient(to bottom, rgba(20,24,16,0.45) 0%, rgba(20,24,16,0.12) 28%, rgba(251,246,236,0.55) 62%, rgba(251,246,236,0.97) 82%), url('images/class-select-bg.jpg');
-    background-size:cover;
-    background-position:center 28%;
-    background-repeat:no-repeat;
-    background-attachment:fixed;
-  }
-  @media (max-width:700px){
-    body.class-pick-bg{ background-attachment:scroll; background-position:center 20%; }
-  }
   h1,h2,h3,.display{font-family:'Baloo 2',sans-serif;font-weight:700;margin:0;}
+  .class-pick-banner{width:100%;border-radius:16px;display:block;margin-bottom:16px;box-shadow:0 4px 16px rgba(43,33,24,0.12);}
   #app{max-width:640px;margin:0 auto;min-height:100vh;padding:20px 18px 60px;}
   .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;}
   .brand{display:flex;align-items:center;gap:10px;}
   .brand .mark{width:34px;height:34px;border-radius:8px;background:linear-gradient(160deg,var(--forest),var(--forest-dark));display:flex;align-items:center;justify-content:center;color:var(--gold);font-family:'Baloo 2';font-weight:800;font-size:16px;}
   .brand-name{font-size:20px;color:var(--forest-dark);}
-  body.class-pick-bg .brand-name{color:#fff;text-shadow:0 1px 4px rgba(0,0,0,0.35);}
   .who{font-size:13px;color:var(--muted);font-weight:700;}
   .who button{background:none;border:none;color:var(--coral);font-weight:800;cursor:pointer;padding:0;margin-left:6px;font-family:inherit;font-size:13px;}
   .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;margin-bottom:16px;box-shadow:0 1px 2px rgba(43,33,24,0.04);}
@@ -360,13 +350,7 @@ function quizLoadingSlide(idx){
 }
 
 function el(html){ const d=document.createElement('div'); d.innerHTML=html.trim(); return d.firstChild; }
-function render(){
-  stopQuizSpeech();
-  const showingClassPick = !['teacher','teacherStudent','teacherSummary'].includes(STATE.screen) && !STATE.classConfirmed;
-  document.body.classList.toggle('class-pick-bg', showingClassPick);
-  document.getElementById('app').innerHTML='';
-  document.getElementById('app').appendChild(buildScreen());
-}
+function render(){ stopQuizSpeech(); document.getElementById('app').innerHTML=''; document.getElementById('app').appendChild(buildScreen()); }
 
 async function api(path, opts){
   const res = await fetch(WORKER_URL + path, opts);
@@ -433,7 +417,7 @@ function logout(){
 
 function screenClassPick(){
   const lastClass = STATE.classCode; // whatever was remembered from last time, before this session's pick
-  const c = el(`<div class="card"><h2 style="margin-bottom:6px;">Which class are you in?</h2><p class="muted" style="margin:0 0 14px;">Pick your class so you see the right classmates.</p><div id="classCol"></div><button class="backlink" id="teacherBtn" style="margin-top:14px;margin-bottom:0;">Teacher dashboard</button></div>`);
+  const c = el(`<div><img class="class-pick-banner" src="images/class-select-banner.jpg" alt="A mountain overlooking the coast, from the Piki reading app art."><div class="card"><h2 style="margin-bottom:6px;">Which class are you in?</h2><p class="muted" style="margin:0 0 14px;">Pick your class so you see the right classmates.</p><div id="classCol"></div><button class="backlink" id="teacherBtn" style="margin-top:14px;margin-bottom:0;">Teacher dashboard</button></div></div>`);
   const col = c.querySelector('#classCol');
   CLASSES.forEach(cls=>{
     const isLast = cls.code === lastClass;
