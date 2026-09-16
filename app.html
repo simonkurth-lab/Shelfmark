@@ -521,7 +521,7 @@ function screenNameCapture(){
   const submit = ()=>{
     const name = nameInput.value.trim();
     if(!name) return;
-    STATE.student.realName = name;
+    STATE.student.realName = name.toUpperCase();
     saveStudent(STATE.student.alias, STATE.student);
     STATE.screen = 'home';
     render();
