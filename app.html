@@ -47,8 +47,14 @@
   .book-author{font-size:13px;color:var(--muted);}
   .pill{display:inline-block;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:800;background:#EFEAD9;color:var(--forest-dark);margin-top:4px;margin-right:6px;}
   .pill.gold{background:#FBF0DA;color:#8A6412;}
-  .stat-row{display:flex;gap:10px;margin:14px 0;}
-  .stat{flex:1;background:#F6F1E4;border-radius:12px;padding:12px;text-align:center;}
+  .stat-row{display:flex;gap:10px;margin:14px 0;flex-wrap:wrap;}
+  .stat{flex:1;min-width:78px;background:#F6F1E4;border-radius:12px;padding:12px;text-align:center;}
+  .summary-list{margin:0;padding:0;list-style:none;}
+  .summary-list li{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:13.5px;}
+  .summary-list li:last-child{border-bottom:none;}
+  .summary-list .sl-rank{font-weight:800;color:var(--muted);width:20px;flex:none;}
+  .summary-list .sl-main{flex:1;}
+  .summary-list .sl-sub{color:var(--muted);font-size:12px;}
   .stat .num{font-family:'Baloo 2';font-size:20px;color:var(--forest-dark);}
   .stat .lbl{font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.03em;}
   .quiz-q{margin-bottom:18px;}
@@ -365,6 +371,7 @@ function buildScreen(){
   let body;
   if(STATE.screen==='teacher') body = screenTeacher();
   else if(STATE.screen==='teacherStudent') body = screenTeacherStudent();
+  else if(STATE.screen==='teacherSummary') body = screenTeacherSummary();
   else if(!STATE.classCode) body = screenClassPick();
   else if(STATE.screen==='login') body = screenLogin();
   else if(STATE.screen==='home') body = screenHome();
@@ -1252,9 +1259,10 @@ function screenTeacher(){
   if(!STATE.teacherAuthed) return screenTeacherLogin();
   const rows = STATE.teacherRows || [];
   const groups = groupTeacherRows(rows);
-  const c = el(`<div><button class="backlink" id="back">&larr; Back</button><div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;"><div><h2 style="margin-bottom:2px;">Class roster</h2><p class="muted" style="margin:0;">Alias, PIN, and progress — visible to you only.</p></div><button class="btn secondary" id="printBtn" style="width:auto;margin:0;padding:10px 18px;">🖨️ Print report</button></div></div><div id="groups"></div></div>`);
+  const c = el(`<div><button class="backlink" id="back">&larr; Back</button><div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;"><div><h2 style="margin-bottom:2px;">Class roster</h2><p class="muted" style="margin:0;">Alias, PIN, and progress — visible to you only.</p></div><div style="display:flex;gap:8px;flex-wrap:wrap;"><button class="btn secondary" id="summaryBtn" style="width:auto;margin:0;padding:10px 18px;">📊 Summary report</button><button class="btn secondary" id="printBtn" style="width:auto;margin:0;padding:10px 18px;">🖨️ Print report</button></div></div></div><div id="groups"></div></div>`);
   c.querySelector('#back').onclick = ()=>{ STATE.teacherAuthed=false; STATE.teacherRows=null; STATE.teacherPasscode=''; STATE.screen='login'; render(); };
   c.querySelector('#printBtn').onclick = ()=> window.print();
+  c.querySelector('#summaryBtn').onclick = ()=>{ STATE.screen='teacherSummary'; render(); };
   const groupsDiv = c.querySelector('#groups');
   if(groups.length===0){
     groupsDiv.appendChild(el(`<div class="card"><div class="empty">No students yet.</div></div>`));
@@ -1282,6 +1290,47 @@ function screenTeacher(){
       groupsDiv.appendChild(groupCard);
     });
   }
+  return c;
+}
+
+function screenTeacherSummary(){
+  const rows = STATE.teacherRows || [];
+  const attempts = rows.flatMap(s => (s.history||[]).map(h => ({ ...h, alias: s.alias, classCode: s.classCode })));
+  const totalStudents = rows.length;
+  const totalBooks = attempts.length;
+  const avgScore = attempts.length ? Math.round(attempts.reduce((sum,a)=>sum+(a.score||0),0)/attempts.length) : null;
+  const totalPoints = rows.reduce((sum,s)=>sum+(s.points||0),0);
+
+  const groups = groupTeacherRows(rows);
+  const classRowsHtml = groups.map(g=>{
+    const classAttempts = attempts.filter(a=>(a.classCode||'default')===g.code);
+    const classAvg = classAttempts.length ? Math.round(classAttempts.reduce((sum,a)=>sum+(a.score||0),0)/classAttempts.length) : null;
+    return `<tr><td>${g.label}</td><td>${g.students.length}</td><td>${classAttempts.length}</td><td>${classAvg!=null?classAvg+'%':'—'}</td></tr>`;
+  }).join('');
+  const classSection = groups.length===0
+    ? `<div class="empty">No students yet.</div>`
+    : `<div style="overflow-x:auto;"><table class="roster-table"><thead><tr><th>Class</th><th>Students</th><th>Books</th><th>Avg score</th></tr></thead><tbody>${classRowsHtml}</tbody></table></div>`;
+
+  const topReaders = [...rows].sort((a,b)=>(b.points||0)-(a.points||0)).slice(0,5);
+  const topReadersHtml = topReaders.map((s,i)=>{
+    const stats = studentStats(s);
+    return `<li><span class="sl-rank">${i+1}.</span><span class="sl-main">${s.alias}<div class="sl-sub">${classLabel(s.classCode)} · ${stats.books} book${stats.books===1?'':'s'}</div></span><span>${s.points||0} pts</span></li>`;
+  }).join('');
+  const topReadersSection = topReaders.length===0 ? `<div class="empty">No quizzes yet.</div>` : `<ul class="summary-list">${topReadersHtml}</ul>`;
+
+  const bookCounts = {};
+  attempts.forEach(a=>{ bookCounts[a.title] = (bookCounts[a.title]||0)+1; });
+  const topBooks = Object.entries(bookCounts).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const topBooksHtml = topBooks.map(([title,count])=>`<li><span class="sl-main">${title}</span><span>${count} read${count===1?'':'s'}</span></li>`).join('');
+  const topBooksSection = topBooks.length===0 ? `<div class="empty">No quizzes yet.</div>` : `<ul class="summary-list">${topBooksHtml}</ul>`;
+
+  const recent = [...attempts].sort((a,b)=> (b.date||'').localeCompare(a.date||'')).slice(0,12);
+  const recentRowsHtml = recent.map(a=>`<tr><td>${a.date}</td><td>${a.alias}</td><td>${classLabel(a.classCode)}</td><td>${a.title}</td><td>${a.score}%</td></tr>`).join('');
+  const recentSection = recent.length===0 ? `<div class="empty">No quizzes yet.</div>` : `<div style="overflow-x:auto;"><table class="roster-table"><thead><tr><th>Date</th><th>Student</th><th>Class</th><th>Book</th><th>Score</th></tr></thead><tbody>${recentRowsHtml}</tbody></table></div>`;
+
+  const c = el(`<div><button class="backlink" id="back">&larr; Back to roster</button><div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;"><h2 style="margin-bottom:2px;">Summary report</h2><button class="btn secondary" id="printBtn" style="width:auto;margin:0;padding:10px 18px;">🖨️ Print</button></div><p class="muted" style="margin:0;">A snapshot across all classes, as of right now.</p><div class="stat-row"><div class="stat"><div class="num">${totalStudents}</div><div class="lbl">Students</div></div><div class="stat"><div class="num">${totalBooks}</div><div class="lbl">Books finished</div></div><div class="stat"><div class="num">${avgScore!=null?avgScore+'%':'—'}</div><div class="lbl">Avg score</div></div><div class="stat"><div class="num">${totalPoints}</div><div class="lbl">Total points</div></div></div></div><div class="card"><h3 style="margin-bottom:10px;">By class</h3>${classSection}</div><div class="card"><h3 style="margin-bottom:10px;">Top readers</h3>${topReadersSection}</div><div class="card"><h3 style="margin-bottom:10px;">Most-read books</h3>${topBooksSection}</div><div class="card"><h3 style="margin-bottom:10px;">Recent activity</h3>${recentSection}</div></div>`);
+  c.querySelector('#back').onclick = ()=>{ STATE.screen='teacher'; render(); };
+  c.querySelector('#printBtn').onclick = ()=> window.print();
   return c;
 }
 
