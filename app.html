@@ -114,7 +114,7 @@
   .del-btn{background:none;border:1.5px solid var(--line);color:var(--coral);font-weight:800;font-size:12px;cursor:pointer;padding:5px 10px;border-radius:8px;font-family:inherit;white-space:nowrap;}
   .del-btn:hover{background:#FDF2ED;border-color:var(--coral);}
   @media print{
-    .topbar, .backlink, #printBtn, .footer-note{display:none !important;}
+    .topbar, .backlink, #printBtn, .footer-note, select.class-filter, .no-print{display:none !important;}
     body{background:#fff;}
     .card{box-shadow:none;border:1px solid #ccc;break-inside:avoid;}
   }
@@ -205,7 +205,7 @@ const STATE = {
   loginMode: 'pick', pendingAlias: null, loginError: '',
   signupAlias: '', signupPin: '', signupGrade: '35',
   teacherPasscode: '', teacherError: '', teacherAuthed: false, teacherRows: null,
-  teacherManagingAlias: null, teacherManagingClass: null, teacherClassFilter: 'all',
+  teacherManagingAlias: null, teacherManagingClass: null, teacherClassFilter: 'all', showFullBookList: false,
   searchResults: [], searchQuery: '', currentBook: null,
   quiz: null, quizAnswers: {}, loading: false, loadingMsg: '',
   quizSetup: { count: 7, confidence: 'medium', challenge: 'onlevel', bilingual: 0 },
@@ -1348,11 +1348,20 @@ function screenTeacherSummary(){
   const recentRowsHtml = recent.map(a=>`<tr><td>${a.date}</td><td>${a.alias}</td><td>${classLabel(a.classCode)}</td><td>${a.title}</td><td>${a.score}%</td></tr>`).join('');
   const recentSection = recent.length===0 ? `<div class="empty">No quizzes yet.</div>` : `<div style="overflow-x:auto;"><table class="roster-table"><thead><tr><th>Date</th><th>Student</th><th>Class</th><th>Book</th><th>Score</th></tr></thead><tbody>${recentRowsHtml}</tbody></table></div>`;
 
+  // Full, uncapped log of every book taken (vs. "Recent activity" above,
+  // which is capped to a quick glance) - collapsed by default since it can
+  // get long, but expand it before printing to include the whole list.
+  const allBooks = [...attempts].sort((a,b)=> (b.date||'').localeCompare(a.date||''));
+  const allBooksRowsHtml = allBooks.map(a=>`<tr><td>${a.date}</td><td>${a.alias}</td><td>${classLabel(a.classCode)}</td><td>${a.title}</td><td>${a.score}%</td><td>${a.points!=null ? '+'+a.points : '—'}</td></tr>`).join('');
+  const allBooksTable = allBooks.length===0 ? `<div class="empty">No quizzes yet.</div>` : `<div style="overflow-x:auto;"><table class="roster-table"><thead><tr><th>Date</th><th>Student</th><th>Class</th><th>Book</th><th>Score</th><th>Points</th></tr></thead><tbody>${allBooksRowsHtml}</tbody></table></div>`;
+  const bookListToggleLabel = STATE.showFullBookList ? 'Hide full list' : `Show full list (${allBooks.length})`;
+
   const scopeLabel = STATE.teacherClassFilter==='all' ? 'across all classes' : 'for ' + classLabel(STATE.teacherClassFilter);
-  const c = el(`<div><button class="backlink" id="back">&larr; Back to roster</button><div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;"><h2 style="margin-bottom:2px;">Summary report</h2><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;"><span id="filterSlot"></span><button class="btn secondary" id="printBtn" style="width:auto;margin:0;padding:10px 18px;">🖨️ Print</button></div></div><p class="muted" style="margin:0;">A snapshot ${scopeLabel}, as of right now.</p><div class="stat-row"><div class="stat"><div class="num">${totalStudents}</div><div class="lbl">Students</div></div><div class="stat"><div class="num">${totalBooks}</div><div class="lbl">Books finished</div></div><div class="stat"><div class="num">${avgScore!=null?avgScore+'%':'—'}</div><div class="lbl">Avg score</div></div><div class="stat"><div class="num">${totalPoints}</div><div class="lbl">Total points</div></div></div></div><div class="card"><h3 style="margin-bottom:10px;">By class</h3>${classSection}</div><div class="card"><h3 style="margin-bottom:10px;">Top readers</h3>${topReadersSection}</div><div class="card"><h3 style="margin-bottom:10px;">Most-read books</h3>${topBooksSection}</div><div class="card"><h3 style="margin-bottom:10px;">Recent activity</h3>${recentSection}</div></div>`);
+  const c = el(`<div><button class="backlink" id="back">&larr; Back to roster</button><div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;"><h2 style="margin-bottom:2px;">Summary report</h2><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;"><span id="filterSlot"></span><button class="btn secondary" id="printBtn" style="width:auto;margin:0;padding:10px 18px;">🖨️ Print</button></div></div><p class="muted" style="margin:0;">A snapshot ${scopeLabel}, as of right now.</p><div class="stat-row"><div class="stat"><div class="num">${totalStudents}</div><div class="lbl">Students</div></div><div class="stat"><div class="num">${totalBooks}</div><div class="lbl">Books finished</div></div><div class="stat"><div class="num">${avgScore!=null?avgScore+'%':'—'}</div><div class="lbl">Avg score</div></div><div class="stat"><div class="num">${totalPoints}</div><div class="lbl">Total points</div></div></div></div><div class="card"><h3 style="margin-bottom:10px;">By class</h3>${classSection}</div><div class="card"><h3 style="margin-bottom:10px;">Top readers</h3>${topReadersSection}</div><div class="card"><h3 style="margin-bottom:10px;">Most-read books</h3>${topBooksSection}</div><div class="card"><h3 style="margin-bottom:10px;">Recent activity</h3>${recentSection}</div><div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;"><h3 style="margin-bottom:0;">All books taken</h3><button type="button" class="btn secondary no-print" id="bookListToggle" style="width:auto;margin:0;padding:8px 14px;">${bookListToggleLabel}</button></div>${STATE.showFullBookList ? allBooksTable : ''}</div></div>`);
   c.querySelector('#back').onclick = ()=>{ STATE.screen='teacher'; render(); };
   c.querySelector('#printBtn').onclick = ()=> window.print();
   c.querySelector('#filterSlot').replaceWith(classFilterSelect(allRows));
+  c.querySelector('#bookListToggle').onclick = ()=>{ STATE.showFullBookList = !STATE.showFullBookList; render(); };
   return c;
 }
 
