@@ -144,6 +144,11 @@
   .badge-chip{background:var(--forest);color:#fff;font-weight:800;font-size:12.5px;padding:6px 12px;border-radius:20px;animation:pop .35s cubic-bezier(.3,1.6,.4,1);}
   @keyframes pop{0%{transform:scale(0);opacity:0;}70%{transform:scale(1.12);}100%{transform:scale(1);opacity:1;}}
   .confetti-piece{position:fixed;top:-10px;pointer-events:none;z-index:9999;}
+  .fw-particle{position:fixed;border-radius:50%;pointer-events:none;z-index:9999;}
+  .fw-flash{position:fixed;border-radius:50%;pointer-events:none;z-index:9998;background:radial-gradient(circle,#fff,rgba(255,255,255,0) 70%);}
+  .husky-pop{position:fixed;pointer-events:none;z-index:9999;filter:drop-shadow(0 6px 10px rgba(0,0,0,.25));}
+  .husky-wag{width:100%;height:100%;display:block;animation:huskyWag .5s ease-in-out infinite;}
+  @keyframes huskyWag{0%,100%{transform:rotate(-6deg);}50%{transform:rotate(6deg);}}
   .bilingual-pair{display:flex;flex-wrap:wrap;column-gap:14px;row-gap:2px;align-items:baseline;}
   .bilingual-pair .es{color:var(--muted);font-style:italic;font-weight:600;}
   .shelf-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:12px;}
@@ -1035,6 +1040,98 @@ function fireConfetti(){
   }
 }
 
+const HUSKY_SVG = `<svg viewBox="0 0 100 100" width="100%" height="100%"><path d="M18 34 L8 6 L36 24 Z" fill="#3A3A3A"/><path d="M82 34 L92 6 L64 24 Z" fill="#3A3A3A"/><path d="M22 32 L15 13 L34 25 Z" fill="#fff"/><path d="M78 32 L85 13 L66 25 Z" fill="#fff"/><ellipse cx="50" cy="58" rx="36" ry="34" fill="#fff"/><path d="M50 24 C34 24 24 38 22 52 C34 46 44 44 50 44 C56 44 66 46 78 52 C76 38 66 24 50 24 Z" fill="#3A3A3A"/><path d="M50 44 C44 44 36 48 32 58 C36 70 44 78 50 78 C56 78 64 70 68 58 C64 48 56 44 50 44 Z" fill="#fff"/><circle cx="40" cy="58" r="5.5" fill="#3F8FD9"/><circle cx="60" cy="58" r="5.5" fill="#3F8FD9"/><circle cx="40" cy="57" r="1.6" fill="#111"/><circle cx="60" cy="57" r="1.6" fill="#111"/><path d="M50 64 C47 64 44.5 66 44.5 68 C44.5 70 47 71.5 50 71.5 C53 71.5 55.5 70 55.5 68 C55.5 66 53 64 50 64 Z" fill="#111"/><path d="M50 71 C48 74 48 78 50 80 C52 78 52 74 50 71 Z" fill="#E8734A"/></svg>`;
+
+// Fires a few staggered firework bursts (a bright flash plus radiating
+// particles) at random spots across the top of the screen, for the
+// pass-the-quiz celebration.
+function fireFireworks(){
+  const colors = ['#E8734A','#D9A441','#2F5D50','#7A9E8C','#3F8FD9'];
+  const bursts = [
+    { x: 20+Math.random()*15, y: 26+Math.random()*10, delay: 0 },
+    { x: 45+Math.random()*10, y: 18+Math.random()*10, delay: 220 },
+    { x: 70+Math.random()*15, y: 28+Math.random()*10, delay: 440 },
+  ];
+  bursts.forEach(burst=>{
+    setTimeout(()=>{
+      const flash = document.createElement('div');
+      flash.className = 'fw-flash';
+      flash.style.left = burst.x+'vw';
+      flash.style.top = burst.y+'vh';
+      flash.style.width = '10px';
+      flash.style.height = '10px';
+      flash.style.transform = 'translate(-50%,-50%) scale(1)';
+      flash.style.opacity = '0.9';
+      flash.style.transition = 'transform .5s ease-out, opacity .5s ease-out';
+      document.body.appendChild(flash);
+      requestAnimationFrame(()=>{
+        flash.style.transform = 'translate(-50%,-50%) scale(9)';
+        flash.style.opacity = '0';
+      });
+      setTimeout(()=>flash.remove(), 550);
+
+      const color = colors[Math.floor(Math.random()*colors.length)];
+      const count = 16;
+      for(let i=0;i<count;i++){
+        const angle = (i/count) * Math.PI * 2;
+        const dist = 60 + Math.random()*40;
+        const p = document.createElement('div');
+        p.className = 'fw-particle';
+        const size = 4+Math.random()*3;
+        p.style.left = burst.x+'vw';
+        p.style.top = burst.y+'vh';
+        p.style.width = size+'px';
+        p.style.height = size+'px';
+        p.style.background = color;
+        p.style.transform = 'translate(-50%,-50%)';
+        p.style.opacity = '1';
+        p.style.transition = 'transform .9s cubic-bezier(.15,.6,.35,1), opacity .9s ease-in';
+        document.body.appendChild(p);
+        requestAnimationFrame(()=>{
+          const dx = Math.cos(angle)*dist;
+          const dy = Math.sin(angle)*dist + 30; // slight gravity drop
+          p.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+          p.style.opacity = '0';
+        });
+        setTimeout(()=>p.remove(), 950);
+      }
+    }, burst.delay);
+  });
+}
+
+// Pops a few husky mascots up from the bottom of the screen with a happy
+// wag, then sends them back down - the other half of the pass celebration.
+function fireHuskies(){
+  const positions = [14, 50, 86];
+  positions.forEach((leftPct, i)=>{
+    setTimeout(()=>{
+      const husky = document.createElement('div');
+      husky.className = 'husky-pop';
+      husky.innerHTML = `<div class="husky-wag">${HUSKY_SVG}</div>`;
+      husky.style.left = leftPct+'vw';
+      husky.style.bottom = '-70px';
+      husky.style.width = '64px';
+      husky.style.height = '64px';
+      husky.style.transform = 'translateX(-50%) scale(0.6)';
+      husky.style.opacity = '0';
+      husky.style.transition = 'bottom 1s cubic-bezier(.34,1.56,.64,1), transform 1s cubic-bezier(.34,1.56,.64,1), opacity .4s ease-out';
+      document.body.appendChild(husky);
+      requestAnimationFrame(()=>{
+        husky.style.bottom = (10+Math.random()*10)+'vh';
+        husky.style.transform = 'translateX(-50%) scale(1)';
+        husky.style.opacity = '1';
+      });
+      setTimeout(()=>{
+        husky.style.transition = 'bottom .6s ease-in, opacity .6s ease-in, transform .6s ease-in';
+        husky.style.opacity = '0';
+        husky.style.transform = 'translateX(-50%) scale(0.85)';
+        husky.style.bottom = '-40px';
+      }, 1600);
+      setTimeout(()=>husky.remove(), 2250);
+    }, i*150);
+  });
+}
+
 function renderReviewList(review){
   return review.map((r,i)=>{
     const chosenText = r.chosenIndex!=null ? r.options[r.chosenIndex] : '(no answer)';
@@ -1061,6 +1158,7 @@ function screenResult(){
       const numEl = document.querySelector('.pb-num');
       if(numEl) animateNumber(numEl, r.earnedPoints, 800);
       fireConfetti();
+      if(good){ fireFireworks(); fireHuskies(); }
     }, 30);
   }
   return c;
