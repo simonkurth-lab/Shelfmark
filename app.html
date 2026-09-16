@@ -1136,7 +1136,7 @@ function screenTeacherStudent(){
     btn.onclick = ()=>{
       const h = hist[i];
       if(!confirm(`Delete "${h.title}" (${h.score}%) from ${s.alias}'s history? This can't be undone.`)) return;
-      deleteAttempt(s.alias, s.classCode, i);
+      deleteAttempt(s.alias, s.classCode || 'default', i);
     };
   });
   return c;
