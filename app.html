@@ -30,6 +30,8 @@
   .btn:focus-visible{outline:3px solid var(--gold);outline-offset:2px;}
   .btn.secondary{background:transparent;color:var(--forest-dark);border:1.5px solid var(--forest-dark);}
   .btn.coral{background:var(--coral);}
+  .btn:disabled{opacity:.7;cursor:default;}
+  .btn-spinner{width:14px;height:14px;border:2px solid rgba(255,255,255,.45);border-top-color:#fff;border-radius:50%;display:inline-block;animation:spin .7s linear infinite;}
   .btn.coral:hover{background:#cf5f38;}
   .btn[disabled]{opacity:0.55;cursor:not-allowed;}
   .btn.name-pick{background:#F6F1E4;color:var(--forest-dark);border:1.5px solid var(--line);margin-top:8px;display:flex;justify-content:space-between;align-items:center;text-align:left;}
@@ -513,10 +515,15 @@ function screenHome(){
 }
 
 function screenSearch(){
-  const c = el(`<div><button class="backlink" id="back">&larr; Back</button><div class="card"><h2 style="margin-bottom:10px;">Find a book</h2><input type="text" id="q" placeholder="Title or author..." value="${STATE.searchQuery.replace(/"/g,'')}" /><button class="btn" id="searchGo">Search</button></div><div class="card" id="results"></div></div>`);
+  const searching = STATE.loading;
+  const searchBtnInner = searching ? `<span class="btn-spinner"></span> Searching...` : 'Search';
+  const c = el(`<div><button class="backlink" id="back">&larr; Back</button><div class="card"><h2 style="margin-bottom:10px;">Find a book</h2><input type="text" id="q" placeholder="Title or author..." value="${STATE.searchQuery.replace(/"/g,'')}" ${searching?'disabled':''} /><button class="btn" id="searchGo" ${searching?'disabled':''}>${searchBtnInner}</button></div><div class="card" id="results"></div></div>`);
   c.querySelector('#back').onclick = ()=>{ STATE.screen='home'; render(); };
-  c.querySelector('#q').addEventListener('keydown', e=>{ if(e.key==='Enter') runSearch(); });
-  c.querySelector('#searchGo').onclick = runSearch;
+  if(!searching){
+    c.querySelector('#q').addEventListener('keydown', e=>{ if(e.key==='Enter') runSearch(); });
+    c.querySelector('#searchGo').onclick = runSearch;
+    setTimeout(()=>{ const inp=c.querySelector('#q'); if(document.body.contains(inp)) inp.focus(); }, 0);
+  }
   const resultsDiv = c.querySelector('#results');
   if(STATE.loading){ resultsDiv.innerHTML = `<div class="loading">${STATE.loadingMsg}</div>`; }
   else if(STATE.searchResults.length===0 && STATE.searchQuery){ resultsDiv.innerHTML = `<div class="empty">No books found. Try a different spelling.</div>`; }
@@ -537,10 +544,21 @@ function screenSearch(){
   return c;
 }
 
-// Open Library's catalog has real gaps, especially for smaller/newer
-// children's nonfiction - it can genuinely return zero results for a book
-// that exists. When that happens, fall back to Google Books, which pulls
-// from publisher/distributor catalogs and has much broader coverage.
+async function searchOpenLibrary(q){
+  try{
+    const resp = await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(q)}&fields=title,author_name,key,number_of_pages_median,first_publish_year,cover_i&limit=10`);
+    const data = await resp.json();
+    return (data.docs||[]).filter(d=>d.title).slice(0,8);
+  }catch(e){ return []; }
+}
+
+// Google's search backend is far more typo-tolerant than Open Library's
+// strict text search, which matters a lot for young students who
+// frequently misspell titles/authors. We query both in parallel and merge
+// them (Google first) rather than only falling back to Google when Open
+// Library comes back empty - Open Library can return a handful of wrong
+// matches for a misspelled query instead of zero, which used to skip the
+// Google fallback entirely.
 async function searchGoogleBooks(q){
   try{
     const resp = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&maxResults=8&printType=books`);
@@ -582,17 +600,31 @@ function screenManualBook(){
   return c;
 }
 
+function normalizeSearchKey(title, authors){
+  const t = (title||'').toLowerCase().replace(/[^a-z0-9]+/g,'');
+  const a = ((authors&&authors[0])||'').toLowerCase().replace(/[^a-z0-9]+/g,'');
+  return t+'|'+a;
+}
+function mergeSearchResults(primary, secondary){
+  const seen = new Set();
+  const out = [];
+  primary.concat(secondary).forEach(b=>{
+    const key = normalizeSearchKey(b.title, b.author_name);
+    if(seen.has(key)) return;
+    seen.add(key);
+    out.push(b);
+  });
+  return out.slice(0,10);
+}
+
 async function runSearch(){
-  const q = document.getElementById('q').value.trim();
+  const q = document.getElementById('q').value.trim().replace(/\s+/g,' ');
   if(!q) return;
   STATE.searchQuery = q;
   STATE.loading = true; STATE.loadingMsg='Searching...'; render();
   try{
-    const resp = await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(q)}&fields=title,author_name,key,number_of_pages_median,first_publish_year,cover_i&limit=10`);
-    const data = await resp.json();
-    let results = (data.docs||[]).filter(d=>d.title).slice(0,8);
-    if(results.length===0) results = await searchGoogleBooks(q);
-    STATE.searchResults = results;
+    const [gbResults, olResults] = await Promise.all([searchGoogleBooks(q), searchOpenLibrary(q)]);
+    STATE.searchResults = mergeSearchResults(gbResults, olResults);
   }catch(e){ STATE.searchResults = []; }
   STATE.loading = false;
   render();
