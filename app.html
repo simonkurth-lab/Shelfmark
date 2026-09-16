@@ -375,6 +375,7 @@ function buildScreen(){
   else if(STATE.screen==='teacherSummary') body = screenTeacherSummary();
   else if(!STATE.classCode) body = screenClassPick();
   else if(STATE.screen==='login') body = screenLogin();
+  else if(STATE.screen==='nameCapture') body = screenNameCapture();
   else if(STATE.screen==='home') body = screenHome();
   else if(STATE.screen==='search') body = screenSearch();
   else if(STATE.screen==='manualBook') body = screenManualBook();
@@ -492,7 +493,7 @@ async function doSignup(alias, pin){
   STATE.alias = resp.alias;
   STATE.student = resp;
   STATE.rosterLoaded = false;
-  STATE.screen = 'home';
+  STATE.screen = resp.realName ? 'home' : 'nameCapture';
   render();
 }
 
@@ -505,8 +506,31 @@ async function doLogin(alias, pin){
   if(resp.error){ STATE.loginError='Could not find that alias.'; render(); return; }
   STATE.alias = resp.alias;
   STATE.student = resp;
-  STATE.screen = 'home';
+  STATE.screen = resp.realName ? 'home' : 'nameCapture';
   render();
+}
+
+// One-time prompt shown after login/signup when a student has no realName
+// on file yet. This never touches the AI-facing endpoints or the public
+// roster - it's merged into the student's own record via the normal save
+// path and only ever surfaced back out through the teacher-passcode-gated
+// dashboard, so it stays private even though the student enters it.
+function screenNameCapture(){
+  const c = el(`<div><div class="card"><h2 style="margin-bottom:6px;">One more thing!</h2><p class="muted" style="margin:0 0 14px;">What's your name? Only your teacher can see this — no one else in the app ever will.</p><input type="text" id="nameInput" placeholder="Your first name" maxlength="40" /><button class="btn coral" id="goBtn" style="margin-top:16px;">Continue</button><button class="backlink" id="skipBtn" style="margin-top:14px;margin-bottom:0;">Skip for now</button></div></div>`);
+  const nameInput = c.querySelector('#nameInput');
+  const submit = ()=>{
+    const name = nameInput.value.trim();
+    if(!name) return;
+    STATE.student.realName = name;
+    saveStudent(STATE.student.alias, STATE.student);
+    STATE.screen = 'home';
+    render();
+  };
+  nameInput.addEventListener('keydown', e=>{ if(e.key==='Enter') submit(); });
+  c.querySelector('#goBtn').onclick = submit;
+  c.querySelector('#skipBtn').onclick = ()=>{ STATE.screen='home'; render(); };
+  setTimeout(()=>nameInput.focus(), 0);
+  return c;
 }
 
 function screenHome(){
@@ -1294,9 +1318,9 @@ function screenTeacher(){
       // context gets silently dropped by the browser, leaving just text.
       const rowsHtml = g.students.map(s=>{
         const stats = studentStats(s);
-        return `<tr><td>${s.alias}</td><td>${s.pin}</td><td>${stats.books}</td><td>${stats.avgScore!=null ? stats.avgScore+'%' : '—'}</td><td>${s.points||0}</td><td>${stats.rank.current.emoji} ${stats.rank.current.name}</td><td><button type="button" class="manage-btn">Manage ›</button></td></tr>`;
+        return `<tr><td>${s.alias}</td><td>${s.realName || '—'}</td><td>${s.pin}</td><td>${stats.books}</td><td>${stats.avgScore!=null ? stats.avgScore+'%' : '—'}</td><td>${s.points||0}</td><td>${stats.rank.current.emoji} ${stats.rank.current.name}</td><td><button type="button" class="manage-btn">Manage ›</button></td></tr>`;
       }).join('');
-      const groupCard = el(`<div class="card class-group"><div class="class-group-head"><h3>${g.label}</h3><span class="muted">${g.students.length} student${g.students.length===1?'':'s'}${classAvg!=null ? ' · class avg '+classAvg+'%' : ''}</span></div><div style="overflow-x:auto;"><table class="roster-table"><thead><tr><th>Alias</th><th>PIN</th><th>Books</th><th>Avg score</th><th>Points</th><th>Rank</th><th></th></tr></thead><tbody>${rowsHtml}</tbody></table></div></div>`);
+      const groupCard = el(`<div class="card class-group"><div class="class-group-head"><h3>${g.label}</h3><span class="muted">${g.students.length} student${g.students.length===1?'':'s'}${classAvg!=null ? ' · class avg '+classAvg+'%' : ''}</span></div><div style="overflow-x:auto;"><table class="roster-table"><thead><tr><th>Alias</th><th>Name</th><th>PIN</th><th>Books</th><th>Avg score</th><th>Points</th><th>Rank</th><th></th></tr></thead><tbody>${rowsHtml}</tbody></table></div></div>`);
       groupCard.querySelectorAll('.manage-btn').forEach((btn,i)=>{
         btn.onclick = ()=>{
           const s = g.students[i];
@@ -1370,7 +1394,7 @@ function screenTeacherStudent(){
   if(!s){ STATE.screen='teacher'; return screenTeacher(); }
   const hist = s.history || [];
   const rowsHtml = hist.map(h=>`<tr><td>${h.title}</td><td>${h.score}%</td><td>${h.points!=null ? '+'+h.points : '—'}</td><td>${h.date}</td><td class="no-print"><button type="button" class="del-btn">🗑️ Delete</button></td></tr>`).join('');
-  const c = el(`<div><button class="backlink" id="back">&larr; Back to roster</button><div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;"><div><h2 style="margin-bottom:2px;">${s.alias}</h2><p class="muted" style="margin:0;">${classLabel(s.classCode)} · PIN ${s.pin} · ${s.points||0} pts</p></div><button class="btn secondary no-print" id="printBtn" style="width:auto;margin:0;padding:10px 18px;">🖨️ Print</button></div>${hist.length===0 ? `<div class="empty">No quizzes taken yet.</div>` : `<div style="overflow-x:auto;margin-top:14px;"><table class="roster-table"><thead><tr><th>Book</th><th>Score</th><th>Points</th><th>Date</th><th class="no-print"></th></tr></thead><tbody>${rowsHtml}</tbody></table></div>`}</div></div>`);
+  const c = el(`<div><button class="backlink" id="back">&larr; Back to roster</button><div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;"><div><h2 style="margin-bottom:2px;">${s.alias}${s.realName ? ` <span class="muted" style="font-weight:600;font-size:14px;">(${s.realName})</span>` : ''}</h2><p class="muted" style="margin:0;">${classLabel(s.classCode)} · PIN ${s.pin} · ${s.points||0} pts</p></div><button class="btn secondary no-print" id="printBtn" style="width:auto;margin:0;padding:10px 18px;">🖨️ Print</button></div>${hist.length===0 ? `<div class="empty">No quizzes taken yet.</div>` : `<div style="overflow-x:auto;margin-top:14px;"><table class="roster-table"><thead><tr><th>Book</th><th>Score</th><th>Points</th><th>Date</th><th class="no-print"></th></tr></thead><tbody>${rowsHtml}</tbody></table></div>`}</div></div>`);
   c.querySelector('#back').onclick = ()=>{ STATE.screen='teacher'; render(); };
   c.querySelector('#printBtn').onclick = ()=> window.print();
   c.querySelectorAll('.del-btn').forEach((btn,i)=>{
