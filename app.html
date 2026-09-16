@@ -30,6 +30,8 @@
   .btn:hover{background:var(--forest-dark);}
   .btn:focus-visible{outline:3px solid var(--gold);outline-offset:2px;}
   .btn.secondary{background:transparent;color:var(--forest-dark);border:1.5px solid var(--forest-dark);}
+  .class-pick-btn{padding:20px;font-size:18px;border-width:2px;}
+  .class-pick-btn:hover{background:#EEF4F1;}
   .btn.coral{background:var(--coral);}
   .btn:disabled{opacity:.7;cursor:default;}
   .btn-spinner{width:14px;height:14px;border:2px solid rgba(255,255,255,.45);border-top-color:#fff;border-radius:50%;display:inline-block;animation:spin .7s linear infinite;}
@@ -199,7 +201,7 @@ function classLabel(code){
 }
 
 const STATE = {
-  classCode: getSavedClass(),
+  classCode: getSavedClass(), classConfirmed: false,
   screen: new URLSearchParams(location.search).get('teacher') ? 'teacher' : 'login', alias: null, student: null,
   roster: [], rosterLoaded: false,
   loginMode: 'pick', pendingAlias: null, loginError: '',
@@ -373,7 +375,7 @@ function buildScreen(){
   if(STATE.screen==='teacher') body = screenTeacher();
   else if(STATE.screen==='teacherStudent') body = screenTeacherStudent();
   else if(STATE.screen==='teacherSummary') body = screenTeacherSummary();
-  else if(!STATE.classCode) body = screenClassPick();
+  else if(!STATE.classConfirmed) body = screenClassPick();
   else if(STATE.screen==='login') body = screenLogin();
   else if(STATE.screen==='nameCapture') body = screenNameCapture();
   else if(STATE.screen==='home') body = screenHome();
@@ -413,11 +415,13 @@ function logout(){
 }
 
 function screenClassPick(){
+  const lastClass = STATE.classCode; // whatever was remembered from last time, before this session's pick
   const c = el(`<div class="card"><h2 style="margin-bottom:6px;">Which class are you in?</h2><p class="muted" style="margin:0 0 14px;">Pick your class so you see the right classmates.</p><div id="classCol"></div><button class="backlink" id="teacherBtn" style="margin-top:14px;margin-bottom:0;">Teacher dashboard</button></div>`);
   const col = c.querySelector('#classCol');
   CLASSES.forEach(cls=>{
-    const btn = el(`<button type="button" class="btn secondary">${cls.label}</button>`);
-    btn.onclick = ()=>{ STATE.classCode = cls.code; saveClass(cls.code); STATE.rosterLoaded = false; render(); };
+    const isLast = cls.code === lastClass;
+    const btn = el(`<button type="button" class="btn secondary class-pick-btn">${cls.label}${isLast ? ' <span class="muted" style="font-weight:700;font-size:11.5px;">(last time)</span>' : ''}</button>`);
+    btn.onclick = ()=>{ STATE.classCode = cls.code; STATE.classConfirmed = true; saveClass(cls.code); STATE.rosterLoaded = false; render(); };
     col.appendChild(btn);
   });
   c.querySelector('#teacherBtn').onclick = ()=>{ STATE.screen='teacher'; render(); };
@@ -444,7 +448,7 @@ function screenLogin(){
   }
   c.querySelector('#newBtn').onclick = ()=>{ STATE.loginMode='signup'; STATE.signupAlias=''; STATE.signupPin=''; STATE.loginError=''; render(); };
   c.querySelector('#teacherBtn').onclick = ()=>{ STATE.screen='teacher'; render(); };
-  c.querySelector('#switchClass').onclick = ()=>{ STATE.classCode=null; clearSavedClass(); STATE.rosterLoaded=false; render(); };
+  c.querySelector('#switchClass').onclick = ()=>{ STATE.classCode=null; STATE.classConfirmed=false; clearSavedClass(); STATE.rosterLoaded=false; render(); };
   return c;
 }
 
