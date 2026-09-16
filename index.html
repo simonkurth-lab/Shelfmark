@@ -63,11 +63,26 @@
 
   footer{text-align:center;padding:0 0 32px;color:var(--muted);font-size:12.5px;}
 
+  /* ---- Reading tracker ---- */
+  .tracker{padding:8px 0 64px;}
+  .tracker-hero{background:linear-gradient(135deg,var(--gold),#E8B84D);border-radius:24px;padding:32px 20px;display:flex;justify-content:center;gap:48px;flex-wrap:wrap;text-align:center;box-shadow:0 8px 28px rgba(43,33,24,0.12);margin-bottom:20px;}
+  .tracker-hero-item .th-num{font-family:'Baloo 2';font-weight:800;font-size:48px;color:#4A3300;line-height:1;}
+  .tracker-hero-item .th-lbl{margin-top:6px;font-weight:800;font-size:13px;color:#4A3300;opacity:.8;text-transform:uppercase;letter-spacing:.04em;}
+  .tracker-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+  .tracker-card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px 14px;text-align:center;}
+  .tracker-card .tc-title{font-family:'Baloo 2';font-weight:700;font-size:15px;color:var(--forest-dark);margin-bottom:12px;}
+  .tracker-card .tc-stats{display:flex;justify-content:center;gap:18px;}
+  .tracker-card .tc-num{font-family:'Baloo 2';font-weight:800;font-size:22px;color:var(--forest-dark);}
+  .tracker-card .tc-lbl{font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.03em;margin-top:2px;}
+
   @media (max-width: 860px){
     .hero{padding-bottom:36px;}
     .hero p{max-width:none;}
     .step-row{grid-template-columns:1fr;gap:28px;}
     .rank-grid{grid-template-columns:repeat(3,1fr);}
+    .tracker-hero{gap:24px;padding:24px 16px;}
+    .tracker-hero-item .th-num{font-size:36px;}
+    .tracker-grid{grid-template-columns:1fr;}
   }
 </style>
 </head>
@@ -85,6 +100,22 @@
     </div>
     <p>Pick a book, read the whole thing, then come tell us about it. Every book you finish is another step up the mountain.</p>
     <a href="app.html"><button class="btn">Start Reading</button></a>
+  </section>
+
+  <section class="tracker">
+    <div class="section-head">
+      <h2>📚 Our Reading Tracker</h2>
+      <p>Every book anyone finishes counts here — all four classes together, growing every day.</p>
+    </div>
+    <div class="tracker-hero">
+      <div class="tracker-hero-item"><div class="th-num" id="allBooks">0</div><div class="th-lbl">📖 Books Finished — All Time</div></div>
+      <div class="tracker-hero-item"><div class="th-num" id="allWords">0</div><div class="th-lbl">✍️ Words Read — All Time</div></div>
+    </div>
+    <div class="tracker-grid">
+      <div class="tracker-card"><div class="tc-title">This Week</div><div class="tc-stats"><div><div class="tc-num" id="weekBooks">0</div><div class="tc-lbl">📖 books</div></div><div><div class="tc-num" id="weekWords">0</div><div class="tc-lbl">✍️ words</div></div></div></div>
+      <div class="tracker-card"><div class="tc-title">This Month</div><div class="tc-stats"><div><div class="tc-num" id="monthBooks">0</div><div class="tc-lbl">📖 books</div></div><div><div class="tc-num" id="monthWords">0</div><div class="tc-lbl">✍️ words</div></div></div></div>
+      <div class="tracker-card"><div class="tc-title">This Year</div><div class="tc-stats"><div><div class="tc-num" id="yearBooks">0</div><div class="tc-lbl">📖 books</div></div><div><div class="tc-num" id="yearWords">0</div><div class="tc-lbl">✍️ words</div></div></div></div>
+    </div>
   </section>
 
   <section class="steps">
@@ -126,5 +157,33 @@
   <footer>Piki — Read. Grow. Climb.</footer>
 </div>
 
+<script>
+// Point this at your Cloudflare Worker (mirrors app.html).
+const WORKER_URL = 'https://api.readpiki.com';
+
+function animateCount(el, to, duration){
+  const start = performance.now();
+  function tick(now){
+    const p = Math.min(1, (now-start)/duration);
+    const eased = 1 - Math.pow(1-p, 3);
+    el.textContent = Math.round(eased*to).toLocaleString();
+    if(p<1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+
+fetch(WORKER_URL + '/api/community-stats').then(r=>r.json()).then(stats=>{
+  if(!stats) return;
+  const setStat = (id, val)=>{ const el = document.getElementById(id); if(el) animateCount(el, val||0, 1200); };
+  setStat('allBooks', stats.allTime && stats.allTime.books);
+  setStat('allWords', stats.allTime && stats.allTime.words);
+  setStat('weekBooks', stats.week && stats.week.books);
+  setStat('weekWords', stats.week && stats.week.words);
+  setStat('monthBooks', stats.month && stats.month.books);
+  setStat('monthWords', stats.month && stats.month.words);
+  setStat('yearBooks', stats.year && stats.year.books);
+  setStat('yearWords', stats.year && stats.year.words);
+}).catch(()=>{});
+</script>
 </body>
 </html>
