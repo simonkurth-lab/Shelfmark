@@ -1219,19 +1219,24 @@ function screenTeacherStudent(){
 
 async function deleteAttempt(alias, classCode, index){
   const resp = await postJSON('/api/teacher/delete-attempt', { passcode: STATE.teacherPasscode, alias, classCode, index });
-  if(resp.error){ alert('Could not delete that attempt. Try again.'); return; }
+  if(resp.error){ alert('Could not delete that attempt: ' + resp.error); return; }
   const idx = (STATE.teacherRows || []).findIndex(r=>r.alias===alias && (r.classCode||'default')===classCode);
   if(idx !== -1) STATE.teacherRows[idx] = resp;
   render();
 }
 
 function screenTeacherLogin(){
-  const c = el(`<div class="card"><button class="backlink" id="back">&larr; Back</button><h2 style="margin-bottom:6px;">Teacher dashboard</h2><p class="muted" style="margin:0 0 14px;">Enter the teacher passcode.</p><input type="password" id="pc" placeholder="Passcode" /><button class="btn" id="goBtn">View roster</button><div id="err"></div></div>`);
+  const checking = STATE.loading;
+  const goBtnInner = checking ? `<span class="btn-spinner"></span> Checking...` : 'View roster';
+  const c = el(`<div class="card"><button class="backlink" id="back">&larr; Back</button><h2 style="margin-bottom:6px;">Teacher dashboard</h2><p class="muted" style="margin:0 0 14px;">Enter the teacher passcode.</p><input type="password" id="pc" placeholder="Passcode" ${checking?'disabled':''} /><button class="btn" id="goBtn" ${checking?'disabled':''}>${goBtnInner}</button><div id="err"></div></div>`);
   c.querySelector('#back').onclick = ()=>{ STATE.screen='login'; render(); };
   const pcInput = c.querySelector('#pc');
-  const tryAuth = ()=> teacherLogin(pcInput.value);
-  pcInput.addEventListener('keydown', e=>{ if(e.key==='Enter') tryAuth(); });
-  c.querySelector('#goBtn').onclick = tryAuth;
+  if(!checking){
+    const tryAuth = ()=> teacherLogin(pcInput.value);
+    pcInput.addEventListener('keydown', e=>{ if(e.key==='Enter') tryAuth(); });
+    c.querySelector('#goBtn').onclick = tryAuth;
+    setTimeout(()=>pcInput.focus(), 0);
+  }
   if(STATE.teacherError) c.querySelector('#err').appendChild(el(`<p class="error-text">${STATE.teacherError}</p>`));
   return c;
 }
