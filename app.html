@@ -1369,9 +1369,10 @@ function screenTeacherStudent(){
   const s = (STATE.teacherRows || []).find(r=>r.alias===STATE.teacherManagingAlias && (r.classCode||'default')===STATE.teacherManagingClass);
   if(!s){ STATE.screen='teacher'; return screenTeacher(); }
   const hist = s.history || [];
-  const rowsHtml = hist.map(h=>`<tr><td>${h.title}</td><td>${h.score}%</td><td>${h.points!=null ? '+'+h.points : '—'}</td><td>${h.date}</td><td><button type="button" class="del-btn">🗑️ Delete</button></td></tr>`).join('');
-  const c = el(`<div><button class="backlink" id="back">&larr; Back to roster</button><div class="card"><h2 style="margin-bottom:2px;">${s.alias}</h2><p class="muted" style="margin:0 0 14px;">${classLabel(s.classCode)} · PIN ${s.pin} · ${s.points||0} pts</p>${hist.length===0 ? `<div class="empty">No quizzes taken yet.</div>` : `<div style="overflow-x:auto;"><table class="roster-table"><thead><tr><th>Book</th><th>Score</th><th>Points</th><th>Date</th><th></th></tr></thead><tbody>${rowsHtml}</tbody></table></div>`}</div></div>`);
+  const rowsHtml = hist.map(h=>`<tr><td>${h.title}</td><td>${h.score}%</td><td>${h.points!=null ? '+'+h.points : '—'}</td><td>${h.date}</td><td class="no-print"><button type="button" class="del-btn">🗑️ Delete</button></td></tr>`).join('');
+  const c = el(`<div><button class="backlink" id="back">&larr; Back to roster</button><div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;"><div><h2 style="margin-bottom:2px;">${s.alias}</h2><p class="muted" style="margin:0;">${classLabel(s.classCode)} · PIN ${s.pin} · ${s.points||0} pts</p></div><button class="btn secondary no-print" id="printBtn" style="width:auto;margin:0;padding:10px 18px;">🖨️ Print</button></div>${hist.length===0 ? `<div class="empty">No quizzes taken yet.</div>` : `<div style="overflow-x:auto;margin-top:14px;"><table class="roster-table"><thead><tr><th>Book</th><th>Score</th><th>Points</th><th>Date</th><th class="no-print"></th></tr></thead><tbody>${rowsHtml}</tbody></table></div>`}</div></div>`);
   c.querySelector('#back').onclick = ()=>{ STATE.screen='teacher'; render(); };
+  c.querySelector('#printBtn').onclick = ()=> window.print();
   c.querySelectorAll('.del-btn').forEach((btn,i)=>{
     btn.onclick = ()=>{
       const h = hist[i];
