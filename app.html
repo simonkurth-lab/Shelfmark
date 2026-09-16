@@ -516,12 +516,15 @@ async function doLogin(alias, pin){
 // path and only ever surfaced back out through the teacher-passcode-gated
 // dashboard, so it stays private even though the student enters it.
 function screenNameCapture(){
-  const c = el(`<div><div class="card"><h2 style="margin-bottom:6px;">One more thing!</h2><p class="muted" style="margin:0 0 14px;">What's your name? Only your teacher can see this — no one else in the app ever will.</p><input type="text" id="nameInput" placeholder="Your first name" maxlength="40" /><button class="btn coral" id="goBtn" style="margin-top:16px;">Continue</button><button class="backlink" id="skipBtn" style="margin-top:14px;margin-bottom:0;">Skip for now</button></div></div>`);
+  const c = el(`<div><div class="card"><h2 style="margin-bottom:6px;">One more thing!</h2><p class="muted" style="margin:0 0 14px;">What's your first name? Only your teacher can see this — no one else in the app ever will. First name only, please, no last name.</p><input type="text" id="nameInput" placeholder="Your first name" maxlength="40" /><button class="btn coral" id="goBtn" style="margin-top:16px;">Continue</button><button class="backlink" id="skipBtn" style="margin-top:14px;margin-bottom:0;">Skip for now</button></div></div>`);
   const nameInput = c.querySelector('#nameInput');
   const submit = ()=>{
-    const name = nameInput.value.trim();
-    if(!name) return;
-    STATE.student.realName = name.toUpperCase();
+    // Only the first name, never a last name - keeps this field a light
+    // teacher-side note rather than anything that could re-identify a
+    // student on its own.
+    const firstWord = nameInput.value.trim().split(/\s+/)[0];
+    if(!firstWord) return;
+    STATE.student.realName = firstWord.toUpperCase();
     saveStudent(STATE.student.alias, STATE.student);
     STATE.screen = 'home';
     render();
