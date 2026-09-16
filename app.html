@@ -209,7 +209,8 @@ const STATE = {
   signupAlias: '', signupPin: '', signupGrade: '35',
   teacherPasscode: '', teacherError: '', teacherAuthed: false, teacherRows: null,
   teacherManagingAlias: null, teacherManagingClass: null, teacherClassFilter: 'all', showFullBookList: false,
-  searchResults: [], searchQuery: '', currentBook: null,
+  searchResults: [], searchQuery: '', currentBook: null, bookMode: 'quiz',
+  rangeSaveMsg: '',
   quiz: null, quizAnswers: {}, loading: false, loadingMsg: '',
   quizSetup: { count: 7, confidence: 'medium', challenge: 'onlevel', bilingual: 0 },
   speechRate: 0.95,
@@ -264,6 +265,21 @@ function lengthTag(pages){
   if(pages < 150) return 'Quick read';
   if(pages <= 320) return 'Standard length';
   return 'Chunky read';
+}
+
+// A teacher can optionally set a suggested Lexile reading range on a
+// student's record (see screenTeacherStudent). It's purely advisory - never
+// blocks a student from reading or quizzing on any book - so this only ever
+// returns a friendly note, never an error state.
+function rangeFitNote(book, student){
+  if(!student) return '';
+  const min = student.lexileMin, max = student.lexileMax;
+  if(min==null && max==null) return '';
+  if(book.lexile==null) return '';
+  const rangeLabel = (min!=null?min+'L':'…') + '–' + (max!=null?max+'L':'…');
+  if(min!=null && book.lexile < min) return `<p class="muted" style="margin:10px 0 0;">📗 A bit below your teacher's suggested range (${rangeLabel}) — still totally fine to read.</p>`;
+  if(max!=null && book.lexile > max) return `<p class="muted" style="margin:10px 0 0;">📘 A bit above your teacher's suggested range (${rangeLabel}) — a nice stretch if you're up for it.</p>`;
+  return `<p class="muted" style="margin:10px 0 0;">✅ Great fit for your teacher's suggested range (${rangeLabel}).</p>`;
 }
 
 const TESTING_START_MIN = 7*60 + 40;  // 7:40 AM
@@ -545,8 +561,9 @@ function screenHome(){
   if(STATE.loading) return el(`<div class="loading">${STATE.loadingMsg}</div>`);
   const s = STATE.student;
   const rank = getRankInfo(s.points, s.wordsRead);
-  const c = el(`<div><a href="index.html" class="backlink" style="text-decoration:none;display:inline-block;">&larr; Back to home</a><div class="card"><h2>Hi ${s.alias} 👋</h2><div class="pill gold" style="margin-top:6px;">${rank.current.emoji} ${rank.current.name}</div><div class="stat-row"><div class="stat"><div class="num">${s.points||0}</div><div class="lbl">Points</div></div><div class="stat"><div class="num">${s.history.length}</div><div class="lbl">Books Finished</div></div><div class="stat"><div class="num">${currentStreak(s.history)}</div><div class="lbl">Streak</div></div></div><button class="btn" id="searchBtn">Find a book</button><button class="btn secondary" id="dashBtn">My progress</button></div></div>`);
-  c.querySelector('#searchBtn').onclick = ()=>{ STATE.screen='search'; render(); };
+  const c = el(`<div><a href="index.html" class="backlink" style="text-decoration:none;display:inline-block;">&larr; Back to home</a><div class="card"><h2>Hi ${s.alias} 👋</h2><div class="pill gold" style="margin-top:6px;">${rank.current.emoji} ${rank.current.name}</div><div class="stat-row"><div class="stat"><div class="num">${s.points||0}</div><div class="lbl">Points</div></div><div class="stat"><div class="num">${s.history.length}</div><div class="lbl">Books Finished</div></div><div class="stat"><div class="num">${currentStreak(s.history)}</div><div class="lbl">Streak</div></div></div><button class="btn" id="searchBtn">Find a book</button><button class="btn secondary" id="levelBtn">🔍 Look up a book's level</button><button class="btn secondary" id="dashBtn">My progress</button></div></div>`);
+  c.querySelector('#searchBtn').onclick = ()=>{ STATE.bookMode='quiz'; STATE.screen='search'; render(); };
+  c.querySelector('#levelBtn').onclick = ()=>{ STATE.bookMode='lookup'; STATE.searchResults=[]; STATE.searchQuery=''; STATE.screen='search'; render(); };
   c.querySelector('#dashBtn').onclick = ()=>{ STATE.screen='dashboard'; render(); };
   return c;
 }
@@ -554,7 +571,10 @@ function screenHome(){
 function screenSearch(){
   const searching = STATE.loading;
   const searchBtnInner = searching ? `<span class="btn-spinner"></span> Searching...` : 'Search';
-  const c = el(`<div><button class="backlink" id="back">&larr; Back</button><div class="card"><h2 style="margin-bottom:10px;">Find a book</h2><input type="text" id="q" placeholder="Title or author..." value="${STATE.searchQuery.replace(/"/g,'')}" ${searching?'disabled':''} /><button class="btn" id="searchGo" ${searching?'disabled':''}>${searchBtnInner}</button></div><div class="card" id="results"></div></div>`);
+  const lookupMode = STATE.bookMode === 'lookup';
+  const heading = lookupMode ? "Look up a book's level" : 'Find a book';
+  const sub = lookupMode ? `<p class="muted" style="margin:0 0 12px;">Search any title to see its Lexile and AR level.</p>` : '';
+  const c = el(`<div><button class="backlink" id="back">&larr; Back</button><div class="card"><h2 style="margin-bottom:${lookupMode?'2px':'10px'};">${heading}</h2>${sub}<input type="text" id="q" placeholder="Title or author..." value="${STATE.searchQuery.replace(/"/g,'')}" ${searching?'disabled':''} /><button class="btn" id="searchGo" ${searching?'disabled':''}>${searchBtnInner}</button></div><div class="card" id="results"></div></div>`);
   c.querySelector('#back').onclick = ()=>{ STATE.screen='home'; render(); };
   if(!searching){
     c.querySelector('#q').addEventListener('keydown', e=>{ if(e.key==='Enter') runSearch(); });
@@ -689,6 +709,7 @@ async function openBook(b){
   STATE.currentBook = {
     title: b.title, author: (b.author_name||['Unknown']).join(', '),
     pages, wordEstimate: meta.estimatedWordCount || null, summary: meta.summary, genre: meta.genre,
+    lexile: meta.lexile!=null ? meta.lexile : null, lexileLabel: meta.lexileLabel || null, arLevel: meta.arLevel!=null ? meta.arLevel : null,
     olid, cover_i: b.cover_i || null, coverUrl: b.coverUrl || null
   };
   STATE.loading = false;
@@ -709,6 +730,7 @@ async function openManualBook(title, author){
   STATE.currentBook = {
     title, author: author || 'Unknown',
     pages: null, wordEstimate: meta.estimatedWordCount || null, summary: meta.summary, genre: meta.genre,
+    lexile: meta.lexile!=null ? meta.lexile : null, lexileLabel: meta.lexileLabel || null, arLevel: meta.arLevel!=null ? meta.arLevel : null,
     olid, cover_i: null, coverUrl: null
   };
   STATE.loading = false;
@@ -720,13 +742,18 @@ function screenBook(){
   if(STATE.loading) return el(`<div class="loading">${STATE.loadingMsg}</div>`);
   const b = STATE.currentBook;
   const tag = lengthTag(b.pages);
+  const lookupMode = STATE.bookMode === 'lookup';
   const prior = findPriorAttempt(STATE.student.history, b);
-  const actionHtml = prior
+  const actionHtml = lookupMode
+    ? `<button class="btn secondary" id="anotherBtn">Look up another book</button>`
+    : prior
     ? `<div class="already-done"><div class="already-done-title">✅ Already completed</div><p class="muted" style="margin:4px 0 0;">You scored ${prior.score}% and earned ${prior.points!=null ? '+'+prior.points+' pts' : ''} on ${prior.date}. Each book can only be quizzed once — go find something new!</p></div><button class="btn secondary" id="anotherBtn">Find another book</button>`
     : !isTestingHours()
     ? `<div class="already-done"><div class="already-done-title">⏰ Quizzes aren't open right now</div><p class="muted" style="margin:4px 0 0;">Quizzes can only be taken between 7:40 AM and 2:40 PM. Come back during that window to take yours.</p></div>`
     : `<button class="btn coral" id="quizBtn">I finished it — take the quiz</button>`;
-  const c = el(`<div><button class="backlink" id="back">&larr; Back to search</button><div class="card"><h2>${b.title}</h2><p class="muted" style="margin:2px 0 10px;">${b.author}</p>${tag ? `<span class="pill">${tag}</span>` : ''}<span class="pill gold">${b.genre||'Fiction'}</span><div class="stat-row"><div class="stat"><div class="num">${b.wordEstimate ? b.wordEstimate.toLocaleString() : '—'}</div><div class="lbl">Est. Words</div></div><div class="stat"><div class="num">${b.pages || '—'}</div><div class="lbl">Pages</div></div></div><p style="line-height:1.5;">${b.summary}</p>${actionHtml}</div></div>`);
+  const levelPills = `${b.lexileLabel ? `<span class="pill">${b.lexileLabel} Lexile</span>` : ''}${b.arLevel!=null ? `<span class="pill">AR ${b.arLevel}</span>` : ''}`;
+  const rangeNote = rangeFitNote(b, STATE.student);
+  const c = el(`<div><button class="backlink" id="back">&larr; Back to search</button><div class="card"><h2>${b.title}</h2><p class="muted" style="margin:2px 0 10px;">${b.author}</p>${tag ? `<span class="pill">${tag}</span>` : ''}<span class="pill gold">${b.genre||'Fiction'}</span>${levelPills}<div class="stat-row"><div class="stat"><div class="num">${b.wordEstimate ? b.wordEstimate.toLocaleString() : '—'}</div><div class="lbl">Est. Words</div></div><div class="stat"><div class="num">${b.pages || '—'}</div><div class="lbl">Pages</div></div></div>${!b.lexileLabel && b.arLevel==null ? `<p class="muted" style="margin:6px 0 0;font-size:12px;">Lexile/AR level not available for this book.</p>` : `<p class="muted" style="margin:6px 0 0;font-size:12px;">Lexile/AR levels are estimates, not official measures.</p>`}${rangeNote}<p style="line-height:1.5;margin-top:10px;">${b.summary}</p>${actionHtml}</div></div>`);
   c.querySelector('#back').onclick = ()=>{ STATE.screen='search'; render(); };
   const quizBtn = c.querySelector('#quizBtn');
   if(quizBtn) quizBtn.onclick = ()=>{
@@ -1402,8 +1429,8 @@ function screenTeacherStudent(){
   if(!s){ STATE.screen='teacher'; return screenTeacher(); }
   const hist = s.history || [];
   const rowsHtml = hist.map(h=>`<tr><td>${h.title}</td><td>${h.score}%</td><td>${h.points!=null ? '+'+h.points : '—'}</td><td>${h.date}</td><td class="no-print"><button type="button" class="del-btn">🗑️ Delete</button></td></tr>`).join('');
-  const c = el(`<div><button class="backlink" id="back">&larr; Back to roster</button><div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;"><div><h2 style="margin-bottom:2px;">${s.alias}${s.realName ? ` <span class="muted" style="font-weight:600;font-size:14px;">(${s.realName})</span>` : ''}</h2><p class="muted" style="margin:0;">${classLabel(s.classCode)} · PIN ${s.pin} · ${s.points||0} pts</p></div><button class="btn secondary no-print" id="printBtn" style="width:auto;margin:0;padding:10px 18px;">🖨️ Print</button></div>${hist.length===0 ? `<div class="empty">No quizzes taken yet.</div>` : `<div style="overflow-x:auto;margin-top:14px;"><table class="roster-table"><thead><tr><th>Book</th><th>Score</th><th>Points</th><th>Date</th><th class="no-print"></th></tr></thead><tbody>${rowsHtml}</tbody></table></div>`}</div></div>`);
-  c.querySelector('#back').onclick = ()=>{ STATE.screen='teacher'; render(); };
+  const c = el(`<div><button class="backlink" id="back">&larr; Back to roster</button><div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;"><div><h2 style="margin-bottom:2px;">${s.alias}${s.realName ? ` <span class="muted" style="font-weight:600;font-size:14px;">(${s.realName})</span>` : ''}</h2><p class="muted" style="margin:0;">${classLabel(s.classCode)} · PIN ${s.pin} · ${s.points||0} pts</p></div><button class="btn secondary no-print" id="printBtn" style="width:auto;margin:0;padding:10px 18px;">🖨️ Print</button></div>${hist.length===0 ? `<div class="empty">No quizzes taken yet.</div>` : `<div style="overflow-x:auto;margin-top:14px;"><table class="roster-table"><thead><tr><th>Book</th><th>Score</th><th>Points</th><th>Date</th><th class="no-print"></th></tr></thead><tbody>${rowsHtml}</tbody></table></div>`}</div><div class="card no-print"><h3 style="margin-bottom:2px;">Suggested reading range</h3><p class="muted" style="margin:0 0 12px;">Optional. Shows ${s.alias} a friendly note on how a book compares — it never blocks them from reading or quizzing on anything. Leave both blank to skip this.</p><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;"><label style="font-size:13px;color:var(--muted);">Min <input type="number" id="lexileMin" placeholder="e.g. 600" value="${s.lexileMin!=null?s.lexileMin:''}" style="width:100px;display:inline-block;margin-left:4px;"></label><label style="font-size:13px;color:var(--muted);">Max <input type="number" id="lexileMax" placeholder="e.g. 800" value="${s.lexileMax!=null?s.lexileMax:''}" style="width:100px;display:inline-block;margin-left:4px;"></label><span style="font-size:13px;color:var(--muted);">Lexile (L)</span></div><div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap;"><button type="button" class="btn secondary" id="saveRangeBtn" style="width:auto;margin:0;padding:10px 18px;">Save range</button><button type="button" class="backlink" id="clearRangeBtn" style="margin:0;">Skip / clear range</button></div><div id="rangeMsg"></div></div></div>`);
+  c.querySelector('#back').onclick = ()=>{ STATE.screen='teacher'; STATE.rangeSaveMsg=''; render(); };
   c.querySelector('#printBtn').onclick = ()=> window.print();
   c.querySelectorAll('.del-btn').forEach((btn,i)=>{
     btn.onclick = ()=>{
@@ -1412,7 +1439,23 @@ function screenTeacherStudent(){
       deleteAttempt(s.alias, s.classCode || 'default', i);
     };
   });
+  c.querySelector('#saveRangeBtn').onclick = ()=>{
+    const min = c.querySelector('#lexileMin').value.trim();
+    const max = c.querySelector('#lexileMax').value.trim();
+    saveReadingRange(s.alias, s.classCode || 'default', min, max);
+  };
+  c.querySelector('#clearRangeBtn').onclick = ()=> saveReadingRange(s.alias, s.classCode || 'default', '', '');
+  if(STATE.rangeSaveMsg) c.querySelector('#rangeMsg').appendChild(el(`<p class="muted" style="margin:8px 0 0;">${STATE.rangeSaveMsg}</p>`));
   return c;
+}
+
+async function saveReadingRange(alias, classCode, lexileMin, lexileMax){
+  const resp = await postJSON('/api/teacher/set-range', { passcode: STATE.teacherPasscode, alias, classCode, lexileMin, lexileMax });
+  if(resp.error){ alert('Could not save that range: ' + resp.error); return; }
+  const idx = (STATE.teacherRows || []).findIndex(r=>r.alias===alias && (r.classCode||'default')===classCode);
+  if(idx !== -1) STATE.teacherRows[idx] = resp;
+  STATE.rangeSaveMsg = (resp.lexileMin==null && resp.lexileMax==null) ? 'Range cleared.' : 'Range saved.';
+  render();
 }
 
 async function deleteAttempt(alias, classCode, index){
