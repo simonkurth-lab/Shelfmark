@@ -75,6 +75,15 @@
   .tracker-card .tc-num{font-family:'Baloo 2';font-weight:800;font-size:22px;color:var(--forest-dark);}
   .tracker-card .tc-lbl{font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.03em;margin-top:2px;}
 
+  /* ---- Tracker loading banner ---- */
+  .tracker-loading{text-align:center;padding:6px 0 18px;min-height:84px;}
+  .tracker-loading.done{display:none;}
+  .tl-headline{font-family:'Baloo 2';font-weight:800;font-size:26px;color:var(--coral);display:flex;justify-content:center;flex-wrap:wrap;}
+  .tl-headline span{display:inline-block;animation:tlBounce .9s ease-in-out infinite;}
+  .tl-quote{margin-top:6px;font-weight:700;font-size:14.5px;color:var(--forest-dark);transition:opacity .35s;}
+  @keyframes tlBounce{0%,100%{transform:translateY(0);}50%{transform:translateY(-9px);}}
+  @media (prefers-reduced-motion: reduce){ .tl-headline span{animation:none;} }
+
   @media (max-width: 860px){
     .hero{padding-bottom:36px;}
     .hero p{max-width:none;}
@@ -106,6 +115,10 @@
     <div class="section-head">
       <h2>📚 Our Reading Tracker</h2>
       <p>Every book anyone finishes counts here — all four classes together, growing every day.</p>
+    </div>
+    <div class="tracker-loading" id="trackerLoading" aria-live="polite">
+      <div class="tl-headline" id="tlHeadline"></div>
+      <div class="tl-quote" id="tlQuote"></div>
     </div>
     <div class="tracker-hero">
       <div class="tracker-hero-item"><div class="th-num" id="allBooks">0</div><div class="th-lbl">📖 Books Finished — All Time</div></div>
@@ -172,7 +185,41 @@ function animateCount(el, to, duration){
   requestAnimationFrame(tick);
 }
 
+// The stats call can be slow, so keep visitors entertained until it lands.
+const TL_QUOTES = [
+  '“A reader lives a thousand lives before he dies.” — George R.R. Martin',
+  '“The more that you read, the more things you will know.” — Dr. Seuss',
+  '“Today a reader, tomorrow a leader.” — Margaret Fuller',
+  '“Books are a uniquely portable magic.” — Stephen King',
+  '“Reading is dreaming with open eyes.”',
+  'Every page you read is a step up the mountain! 🏔️',
+  'Somewhere, a classmate just finished a great book… 📖',
+];
+(function(){
+  const head = document.getElementById('tlHeadline');
+  const quote = document.getElementById('tlQuote');
+  if(!head || !quote) return;
+  'Here come the latest numbers! 🚀'.split('').forEach((ch,i)=>{
+    const sp = document.createElement('span');
+    sp.textContent = ch === ' ' ? '\u00A0' : ch;
+    sp.style.animationDelay = (i*0.06)+'s';
+    head.appendChild(sp);
+  });
+  let qi = Math.floor(Math.random()*TL_QUOTES.length);
+  quote.textContent = TL_QUOTES[qi];
+  window.__tlTimer = setInterval(()=>{
+    quote.style.opacity = 0;
+    setTimeout(()=>{ qi = (qi+1)%TL_QUOTES.length; quote.textContent = TL_QUOTES[qi]; quote.style.opacity = 1; }, 350);
+  }, 3200);
+})();
+function hideTrackerLoading(){
+  clearInterval(window.__tlTimer);
+  const box = document.getElementById('trackerLoading');
+  if(box) box.classList.add('done');
+}
+
 fetch(WORKER_URL + '/api/community-stats').then(r=>r.json()).then(stats=>{
+  hideTrackerLoading();
   if(!stats) return;
   const setStat = (id, val)=>{ const el = document.getElementById(id); if(el) animateCount(el, val||0, 1200); };
   setStat('allBooks', stats.allTime && stats.allTime.books);
@@ -183,7 +230,7 @@ fetch(WORKER_URL + '/api/community-stats').then(r=>r.json()).then(stats=>{
   setStat('monthWords', stats.month && stats.month.words);
   setStat('yearBooks', stats.year && stats.year.books);
   setStat('yearWords', stats.year && stats.year.words);
-}).catch(()=>{});
+}).catch(hideTrackerLoading);
 </script>
 </body>
 </html>
