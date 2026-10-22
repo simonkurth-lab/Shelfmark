@@ -700,6 +700,24 @@ async function runSearch(){
   render();
 }
 
+// Finds a real publisher description for a book the student typed by hand
+// (or whose search hit had none), tolerating misspelled authors. Requires every
+// word of the title to appear in the match so we never grab a different book.
+async function lookupDescription(title, author){
+  const titleWords = title.toLowerCase().replace(/[^a-z0-9\s]/g,' ').split(/\s+/).filter(Boolean);
+  const queries = [`intitle:${title}` + (author ? ` inauthor:${author.split(/\s+/).slice(-1)[0]}` : ''), `${title} ${author||''}`.trim()];
+  for(const q of queries){
+    const results = await searchGoogleBooks(q);
+    const ranked = results.filter(r=>r.description && r.description.length>40).filter(r=>{
+      const t = new Set(r.title.toLowerCase().replace(/[^a-z0-9\s]/g,' ').split(/\s+/));
+      return titleWords.every(w=>t.has(w));
+    }).sort((a,b)=>searchScore(b, `${title} ${author||''}`)-searchScore(a, `${title} ${author||''}`));
+    if(ranked.length) return ranked[0];
+  }
+  return null;
+}
+function cleanDescription(d){ return (d||'').replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim(); }
+
 async function openBook(b){
   STATE.loading = true; STATE.loadingMsg = 'Reading up on this book...'; render();
   const olid = b.key.replace('/works/','');
@@ -719,7 +737,11 @@ async function openBook(b){
     }catch(e){}
   }
 
-  description = description.replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim();
+  description = cleanDescription(description);
+  if(!description){
+    const found = await lookupDescription(b.title, (b.author_name||[])[0]||'');
+    if(found) description = cleanDescription(found.description);
+  }
   const pages = b.number_of_pages_median || null;
 
   const meta = await api('/api/book-meta', {
@@ -741,11 +763,15 @@ async function openBook(b){
 async function openManualBook(title, author){
   STATE.loading = true; STATE.loadingMsg = 'Reading up on this book...'; render();
   const slug = s=>(s||'').toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,60);
-  const olid = 'manual:' + slug(title) + (author ? '-' + slug(author) : '');
+  let olid = 'manual:' + slug(title) + (author ? '-' + slug(author) : '');
+
+  const found = await lookupDescription(title, author);
+  let description = found ? cleanDescription(found.description) : '';
+  if(found){ title = found.title; author = (found.author_name||[author])[0] || author; olid = 'manual:' + slug(title) + '-' + slug(author); }
 
   const meta = await api('/api/book-meta', {
     method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ olid, title, author: author || 'Unknown', year: null, description: '' })
+    body: JSON.stringify({ olid, title, author: author || 'Unknown', year: null, description })
   });
 
   STATE.currentBook = {
@@ -774,8 +800,23 @@ function screenBook(){
     : `<button class="btn coral" id="quizBtn">I finished it — take the quiz</button>`;
   const levelPills = `${b.lexileLabel ? `<span class="pill">${b.lexileLabel} Lexile</span>` : ''}${b.arLevel!=null ? `<span class="pill">AR ${b.arLevel}</span>` : ''}`;
   const rangeNote = rangeFitNote(b, STATE.student);
-  const c = el(`<div><button class="backlink" id="back">&larr; Back to search</button><div class="card"><h2>${b.title}</h2><p class="muted" style="margin:2px 0 10px;">${b.author}</p>${tag ? `<span class="pill">${tag}</span>` : ''}<span class="pill gold">${b.genre||'Fiction'}</span>${levelPills}<div class="stat-row"><div class="stat"><div class="num">${b.wordEstimate ? b.wordEstimate.toLocaleString() : '—'}</div><div class="lbl">Est. Words</div></div><div class="stat"><div class="num">${b.pages || '—'}</div><div class="lbl">Pages</div></div></div>${!b.lexileLabel && b.arLevel==null ? `<p class="muted" style="margin:6px 0 0;font-size:12px;">Lexile/AR level not available for this book.</p>` : `<p class="muted" style="margin:6px 0 0;font-size:12px;">Lexile/AR levels are estimates, not official measures.</p>`}${rangeNote}${b.confident===false || !b.summary ? `<div class="already-done"><div class="already-done-title">📚 We don't know this book well enough</div><p class="muted" style="margin:4px 0 0;">We can't write a fair quiz for it yet. Go back and try a different edition of the book, or ask your teacher.</p></div>` : `<p style="line-height:1.5;margin-top:10px;">${b.summary}</p>${actionHtml}`}</div></div>`);
+  const c = el(`<div><button class="backlink" id="back">&larr; Back to search</button><div class="card"><h2>${b.title}</h2><p class="muted" style="margin:2px 0 10px;">${b.author}</p>${tag ? `<span class="pill">${tag}</span>` : ''}<span class="pill gold">${b.genre||'Fiction'}</span>${levelPills}<div class="stat-row"><div class="stat"><div class="num">${b.wordEstimate ? b.wordEstimate.toLocaleString() : '—'}</div><div class="lbl">Est. Words</div></div><div class="stat"><div class="num">${b.pages || '—'}</div><div class="lbl">Pages</div></div></div>${!b.lexileLabel && b.arLevel==null ? `<p class="muted" style="margin:6px 0 0;font-size:12px;">Lexile/AR level not available for this book.</p>` : `<p class="muted" style="margin:6px 0 0;font-size:12px;">Lexile/AR levels are estimates, not official measures.</p>`}${rangeNote}${b.confident===false || !b.summary ? `<div class="already-done"><div class="already-done-title">📚 We don't know this book well enough</div><p class="muted" style="margin:4px 0 8px;">We couldn't find a description, and we don't want to write a quiz about the wrong story. In 2-3 sentences, what is the book about? Who is the main character, and where does it happen?</p><textarea id="blurb" rows="4" maxlength="600" placeholder="Example: A squirrel named ... who ..." style="width:100%;box-sizing:border-box;font:inherit;padding:10px;border-radius:10px;border:1px solid var(--line);"></textarea><button class="btn coral" id="blurbBtn" style="margin-top:10px;">Use this to make my quiz</button></div>` : `<p style="line-height:1.5;margin-top:10px;">${b.summary}</p>${actionHtml}`}</div></div>`);
   c.querySelector('#back').onclick = ()=>{ STATE.screen='search'; render(); };
+  const blurbBtn = c.querySelector('#blurbBtn');
+  if(blurbBtn) blurbBtn.onclick = async ()=>{
+    const text = cleanDescription(c.querySelector('#blurb').value);
+    if(text.length < 40){ blurbBtn.textContent = 'Write a little more (at least a sentence or two)'; return; }
+    blurbBtn.disabled = true; blurbBtn.textContent = 'Working...';
+    let h = 0; for(const ch of text) h = (h*31 + ch.charCodeAt(0))|0;
+    const olid = b.olid + ':u' + (h>>>0).toString(36);
+    const meta = await api('/api/book-meta', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ olid, title: b.title, author: b.author, year: null, description: text })
+    });
+    STATE.currentBook = Object.assign({}, b, { olid, summary: meta.summary || text, confident: true, genre: meta.genre, wordEstimate: meta.estimatedWordCount || null,
+      lexile: meta.lexile!=null ? meta.lexile : null, lexileLabel: meta.lexileLabel || null, arLevel: meta.arLevel!=null ? meta.arLevel : null });
+    render();
+  };
   const quizBtn = c.querySelector('#quizBtn');
   if(quizBtn) quizBtn.onclick = ()=>{
     STATE.screen = 'quizGate';
