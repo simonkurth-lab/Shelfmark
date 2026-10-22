@@ -618,7 +618,7 @@ async function searchOpenLibrary(q){
 // Google fallback entirely.
 async function searchGoogleBooks(q){
   try{
-    const resp = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&maxResults=8&printType=books`);
+    const resp = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&maxResults=15&printType=books&langRestrict=en`);
     const data = await resp.json();
     return (data.items||[]).filter(it=>it.volumeInfo && it.volumeInfo.title).map(it=>{
       const vi = it.volumeInfo;
@@ -662,7 +662,19 @@ function normalizeSearchKey(title, authors){
   const a = ((authors&&authors[0])||'').toLowerCase().replace(/[^a-z0-9]+/g,'');
   return t+'|'+a;
 }
-function mergeSearchResults(primary, secondary){
+// Scores how well a result matches what the student typed, so an exact
+// title/author hit beats a loosely-related book that merely shares a word.
+function searchScore(b, q){
+  const words = q.toLowerCase().replace(/[^a-z0-9\s]/g,' ').split(/\s+/).filter(Boolean);
+  if(!words.length) return 0;
+  const hay = ((b.title||'')+' '+((b.author_name||[]).join(' '))).toLowerCase().replace(/[^a-z0-9\s]/g,' ');
+  const hayWords = new Set(hay.split(/\s+/));
+  const hits = words.filter(w=>hayWords.has(w)).length;
+  const titleKey = (b.title||'').toLowerCase().replace(/[^a-z0-9]+/g,'');
+  const qKey = words.join('');
+  return hits/words.length + (titleKey===qKey ? 1 : 0) + (b.description ? 0.1 : 0);
+}
+function mergeSearchResults(primary, secondary, q){
   const seen = new Set();
   const out = [];
   primary.concat(secondary).forEach(b=>{
@@ -671,6 +683,7 @@ function mergeSearchResults(primary, secondary){
     seen.add(key);
     out.push(b);
   });
+  if(q) out.sort((a,b)=>searchScore(b,q)-searchScore(a,q));
   return out.slice(0,10);
 }
 
@@ -681,7 +694,7 @@ async function runSearch(){
   STATE.loading = true; STATE.loadingMsg='Searching...'; render();
   try{
     const [gbResults, olResults] = await Promise.all([searchGoogleBooks(q), searchOpenLibrary(q)]);
-    STATE.searchResults = mergeSearchResults(gbResults, olResults);
+    STATE.searchResults = mergeSearchResults(gbResults, olResults, q);
   }catch(e){ STATE.searchResults = []; }
   STATE.loading = false;
   render();
@@ -691,6 +704,13 @@ async function openBook(b){
   STATE.loading = true; STATE.loadingMsg = 'Reading up on this book...'; render();
   const olid = b.key.replace('/works/','');
   let description = b.description || '';
+  if(b.source === 'gbooks' && !description){
+    try{
+      const vr = await fetch(`https://www.googleapis.com/books/v1/volumes/${b.key.replace('/works/gbooks:','')}`);
+      const vd = await vr.json();
+      description = (vd.volumeInfo && vd.volumeInfo.description) || '';
+    }catch(e){}
+  }
   if(b.source !== 'gbooks'){
     try{
       const workResp = await fetch(`https://openlibrary.org${b.key}.json`);
@@ -699,6 +719,7 @@ async function openBook(b){
     }catch(e){}
   }
 
+  description = description.replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim();
   const pages = b.number_of_pages_median || null;
 
   const meta = await api('/api/book-meta', {
@@ -708,7 +729,7 @@ async function openBook(b){
 
   STATE.currentBook = {
     title: b.title, author: (b.author_name||['Unknown']).join(', '),
-    pages, wordEstimate: meta.estimatedWordCount || null, summary: meta.summary, genre: meta.genre,
+    pages, wordEstimate: meta.estimatedWordCount || null, summary: meta.summary || '', confident: meta.confident !== false && !!meta.summary, genre: meta.genre,
     lexile: meta.lexile!=null ? meta.lexile : null, lexileLabel: meta.lexileLabel || null, arLevel: meta.arLevel!=null ? meta.arLevel : null,
     olid, cover_i: b.cover_i || null, coverUrl: b.coverUrl || null
   };
@@ -729,7 +750,7 @@ async function openManualBook(title, author){
 
   STATE.currentBook = {
     title, author: author || 'Unknown',
-    pages: null, wordEstimate: meta.estimatedWordCount || null, summary: meta.summary, genre: meta.genre,
+    pages: null, wordEstimate: meta.estimatedWordCount || null, summary: meta.summary || '', confident: meta.confident !== false && !!meta.summary, genre: meta.genre,
     lexile: meta.lexile!=null ? meta.lexile : null, lexileLabel: meta.lexileLabel || null, arLevel: meta.arLevel!=null ? meta.arLevel : null,
     olid, cover_i: null, coverUrl: null
   };
@@ -753,7 +774,7 @@ function screenBook(){
     : `<button class="btn coral" id="quizBtn">I finished it — take the quiz</button>`;
   const levelPills = `${b.lexileLabel ? `<span class="pill">${b.lexileLabel} Lexile</span>` : ''}${b.arLevel!=null ? `<span class="pill">AR ${b.arLevel}</span>` : ''}`;
   const rangeNote = rangeFitNote(b, STATE.student);
-  const c = el(`<div><button class="backlink" id="back">&larr; Back to search</button><div class="card"><h2>${b.title}</h2><p class="muted" style="margin:2px 0 10px;">${b.author}</p>${tag ? `<span class="pill">${tag}</span>` : ''}<span class="pill gold">${b.genre||'Fiction'}</span>${levelPills}<div class="stat-row"><div class="stat"><div class="num">${b.wordEstimate ? b.wordEstimate.toLocaleString() : '—'}</div><div class="lbl">Est. Words</div></div><div class="stat"><div class="num">${b.pages || '—'}</div><div class="lbl">Pages</div></div></div>${!b.lexileLabel && b.arLevel==null ? `<p class="muted" style="margin:6px 0 0;font-size:12px;">Lexile/AR level not available for this book.</p>` : `<p class="muted" style="margin:6px 0 0;font-size:12px;">Lexile/AR levels are estimates, not official measures.</p>`}${rangeNote}<p style="line-height:1.5;margin-top:10px;">${b.summary}</p>${actionHtml}</div></div>`);
+  const c = el(`<div><button class="backlink" id="back">&larr; Back to search</button><div class="card"><h2>${b.title}</h2><p class="muted" style="margin:2px 0 10px;">${b.author}</p>${tag ? `<span class="pill">${tag}</span>` : ''}<span class="pill gold">${b.genre||'Fiction'}</span>${levelPills}<div class="stat-row"><div class="stat"><div class="num">${b.wordEstimate ? b.wordEstimate.toLocaleString() : '—'}</div><div class="lbl">Est. Words</div></div><div class="stat"><div class="num">${b.pages || '—'}</div><div class="lbl">Pages</div></div></div>${!b.lexileLabel && b.arLevel==null ? `<p class="muted" style="margin:6px 0 0;font-size:12px;">Lexile/AR level not available for this book.</p>` : `<p class="muted" style="margin:6px 0 0;font-size:12px;">Lexile/AR levels are estimates, not official measures.</p>`}${rangeNote}${b.confident===false || !b.summary ? `<div class="already-done"><div class="already-done-title">📚 We don't know this book well enough</div><p class="muted" style="margin:4px 0 0;">We can't write a fair quiz for it yet. Go back and try a different edition of the book, or ask your teacher.</p></div>` : `<p style="line-height:1.5;margin-top:10px;">${b.summary}</p>${actionHtml}`}</div></div>`);
   c.querySelector('#back').onclick = ()=>{ STATE.screen='search'; render(); };
   const quizBtn = c.querySelector('#quizBtn');
   if(quizBtn) quizBtn.onclick = ()=>{
@@ -868,11 +889,16 @@ async function startQuiz(){
   const [quiz] = await Promise.all([
     api('/api/quiz', {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ olid: b.olid, title: b.title, author: b.author, summary: b.summary, count, grade, challenge, bilingual })
+      body: JSON.stringify({ olid: b.olid, title: b.title, author: b.author, summary: b.summary, confident: b.confident, count, grade, challenge, bilingual })
     }),
     minWait
   ]);
   clearInterval(slideTimer);
+  if(quiz && quiz.error === 'insufficient_book_info'){
+    STATE.loading = false; STATE.screen = 'book';
+    STATE.currentBook.noInfo = true;
+    render(); return;
+  }
   STATE.quiz = quiz;
   STATE.quizAnswers = {};
   STATE.loading = false;
