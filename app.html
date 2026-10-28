@@ -1616,7 +1616,7 @@ function parseActivity(html){
       while(n && !/^(H[1-6]|P|LABEL)$/.test(n.tagName)) n = n.previousElementSibling;
       if(n) prompt = n.textContent;
     }
-    return { key: f.dataset.response, prompt: prompt.trim().replace(/\s+/g,' '), written: f.tagName !== 'SELECT' };
+    return { key: f.dataset.response, prompt: prompt.trim().replace(/\s+/g,' '), written: f.tagName === 'TEXTAREA' };
   });
   return { context, fields };
 }
