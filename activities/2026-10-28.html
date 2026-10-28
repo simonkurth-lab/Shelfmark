@@ -1,59 +1,164 @@
 <style>
 .activity{max-width:720px;margin:0 auto;padding:16px;font-size:17px;line-height:1.6;color:#201e1d}
-h2{font-size:1.5em;margin:0 0 4px}
-h3{font-size:1.2em;margin:28px 0 8px}
+h2{font-size:1.55em;line-height:1.2;margin:0 0 6px}
+h3{font-size:1.25em;margin:32px 0 10px}
 p{margin:0 0 12px}
-.meta{color:#5a524b;font-size:15px;margin-bottom:20px}
-.passage{background:#fdf3e3;border-radius:16px;padding:16px 18px;margin:8px 0 16px}
-.passage p:last-child{margin-bottom:0}
-.q{margin:0 0 18px}
-label{display:block;font-weight:700;margin-bottom:6px}
-textarea,select,input{font:inherit;width:100%;box-sizing:border-box;border:2px solid #d8c7ad;border-radius:12px;padding:10px 12px;background:#fff;color:#201e1d}
-textarea{min-height:96px;resize:vertical}
-textarea:focus,select:focus,input:focus{outline:2px solid #c67139;outline-offset:2px;border-color:#c67139}
-.tip{font-size:15px;color:#5a524b}
+.pep{background:#fdf3e3;border:2px solid #d8c7ad;border-radius:16px;padding:12px 16px;font-weight:600}
+.panel{background:#fdf3e3;border:2px solid #d8c7ad;border-radius:16px;padding:14px 16px;margin:0 0 16px}
+.chart-wrap{overflow-x:auto;border-radius:16px;border:2px solid #d8c7ad}
+table{border-collapse:collapse;width:100%;min-width:640px;font-size:14px;text-align:center}
+th,td{border:1px solid #d8c7ad;padding:8px 4px}
+th{background:#fdf3e3;font-weight:700}
+th.dec,td.dec{background:#e6ecd9}
+th.pt,td.pt{background:#fff;font-size:22px;font-weight:800;width:18px}
+td{background:#fff;font-size:20px;font-weight:700}
+.legend{font-size:15px;margin:8px 0 0}
+.steps{margin:8px 0 0;padding-left:22px}
+.steps li{margin-bottom:6px}
+dl{margin:0}
+dt{font-weight:800;margin-top:8px}
+dd{margin:0 0 4px}
+.q{background:#fff;border:2px solid #d8c7ad;border-radius:16px;padding:14px 16px;margin:0 0 14px}
+label{display:block;font-weight:700;margin-bottom:10px}
+.big{display:block;font-size:24px;font-weight:800;letter-spacing:.5px;margin:4px 0}
+input,select{font:inherit;width:100%;box-sizing:border-box;min-height:52px;border:2px solid #d8c7ad;border-radius:12px;padding:10px 14px;background:#fff;color:#201e1d}
+input:focus,select:focus{outline:3px solid #c67139;outline-offset:2px;border-color:#c67139}
+details{margin-top:10px}
+summary{cursor:pointer;font-weight:700;color:#8a4520;padding:8px 0;min-height:44px;display:flex;align-items:center}
+details p{background:#fdf3e3;border-radius:12px;padding:10px 12px;margin:4px 0 0;font-size:16px}
+.work{background:#fdf3e3;border-radius:12px;padding:10px 12px;font-family:inherit;font-weight:700}
+.challenge{border-color:#c67139;border-style:dashed}
+.tag{display:inline-block;background:#c67139;color:#fff;border-radius:999px;padding:2px 12px;font-size:14px;font-weight:800;margin-bottom:8px}
 </style>
 <div class="activity">
-<h2>Daily Reading: Courage</h2>
-<p class="meta">October 28, 2026 · About 15 minutes</p>
+<h2>Place Value Power-Up</h2>
+<p class="pep">You've got this! Go one question at a time. Use the chart and the hints whenever you need them. 💪</p>
 
-<h3>✍️ Warm-up</h3>
-<div class="q">
-<label for="writing">1. Think of a time you did something even though you were nervous. What happened, and how did you feel afterward? Write 3–5 sentences.</label>
-<textarea id="writing" data-response="writing" placeholder="Start writing here..."></textarea>
+<h3>📌 Place Value Chart</h3>
+<div class="chart-wrap">
+<table>
+<thead><tr><th>Millions</th><th>Hundred thousands</th><th>Ten thousands</th><th>Thousands</th><th>Hundreds</th><th>Tens</th><th>Ones</th><th class="pt">.</th><th class="dec">Tenths</th><th class="dec">Hundredths</th><th class="dec">Thousandths</th></tr></thead>
+<tbody><tr><td></td><td></td><td></td><td>4</td><td>3</td><td>8</td><td>2</td><td class="pt">.</td><td class="dec">5</td><td class="dec">1</td><td class="dec">7</td></tr></tbody>
+</table>
+</div>
+<p class="legend">Example: 4,382.517. Green = the decimal side (smaller than 1). Each place is <strong>10 times</strong> the place to its right.</p>
+
+<h3>📖 Worked example</h3>
+<div class="panel">
+<p><strong>What is the value of the 5 in 2.856?</strong></p>
+<ol class="steps">
+<li>Find the 5. It is the second digit after the decimal point.</li>
+<li>Check the chart: the second place after the point is <strong>hundredths</strong>.</li>
+<li>5 hundredths = <strong>0.05</strong>. That's the answer!</li>
+</ol>
 </div>
 
-<h3>📖 Read</h3>
-<p class="tip">Read the passage carefully. You can read it twice.</p>
-<div class="passage">
-<p>Lena had practiced her speech eleven times, but when Ms. Ortiz called her name, her hands went cold. Twenty-six faces turned toward her. She walked to the front of the room and unfolded her notecard, which was shaking so much the words looked blurry.</p>
-<p>"My topic is the old library on Fourth Street," she began. Her voice came out small. Someone in the back row coughed. Lena wanted to sit down and pretend she was sick.</p>
-<p>Then she remembered why she had chosen this topic. The city planned to close the library in the spring, and her little brother went there every Saturday. If nobody spoke up, it would simply disappear.</p>
-<p>Lena took a breath and looked up from her card. "That library is where my brother learned to read," she said, louder now. "And I think it's worth saving."</p>
-<p>By the end, her hands were still shaking. But three classmates came up afterward to ask how they could help, and Lena realized that being brave did not mean feeling calm. It meant speaking anyway.</p>
+<h3>🔤 Words to know</h3>
+<div class="panel">
+<dl>
+<dt>Digit</dt><dd>One of the symbols 0–9 that we use to write numbers.</dd>
+<dt>Place value</dt><dd>What a digit is worth because of where it sits in a number.</dd>
+<dt>Expanded form</dt><dd>A number written as the sum of what each digit is worth. 352 = 300 + 50 + 2.</dd>
+<dt>Decimal</dt><dd>A number with a decimal point that shows parts of a whole, like 3.5.</dd>
+<dt>Tenths</dt><dd>1st place after the point. 10 tenths make 1 whole.</dd>
+<dt>Hundredths</dt><dd>2nd place after the point. 100 hundredths make 1 whole.</dd>
+<dt>Thousandths</dt><dd>3rd place after the point. 1,000 thousandths make 1 whole.</dd>
+</dl>
 </div>
 
-<h3>🧠 Think about it</h3>
+<h3>✏️ Warm-up</h3>
 <div class="q">
-<label for="q1">2. What was Lena afraid of at the start of the story? Use a detail from the passage.</label>
-<textarea id="q1" data-response="q1"></textarea>
+<label for="q1">1. What is the value of the 3 in 4,382?</label>
+<input id="q1" type="text" inputmode="decimal" data-response="q1" placeholder="Type a number">
+<details><summary>💡 Need a hint?</summary><p>Which place is the 3 in? Look at the example number in the chart.</p></details>
 </div>
 <div class="q">
-<label for="q2">3. What helped Lena keep going with her speech?</label>
-<textarea id="q2" data-response="q2"></textarea>
+<label for="q2">2. What is the value of the 7 in 0.704?</label>
+<input id="q2" type="text" inputmode="decimal" data-response="q2" placeholder="Type a number">
+<details><summary>💡 Need a hint?</summary><p>The 7 is the first digit after the decimal point. What is that place called?</p></details>
+</div>
+
+<h3>✏️ Practice: Which digit?</h3>
+<div class="q">
+<label for="q3">3. What digit is in the hundreds place of 5,629?</label>
+<input id="q3" type="text" inputmode="decimal" data-response="q3" placeholder="Type one digit">
+<details><summary>💡 Need a hint?</summary><p>Start at the ones place and count to the left: ones, tens, hundreds.</p></details>
 </div>
 <div class="q">
-<label for="q3">4. How did Lena's idea of bravery change by the end? Explain in your own words.</label>
-<textarea id="q3" data-response="q3"></textarea>
+<label for="q4">4. What digit is in the hundredths place of 3.481?</label>
+<input id="q4" type="text" inputmode="decimal" data-response="q4" placeholder="Type one digit">
+<details><summary>💡 Need a hint?</summary><p>Start at the decimal point and count to the right: tenths, hundredths.</p></details>
+</div>
+
+<h3>✏️ Practice: Expanded form</h3>
+<div class="q">
+<label for="q5">5. Fill in the missing number: 4,000 + ___ + 80 + 2 = 4,382</label>
+<input id="q5" type="text" inputmode="decimal" data-response="q5" placeholder="Type a number">
+<details><summary>💡 Need a hint?</summary><p>Which digit in 4,382 is missing from the sum? What is it worth?</p></details>
 </div>
 <div class="q">
-<label for="q4">5. Which sentence best states the theme of the passage?</label>
-<select id="q4" data-response="q4">
-<option value="">Choose...</option>
-<option value="a">A. Practice makes every speech perfect.</option>
-<option value="b">B. Courage means acting even when you feel afraid.</option>
-<option value="c">C. Libraries are the most important part of a city.</option>
-<option value="d">D. It is better to stay quiet than to be embarrassed.</option>
-</select>
+<label for="q6">6. Fill in the missing number: 6 + 0.5 + ___ + 0.003 = 6.523</label>
+<input id="q6" type="text" inputmode="decimal" data-response="q6" placeholder="Type a number">
+<details><summary>💡 Need a hint?</summary><p>The 2 is missing. It is in the hundredths place. How do you write 2 hundredths?</p></details>
 </div>
+
+<h3>✏️ Practice: Compare</h3>
+<div class="q">
+<label for="q7">7. Choose the sign that makes this true: <span class="big">0.7 ___ 0.65</span></label>
+<select id="q7" data-response="q7"><option value="">Choose...</option><option value="&lt;">&lt; (less than)</option><option value="&gt;">&gt; (greater than)</option><option value="=">= (equal to)</option></select>
+<details><summary>💡 Need a hint?</summary><p>Compare the tenths first. 7 tenths or 6 tenths: which is more?</p></details>
+</div>
+<div class="q">
+<label for="q8">8. Choose the sign that makes this true: <span class="big">2.40 ___ 2.4</span></label>
+<select id="q8" data-response="q8"><option value="">Choose...</option><option value="&lt;">&lt; (less than)</option><option value="&gt;">&gt; (greater than)</option><option value="=">= (equal to)</option></select>
+<details><summary>💡 Need a hint?</summary><p>Does a zero at the very end of a decimal change its value?</p></details>
+</div>
+<div class="q">
+<label for="q9">9. Choose the sign that makes this true: <span class="big">15.08 ___ 15.8</span></label>
+<select id="q9" data-response="q9"><option value="">Choose...</option><option value="&lt;">&lt; (less than)</option><option value="&gt;">&gt; (greater than)</option><option value="=">= (equal to)</option></select>
+<details><summary>💡 Need a hint?</summary><p>The whole numbers match. Now compare the tenths digit of each number.</p></details>
+</div>
+
+<h3>🏟️ Real life</h3>
+<div class="q">
+<label for="q10">10. A stadium had 48,615 fans at a game. The news rounded the number to the nearest thousand. What number did the news report?</label>
+<input id="q10" type="text" inputmode="decimal" data-response="q10" placeholder="Type a number">
+<details><summary>💡 Need a hint?</summary><p>Find the thousands digit (8). Look at the digit to its right. Is it 5 or more?</p></details>
+</div>
+
+<h3>🕵️ Think harder: Error detective</h3>
+<div class="q">
+<label for="q11">11. Jamal says the value of the 6 in 0.364 is 0.6. He made a mistake. What is the correct value of the 6?</label>
+<input id="q11" type="text" inputmode="decimal" data-response="q11" placeholder="Type a number">
+<details><summary>💡 Need a hint?</summary><p>Count the places after the decimal point. Is the 6 in the tenths place?</p></details>
+</div>
+
+<h3>🕵️ Think harder: 10 times more, 10 times less</h3>
+<div class="q">
+<label for="q12">12. What is 10 times 0.5?</label>
+<input id="q12" type="text" inputmode="decimal" data-response="q12" placeholder="Type a number">
+<details><summary>💡 Need a hint?</summary><p>10 times more moves each digit one place to the left. 5 tenths becomes 5 of what?</p></details>
+</div>
+<div class="q">
+<label for="q13">13. What is 1/10 of 300?</label>
+<input id="q13" type="text" inputmode="decimal" data-response="q13" placeholder="Type a number">
+<details><summary>💡 Need a hint?</summary><p>1/10 of a number moves each digit one place to the right. 3 hundreds becomes 3 of what?</p></details>
+</div>
+
+<h3>🕵️ Think harder: Rounding</h3>
+<div class="q">
+<label for="q14">14. Round 3.846 to the nearest tenth.</label>
+<input id="q14" type="text" inputmode="decimal" data-response="q14" placeholder="Type a number">
+<details><summary>💡 Need a hint?</summary><p>The tenths digit is 8. Look at the hundredths digit next to it. Is it 5 or more?</p></details>
+</div>
+
+<h3>⭐ Challenge (optional)</h3>
+<div class="q challenge">
+<span class="tag">For fast finishers</span>
+<label for="q15">15. Write this number in standard form: 4 tens + 3 tenths + 5 thousandths</label>
+<input id="q15" type="text" inputmode="decimal" data-response="q15" placeholder="Type a number">
+<details><summary>💡 Need a hint?</summary><p>Some places have no digit given. Put a 0 in each empty place between the digits.</p></details>
+</div>
+
+<p class="pep">Awesome work today! Every question you tried made your brain stronger. 🌟</p>
 </div>
