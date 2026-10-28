@@ -622,8 +622,9 @@ function screenDaily(){
       btn.textContent = 'Update my answers';
       msg.textContent = 'Saved! ✅';
     };
-    host.appendChild(btn);
-    host.appendChild(msg);
+    // host has a shadow root, so light-DOM children of it never render;
+    // the button and message go right after it instead.
+    host.after(btn, msg);
   }).catch(()=>{
     host.innerHTML = `<div class="empty">No activity posted for today yet. Check back soon!</div>`;
   });
