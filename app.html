@@ -396,6 +396,7 @@ function buildScreen(){
   else if(STATE.screen==='login') body = screenLogin();
   else if(STATE.screen==='nameCapture') body = screenNameCapture();
   else if(STATE.screen==='home') body = screenHome();
+  else if(STATE.screen==='daily') body = screenDaily();
   else if(STATE.screen==='search') body = screenSearch();
   else if(STATE.screen==='manualBook') body = screenManualBook();
   else if(STATE.screen==='book') body = screenBook();
@@ -565,6 +566,65 @@ function screenHome(){
   c.querySelector('#searchBtn').onclick = ()=>{ STATE.bookMode='quiz'; STATE.screen='search'; render(); };
   c.querySelector('#levelBtn').onclick = ()=>{ STATE.bookMode='lookup'; STATE.searchResults=[]; STATE.searchQuery=''; STATE.screen='search'; render(); };
   c.querySelector('#dashBtn').onclick = ()=>{ STATE.screen='dashboard'; render(); };
+  if(DAILY_CLASSES.includes(STATE.classCode)){
+    const todayBtn = el(`<button class="btn coral" style="margin-top:10px;">📝 Today's activity</button>`);
+    todayBtn.onclick = ()=>{ STATE.screen='daily'; STATE.daily=null; render(); };
+    c.querySelector('.card').insertBefore(todayBtn, c.querySelector('#searchBtn'));
+  }
+  return c;
+}
+
+// ---------- Daily activities (Kurth class only) ----------
+// Each day's activity is a drop-in file at activities/YYYY-MM-DD.html (made
+// with Claude Design). Any <textarea>, <input> or <select> with a
+// data-response="key" attribute is collected and saved to the student's
+// record under student.daily[date][key]. Scripts in the file are not run.
+const DAILY_CLASSES = ['period1'];
+
+function todayStr(){
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+function screenDaily(){
+  const date = todayStr();
+  const c = el(`<div><button class="backlink" id="back">&larr; Back</button><div class="card"><h2 style="margin-bottom:6px;">Today's activity</h2><div id="activityHost"><div class="loading">Loading...</div></div></div></div>`);
+  c.querySelector('#back').onclick = ()=>{ STATE.screen='home'; render(); };
+  const host = c.querySelector('#activityHost');
+  fetch('activities/' + date + '.html').then(r=>{
+    if(!r.ok) throw new Error('none');
+    return r.text();
+  }).then(html=>{
+    host.innerHTML = '';
+    // Shadow DOM keeps the activity's own styles from leaking into Piki.
+    const root = host.attachShadow({mode:'open'});
+    root.innerHTML = html.replace(/<script[\s\S]*?<\/script>/gi, '');
+    const saved = (STATE.student.daily && STATE.student.daily[date]) || {};
+    const fields = root.querySelectorAll('[data-response]');
+    fields.forEach(f=>{ const v = saved[f.dataset.response]; if(v != null) f.value = v; });
+    const btn = document.createElement('button');
+    btn.className = 'btn coral';
+    btn.textContent = saved._submittedAt ? 'Update my answers' : 'Save my answers';
+    const msg = document.createElement('p');
+    msg.className = 'muted';
+    msg.textContent = saved._submittedAt ? 'Saved. You can edit and save again.' : '';
+    btn.onclick = async ()=>{
+      const answers = {};
+      fields.forEach(f=>{ answers[f.dataset.response] = f.value; });
+      answers._submittedAt = new Date().toISOString();
+      STATE.student.daily = STATE.student.daily || {};
+      STATE.student.daily[date] = answers;
+      btn.disabled = true;
+      await saveStudent(STATE.student.alias, STATE.student);
+      btn.disabled = false;
+      btn.textContent = 'Update my answers';
+      msg.textContent = 'Saved! ✅';
+    };
+    host.appendChild(btn);
+    host.appendChild(msg);
+  }).catch(()=>{
+    host.innerHTML = `<div class="empty">No activity posted for today yet. Check back soon!</div>`;
+  });
   return c;
 }
 
@@ -1513,6 +1573,16 @@ function screenTeacherStudent(){
   };
   c.querySelector('#clearRangeBtn').onclick = ()=> saveReadingRange(s.alias, s.classCode || 'default', '', '');
   if(STATE.rangeSaveMsg) c.querySelector('#rangeMsg').appendChild(el(`<p class="muted" style="margin:8px 0 0;">${STATE.rangeSaveMsg}</p>`));
+  const dates = Object.keys(s.daily || {}).sort().reverse();
+  if(dates.length){
+    const esc = t=>String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+    const body = dates.map(d=>{
+      const answers = Object.entries(s.daily[d]).filter(([k])=>k !== '_submittedAt')
+        .map(([k,v])=>`<p style="margin:4px 0;"><strong>${esc(k)}:</strong> ${esc(v)}</p>`).join('');
+      return `<h3 style="margin:14px 0 4px;">${d}</h3>${answers}`;
+    }).join('');
+    c.appendChild(el(`<div class="card"><h2 style="margin-bottom:6px;">Daily responses</h2>${body}</div>`));
+  }
   return c;
 }
 
