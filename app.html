@@ -211,6 +211,7 @@ const STATE = {
   teacherManagingAlias: null, teacherManagingClass: null, teacherClassFilter: 'all', showFullBookList: false,
   searchResults: [], searchQuery: '', currentBook: null, bookMode: 'quiz',
   rangeSaveMsg: '',
+  dailyDate: null, dailyActivities: {}, dailyMarkMsg: '',
   quiz: null, quizAnswers: {}, loading: false, loadingMsg: '',
   quizSetup: { count: 7, confidence: 'medium', challenge: 'onlevel', bilingual: 0 },
   speechRate: 0.95,
@@ -392,6 +393,7 @@ function buildScreen(){
   if(STATE.screen==='teacher') body = screenTeacher();
   else if(STATE.screen==='teacherStudent') body = screenTeacherStudent();
   else if(STATE.screen==='teacherSummary') body = screenTeacherSummary();
+  else if(STATE.screen==='teacherDaily') body = screenTeacherDaily();
   else if(!STATE.classConfirmed) body = screenClassPick();
   else if(STATE.screen==='login') body = screenLogin();
   else if(STATE.screen==='nameCapture') body = screenNameCapture();
@@ -1463,10 +1465,11 @@ function screenTeacher(){
   if(!STATE.teacherAuthed) return screenTeacherLogin();
   const rows = STATE.teacherRows || [];
   const groups = groupTeacherRows(filterRowsByClass(rows, STATE.teacherClassFilter));
-  const c = el(`<div><button class="backlink" id="back">&larr; Back</button><div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;"><div><h2 style="margin-bottom:2px;">Class roster</h2><p class="muted" style="margin:0;">Alias, PIN, and progress — visible to you only.</p></div><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;"><span id="filterSlot"></span><button class="btn secondary" id="summaryBtn" style="width:auto;margin:0;padding:10px 18px;">📊 Summary report</button><button class="btn secondary" id="printBtn" style="width:auto;margin:0;padding:10px 18px;">🖨️ Print report</button></div></div></div><div id="groups"></div></div>`);
+  const c = el(`<div><button class="backlink" id="back">&larr; Back</button><div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;"><div><h2 style="margin-bottom:2px;">Class roster</h2><p class="muted" style="margin:0;">Alias, PIN, and progress — visible to you only.</p></div><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;"><span id="filterSlot"></span><button class="btn secondary" id="summaryBtn" style="width:auto;margin:0;padding:10px 18px;">📊 Summary report</button><button class="btn secondary" id="dailyBtn" style="width:auto;margin:0;padding:10px 18px;">📝 Daily answers</button><button class="btn secondary" id="printBtn" style="width:auto;margin:0;padding:10px 18px;">🖨️ Print report</button></div></div></div><div id="groups"></div></div>`);
   c.querySelector('#back').onclick = ()=>{ STATE.teacherAuthed=false; STATE.teacherRows=null; STATE.teacherPasscode=''; STATE.screen='login'; render(); };
   c.querySelector('#printBtn').onclick = ()=> window.print();
   c.querySelector('#summaryBtn').onclick = ()=>{ STATE.screen='teacherSummary'; render(); };
+  c.querySelector('#dailyBtn').onclick = ()=>{ STATE.screen='teacherDaily'; render(); };
   c.querySelector('#filterSlot').replaceWith(classFilterSelect(rows));
   const groupsDiv = c.querySelector('#groups');
   if(groups.length===0){
@@ -1583,6 +1586,165 @@ function screenTeacherStudent(){
     }).join('');
     c.appendChild(el(`<div class="card"><h2 style="margin-bottom:6px;">Daily responses</h2>${body}</div>`));
   }
+  return c;
+}
+
+// ---------- Teacher: daily activity answers + rubric marks ----------
+// One screen per date: who has/hasn't submitted, each student's answers, and
+// rubric marks (1-4 on Ideas & Evidence, Organization & Clarity, Conventions).
+// Marks are suggested by Claude (worker: /api/teacher/mark-daily) and the
+// teacher can edit any of them (/api/teacher/save-marks).
+const MARK_CRITERIA = [
+  { id:'ideas', label:'Ideas & Evidence' },
+  { id:'organization', label:'Organization & Clarity' },
+  { id:'conventions', label:'Conventions' },
+];
+
+function escHtml(t){ return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// Pulls each answer field's question text (and the reading passage) out of the
+// activity's HTML, so the teacher screen and the marker both know what was asked.
+function parseActivity(html){
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  const context = Array.from(doc.querySelectorAll('.passage')).map(p=>p.textContent.trim()).join('\n\n');
+  const fields = Array.from(doc.querySelectorAll('[data-response]')).map(f=>{
+    let prompt = '';
+    const lab = f.id && doc.querySelector('label[for="' + f.id + '"]');
+    if(lab) prompt = lab.textContent;
+    else {
+      let n = f.previousElementSibling;
+      while(n && !/^(H[1-6]|P|LABEL)$/.test(n.tagName)) n = n.previousElementSibling;
+      if(n) prompt = n.textContent;
+    }
+    return { key: f.dataset.response, prompt: prompt.trim().replace(/\s+/g,' '), written: f.tagName !== 'SELECT' };
+  });
+  return { context, fields };
+}
+
+function dailyAnswerDates(rows){
+  const dates = new Set([todayStr()]);
+  rows.forEach(s=>Object.keys(s.daily||{}).forEach(d=>dates.add(d)));
+  return Array.from(dates).sort().reverse();
+}
+
+function markAverage(m){
+  const v = MARK_CRITERIA.map(c=>m[c.id]).filter(n=>n!=null);
+  return v.length ? (v.reduce((a,b)=>a+b,0)/v.length).toFixed(1) : '—';
+}
+
+function replaceTeacherRow(rec){
+  const idx = (STATE.teacherRows || []).findIndex(r=>r.alias===rec.alias && (r.classCode||'default')===(rec.classCode||'default'));
+  if(idx !== -1) STATE.teacherRows[idx] = rec;
+}
+
+function studentNeedsMarks(s, date, act){
+  const ans = (s.daily && s.daily[date]) || {};
+  const marks = (s.dailyMarks && s.dailyMarks[date]) || {};
+  return act.fields.some(f=>f.written && String(ans[f.key]||'').trim() && !marks[f.key]);
+}
+
+async function markStudentDaily(s, date, act){
+  const prompts = {};
+  act.fields.filter(f=>f.written).forEach(f=>{ prompts[f.key] = f.prompt || f.key; });
+  const resp = await postJSON('/api/teacher/mark-daily', { passcode: STATE.teacherPasscode, alias: s.alias, classCode: s.classCode || 'default', date, context: act.context, prompts });
+  if(resp.error) throw new Error(resp.error);
+  replaceTeacherRow(resp);
+}
+
+async function markAllDaily(students, date, act){
+  const todo = students.filter(s=>studentNeedsMarks(s, date, act));
+  for(let i=0;i<todo.length;i++){
+    STATE.dailyMarkMsg = 'Marking ' + (i+1) + ' of ' + todo.length + '...';
+    render();
+    try { await markStudentDaily(todo[i], date, act); }
+    catch(e){ STATE.dailyMarkMsg = 'Stopped on ' + todo[i].alias + ': ' + e.message; render(); return; }
+  }
+  STATE.dailyMarkMsg = todo.length ? 'Done! Review the suggested marks below and change anything you disagree with.' : 'Everything is already marked.';
+  render();
+}
+
+function screenTeacherDaily(){
+  if(!STATE.teacherAuthed) return screenTeacherLogin();
+  const allRows = (STATE.teacherRows || []).filter(s=>DAILY_CLASSES.includes(s.classCode||'default'));
+  const date = STATE.dailyDate || todayStr();
+  const students = filterRowsByClass(allRows, STATE.teacherClassFilter).sort((a,b)=>a.alias.localeCompare(b.alias));
+  const dateOptions = dailyAnswerDates(allRows).map(d=>`<option value="${d}"${d===date?' selected':''}>${d}${d===todayStr()?' (today)':''}</option>`).join('');
+  const c = el(`<div><button class="backlink" id="back">&larr; Back to roster</button><div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;"><div><h2 style="margin-bottom:2px;">Daily answers</h2><p class="muted" style="margin:0;">Marks are suggested by AI using a 4-point rubric. Always review them.</p></div><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;"><span id="filterSlot"></span><select id="dateSel">${dateOptions}</select></div></div><div id="summary"></div></div><div id="cards"></div></div>`);
+  c.querySelector('#back').onclick = ()=>{ STATE.screen='teacher'; STATE.dailyMarkMsg=''; render(); };
+  c.querySelector('#filterSlot').replaceWith(classFilterSelect(allRows));
+  c.querySelector('#dateSel').onchange = e=>{ STATE.dailyDate = e.target.value; STATE.dailyMarkMsg=''; render(); };
+
+  // The activity file gives us each question's text. Fetched once per date.
+  const cached = STATE.dailyActivities[date];
+  if(cached === undefined){
+    fetch('activities/' + date + '.html').then(r=>{ if(!r.ok) throw new Error('none'); return r.text(); })
+      .then(html=>{ STATE.dailyActivities[date] = parseActivity(html); })
+      .catch(()=>{ STATE.dailyActivities[date] = null; })
+      .then(()=>{ if(STATE.screen==='teacherDaily') render(); });
+    c.querySelector('#summary').appendChild(el(`<div class="loading">Loading...</div>`));
+    return c;
+  }
+  // No file for that date: fall back to showing the raw answer keys.
+  const keys = new Set();
+  students.forEach(s=>Object.keys((s.daily||{})[date]||{}).forEach(k=>{ if(k!=='_submittedAt') keys.add(k); }));
+  const act = cached || { context:'', fields: Array.from(keys).map(k=>({ key:k, prompt:k, written:true })) };
+
+  const submitted = students.filter(s=>s.daily && s.daily[date] && s.daily[date]._submittedAt);
+  const missing = students.filter(s=>!(s.daily && s.daily[date] && s.daily[date]._submittedAt));
+  const needMarks = submitted.filter(s=>studentNeedsMarks(s, date, act));
+  const summary = c.querySelector('#summary');
+  summary.appendChild(el(`<div><div class="stat-row"><div class="stat"><div class="num">${submitted.length}</div><div class="lbl">Submitted</div></div><div class="stat"><div class="num">${missing.length}</div><div class="lbl">Not yet</div></div></div>${missing.length ? `<p class="muted" style="margin:0 0 10px;"><strong>Not submitted:</strong> ${missing.map(s=>escHtml(s.alias)).join(', ')}</p>` : ''}</div>`));
+  if(needMarks.length){
+    const btn = el(`<button class="btn coral" style="margin-top:4px;">✨ Mark ${needMarks.length} student${needMarks.length===1?'':'s'} with AI</button>`);
+    btn.onclick = ()=>{ btn.disabled = true; markAllDaily(submitted, date, act); };
+    summary.appendChild(btn);
+  }
+  if(STATE.dailyMarkMsg) summary.appendChild(el(`<p class="muted" style="margin:10px 0 0;">${escHtml(STATE.dailyMarkMsg)}</p>`));
+
+  const cards = c.querySelector('#cards');
+  if(!submitted.length) cards.appendChild(el(`<div class="card"><div class="empty">No answers submitted for ${date} yet.</div></div>`));
+  submitted.forEach(s=>{
+    const ans = s.daily[date];
+    const marks = (s.dailyMarks && s.dailyMarks[date]) || {};
+    const body = act.fields.filter(f=>String(ans[f.key]||'').trim()).map(f=>{
+      const m = marks[f.key];
+      let markHtml = '';
+      if(f.written && m){
+        const sel = cr=>`<label style="display:inline-block;margin:6px 12px 0 0;font-size:13px;">${cr.label} <select data-k="${escHtml(f.key)}" data-c="${cr.id}" style="width:auto;">${[4,3,2,1].map(n=>`<option value="${n}"${m[cr.id]===n?' selected':''}>${n}</option>`).join('')}</select></label>`;
+        markHtml = `<div>${MARK_CRITERIA.map(sel).join('')}<strong style="font-size:13px;">Avg ${markAverage(m)}/4</strong> <span class="muted" style="font-size:12px;">${m.source==='teacher'?'edited by you':'AI suggestion'}</span></div><textarea data-k="${escHtml(f.key)}" data-comment="1" style="width:100%;box-sizing:border-box;min-height:56px;margin-top:6px;font:inherit;">${escHtml(m.comment)}</textarea>`;
+      }
+      return `<div style="margin:12px 0;padding-top:10px;border-top:1px solid var(--line);"><div class="muted" style="font-size:13px;">${escHtml(f.prompt || f.key)}</div><p style="margin:4px 0;white-space:pre-wrap;">${escHtml(ans[f.key])}</p>${markHtml}</div>`;
+    }).join('');
+    const hasMarks = act.fields.some(f=>marks[f.key]);
+    const card = el(`<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;"><h3 style="margin:0;">${escHtml(s.alias)}</h3><span class="muted" style="font-size:12px;">Submitted ${escHtml(new Date(ans._submittedAt).toLocaleString())}</span></div>${body}<div class="no-print" style="display:flex;gap:8px;flex-wrap:wrap;"></div></div>`);
+    const actions = card.querySelector('.no-print');
+    if(hasMarks){
+      const save = el(`<button class="btn secondary" style="width:auto;margin:0;padding:8px 16px;">Save my edits</button>`);
+      save.onclick = async ()=>{
+        const edited = {};
+        card.querySelectorAll('select[data-k]').forEach(x=>{ (edited[x.dataset.k] = edited[x.dataset.k] || {})[x.dataset.c] = Number(x.value); });
+        card.querySelectorAll('textarea[data-comment]').forEach(x=>{ (edited[x.dataset.k] = edited[x.dataset.k] || {}).comment = x.value; });
+        save.disabled = true; save.textContent = 'Saving...';
+        const resp = await postJSON('/api/teacher/save-marks', { passcode: STATE.teacherPasscode, alias: s.alias, classCode: s.classCode || 'default', date, marks: edited });
+        if(resp.error){ alert('Could not save: ' + resp.error); save.disabled = false; save.textContent = 'Save my edits'; return; }
+        replaceTeacherRow(resp);
+        save.textContent = 'Saved ✅';
+        setTimeout(()=>{ if(STATE.screen==='teacherDaily') render(); }, 700);
+      };
+      actions.appendChild(save);
+    }
+    if(act.fields.some(f=>f.written && String(ans[f.key]||'').trim())){
+      const mark = el(`<button class="btn secondary" style="width:auto;margin:0;padding:8px 16px;">${hasMarks?'Re-mark with AI':'Mark with AI'}</button>`);
+      mark.onclick = async ()=>{
+        if(hasMarks && !confirm('Re-marking replaces the current marks (including your edits) for ' + s.alias + '. Continue?')) return;
+        mark.disabled = true; mark.textContent = 'Marking...';
+        try { await markStudentDaily(s, date, act); } catch(e){ alert('Could not mark: ' + e.message); }
+        render();
+      };
+      actions.appendChild(mark);
+    }
+    cards.appendChild(card);
+  });
   return c;
 }
 
