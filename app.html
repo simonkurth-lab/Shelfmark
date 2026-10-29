@@ -211,7 +211,7 @@ const STATE = {
   teacherManagingAlias: null, teacherManagingClass: null, teacherClassFilter: 'all', showFullBookList: false,
   searchResults: [], searchQuery: '', currentBook: null, bookMode: 'quiz',
   rangeSaveMsg: '',
-  dailyDate: null, dailyActivities: {}, dailyMarkMsg: '',
+  dailyDate: null, dailyActivities: {}, dailyMarkMsg: '', dailyPage: 0, dailyPageSize: 4,
   quiz: null, quizAnswers: {}, loading: false, loadingMsg: '',
   quizSetup: { count: 7, confidence: 'medium', challenge: 'onlevel', bilingual: 0 },
   speechRate: 0.95,
@@ -1702,6 +1702,24 @@ function answerHtml(key, given, answerKey){
   return `<p style="margin:4px 0;padding:6px 10px;border-radius:8px;${box}">${ok?'✅':'❌'} ${text ? '<strong>'+escHtml(text)+'</strong>' : '<em>No answer</em>'}${ok ? '' : ` &nbsp;<span style="font-size:13px;">Correct answer: <strong>${escHtml(right)}</strong></span>`}</p>`;
 }
 
+// Prev/Next bar so a few students show at a time (quicker spot-checking).
+// dailyPageSize 0 = show everyone.
+function dailyPager(total){
+  const size = STATE.dailyPageSize;
+  const pages = size ? Math.max(1, Math.ceil(total/size)) : 1;
+  STATE.dailyPage = Math.min(STATE.dailyPage, pages-1);
+  const from = size ? STATE.dailyPage*size + 1 : 1;
+  const to = size ? Math.min(total, (STATE.dailyPage+1)*size) : total;
+  const sizes = [[3,'3 per page'],[4,'4 per page'],[6,'6 per page'],[0,'All']]
+    .map(([v,l])=>`<option value="${v}"${v===size?' selected':''}>${l}</option>`).join('');
+  const bar = el(`<div class="no-print" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 12px;"><button class="btn secondary pg-prev" style="width:auto;margin:0;padding:8px 16px;"${STATE.dailyPage<=0?' disabled':''}>&lsaquo; Prev</button><span class="muted">${total ? from + '&ndash;' + to + ' of ' + total : '0 students'}</span><button class="btn secondary pg-next" style="width:auto;margin:0;padding:8px 16px;"${STATE.dailyPage>=pages-1?' disabled':''}>Next &rsaquo;</button><select class="pg-size" style="width:auto;">${sizes}</select></div>`);
+  const go = d=>()=>{ STATE.dailyPage += d; render(); window.scrollTo(0,0); };
+  bar.querySelector('.pg-prev').onclick = go(-1);
+  bar.querySelector('.pg-next').onclick = go(1);
+  bar.querySelector('.pg-size').onchange = e=>{ STATE.dailyPageSize = Number(e.target.value); STATE.dailyPage = 0; render(); };
+  return bar;
+}
+
 function screenTeacherDaily(){
   if(!STATE.teacherAuthed) return screenTeacherLogin();
   const allRows = (STATE.teacherRows || []).filter(s=>DAILY_CLASSES.includes(s.classCode||'default'));
@@ -1711,7 +1729,7 @@ function screenTeacherDaily(){
   const c = el(`<div><button class="backlink" id="back">&larr; Back to roster</button><div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;"><div><h2 style="margin-bottom:2px;">Daily answers</h2><p class="muted" style="margin:0;">Marks are suggested by AI using a 4-point rubric. Always review them.</p></div><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;"><span id="filterSlot"></span><select id="dateSel">${dateOptions}</select></div></div><div id="summary"></div></div><div id="cards"></div></div>`);
   c.querySelector('#back').onclick = ()=>{ STATE.screen='teacher'; STATE.dailyMarkMsg=''; render(); };
   c.querySelector('#filterSlot').replaceWith(classFilterSelect(allRows));
-  c.querySelector('#dateSel').onchange = e=>{ STATE.dailyDate = e.target.value; STATE.dailyMarkMsg=''; render(); };
+  c.querySelector('#dateSel').onchange = e=>{ STATE.dailyDate = e.target.value; STATE.dailyMarkMsg=''; STATE.dailyPage = 0; render(); };
 
   // The activity file gives us each question's text. Fetched once per date.
   const cached = STATE.dailyActivities[date];
@@ -1747,7 +1765,10 @@ function screenTeacherDaily(){
 
   const cards = c.querySelector('#cards');
   if(!submitted.length) cards.appendChild(el(`<div class="card"><div class="empty">No answers submitted for ${date} yet.</div></div>`));
-  submitted.forEach(s=>{
+  const pager = dailyPager(submitted.length);
+  const pageStudents = STATE.dailyPageSize ? submitted.slice(STATE.dailyPage*STATE.dailyPageSize, (STATE.dailyPage+1)*STATE.dailyPageSize) : submitted;
+  if(submitted.length) cards.appendChild(pager);
+  pageStudents.forEach(s=>{
     const ans = s.daily[date];
     const marks = (s.dailyMarks && s.dailyMarks[date]) || {};
     const result = answerKey ? scoreAnswers(ans, answerKey) : null;
@@ -1790,6 +1811,7 @@ function screenTeacherDaily(){
     }
     cards.appendChild(card);
   });
+  if(submitted.length > 1 && pageStudents.length > 1) cards.appendChild(dailyPager(submitted.length));
   return c;
 }
 
