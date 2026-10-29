@@ -211,7 +211,7 @@ const STATE = {
   teacherManagingAlias: null, teacherManagingClass: null, teacherClassFilter: 'all', showFullBookList: false,
   searchResults: [], searchQuery: '', currentBook: null, bookMode: 'quiz',
   rangeSaveMsg: '',
-  dailyDate: null, dailyActivities: {}, dailyMarkMsg: '', dailyPage: 0, dailyPageSize: 4, dailySubject: null, dailyTab: null, dailyToday: null,
+  dailyDate: null, dailyActivities: {}, dailyMarkMsg: '', dailySort: 'name', dailyOpen: {}, dailySubject: null, dailyTab: null, dailyToday: null,
   quiz: null, quizAnswers: {}, loading: false, loadingMsg: '',
   quizSetup: { count: 7, confidence: 'medium', challenge: 'onlevel', bilingual: 0 },
   speechRate: 0.95,
@@ -1742,24 +1742,6 @@ function answerHtml(key, given, answerKey){
   return `<p style="margin:4px 0;padding:6px 10px;border-radius:8px;${box}">${ok?'✅':'❌'} ${text ? '<strong>'+escHtml(text)+'</strong>' : '<em>No answer</em>'}${ok ? '' : ` &nbsp;<span style="font-size:13px;">Correct answer: <strong>${escHtml(right)}</strong></span>`}</p>`;
 }
 
-// Prev/Next bar so a few students show at a time (quicker spot-checking).
-// dailyPageSize 0 = show everyone.
-function dailyPager(total){
-  const size = STATE.dailyPageSize;
-  const pages = size ? Math.max(1, Math.ceil(total/size)) : 1;
-  STATE.dailyPage = Math.min(STATE.dailyPage, pages-1);
-  const from = size ? STATE.dailyPage*size + 1 : 1;
-  const to = size ? Math.min(total, (STATE.dailyPage+1)*size) : total;
-  const sizes = [[3,'3 per page'],[4,'4 per page'],[6,'6 per page'],[0,'All']]
-    .map(([v,l])=>`<option value="${v}"${v===size?' selected':''}>${l}</option>`).join('');
-  const bar = el(`<div class="no-print" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 12px;"><button class="btn secondary pg-prev" style="width:auto;margin:0;padding:8px 16px;"${STATE.dailyPage<=0?' disabled':''}>&lsaquo; Prev</button><span class="muted">${total ? from + '&ndash;' + to + ' of ' + total : '0 students'}</span><button class="btn secondary pg-next" style="width:auto;margin:0;padding:8px 16px;"${STATE.dailyPage>=pages-1?' disabled':''}>Next &rsaquo;</button><select class="pg-size" style="width:auto;">${sizes}</select></div>`);
-  const go = d=>()=>{ STATE.dailyPage += d; render(); window.scrollTo(0,0); };
-  bar.querySelector('.pg-prev').onclick = go(-1);
-  bar.querySelector('.pg-next').onclick = go(1);
-  bar.querySelector('.pg-size').onchange = e=>{ STATE.dailyPageSize = Number(e.target.value); STATE.dailyPage = 0; render(); };
-  return bar;
-}
-
 function screenTeacherDaily(){
   if(!STATE.teacherAuthed) return screenTeacherLogin();
   const allRows = (STATE.teacherRows || []).filter(s=>DAILY_CLASSES.includes(s.classCode||'default'));
@@ -1775,8 +1757,8 @@ function screenTeacherDaily(){
   const c = el(`<div><button class="backlink" id="back">&larr; Back to roster</button><div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;"><div><h2 style="margin-bottom:2px;">Daily answers</h2><p class="muted" style="margin:0;">Marks are suggested by AI using a 4-point rubric. Always review them.</p></div><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;"><span id="filterSlot"></span><select id="dateSel">${dateOptions}</select><select id="subjectSel">${subjectOptions}</select></div></div><div id="summary"></div></div><div id="cards"></div></div>`);
   c.querySelector('#back').onclick = ()=>{ STATE.screen='teacher'; STATE.dailyMarkMsg=''; render(); };
   c.querySelector('#filterSlot').replaceWith(classFilterSelect(allRows));
-  c.querySelector('#dateSel').onchange = e=>{ STATE.dailyDate = e.target.value; STATE.dailySubject = null; STATE.dailyMarkMsg=''; STATE.dailyPage = 0; render(); };
-  c.querySelector('#subjectSel').onchange = e=>{ STATE.dailySubject = e.target.value; STATE.dailyMarkMsg=''; STATE.dailyPage = 0; render(); };
+  c.querySelector('#dateSel').onchange = e=>{ STATE.dailyDate = e.target.value; STATE.dailySubject = null; STATE.dailyMarkMsg=''; render(); };
+  c.querySelector('#subjectSel').onchange = e=>{ STATE.dailySubject = e.target.value; STATE.dailyMarkMsg=''; render(); };
 
   // The activity file gives us each question's text. Fetched once per date.
   const cached = STATE.dailyActivities[date];
@@ -1812,54 +1794,105 @@ function screenTeacherDaily(){
 
   const cards = c.querySelector('#cards');
   if(!submitted.length) cards.appendChild(el(`<div class="card"><div class="empty">No answers submitted for ${day}${subject ? ' (' + DAILY_SUBJECTS.find(x=>x.id===subject).label + ')' : ''} yet.</div></div>`));
-  const pager = dailyPager(submitted.length);
-  const pageStudents = STATE.dailyPageSize ? submitted.slice(STATE.dailyPage*STATE.dailyPageSize, (STATE.dailyPage+1)*STATE.dailyPageSize) : submitted;
-  if(submitted.length) cards.appendChild(pager);
-  pageStudents.forEach(s=>{
-    const ans = s.daily[date];
-    const marks = (s.dailyMarks && s.dailyMarks[date]) || {};
-    const result = answerKey ? scoreAnswers(ans, answerKey) : null;
-    const body = act.fields.filter(f=>String(ans[f.key]||'').trim() || (answerKey && answerKey[f.key] !== undefined && !f.key.startsWith('bonus'))).map(f=>{
-      const m = marks[f.key];
-      let markHtml = '';
-      if(f.written && m){
-        const sel = cr=>`<label style="display:inline-block;margin:6px 12px 0 0;font-size:13px;">${cr.label} <select data-k="${escHtml(f.key)}" data-c="${cr.id}" style="width:auto;">${[4,3,2,1].map(n=>`<option value="${n}"${m[cr.id]===n?' selected':''}>${n}</option>`).join('')}</select></label>`;
-        markHtml = `<div>${MARK_CRITERIA.map(sel).join('')}<strong style="font-size:13px;">Avg ${markAverage(m)}/4</strong> <span class="muted" style="font-size:12px;">${m.source==='teacher'?'edited by you':'AI suggestion'}</span></div><textarea data-k="${escHtml(f.key)}" data-comment="1" style="width:100%;box-sizing:border-box;min-height:56px;margin-top:6px;font:inherit;">${escHtml(m.comment)}</textarea>`;
-      }
-      return `<div style="margin:12px 0;padding-top:10px;border-top:1px solid var(--line);"><div class="muted" style="font-size:13px;">${escHtml(f.prompt || f.key)}</div>${answerHtml(f.key, ans[f.key], answerKey)}${markHtml}</div>`;
+  const nameOf = s=>s.realName || s.alias;
+  const results = new Map(submitted.map(s=>[s, answerKey ? scoreAnswers(s.daily[date], answerKey) : null]));
+
+  // ---- Formative diagnostic: common trouble spots + support groups ----
+  if(answerKey && scored.length){
+    const qs = Object.keys(answerKey).filter(k=>!k.startsWith('bonus'));
+    const promptOf = k=>{ const f = act.fields.find(x=>x.key===k); return (f && f.prompt) || k; };
+    const stats = qs.map(k=>{
+      const missed = submitted.filter(s=>!isCorrectAnswer(s.daily[date][k], answerKey[k]));
+      const wrong = {};
+      missed.forEach(s=>{ const g = String(s.daily[date][k]==null?'':s.daily[date][k]).trim() || '(blank)'; wrong[g] = (wrong[g]||0)+1; });
+      const common = Object.entries(wrong).sort((x,y)=>y[1]-x[1]).slice(0,3);
+      return { k, missed, pct: Math.round((submitted.length-missed.length)/submitted.length*100), common };
+    });
+    const trouble = stats.filter(x=>x.missed.length && x.pct < 75).sort((x,y)=>x.pct-y.pct);
+    const troubleHtml = trouble.length ? trouble.map(x=>`<div style="margin:10px 0;padding-top:10px;border-top:1px solid var(--line);"><div style="display:flex;justify-content:space-between;gap:10px;"><strong>${escHtml(x.k.toUpperCase())}</strong><strong style="color:#b03a3a;">${x.pct}% correct</strong></div><div class="muted" style="font-size:13px;">${escHtml(promptOf(x.k))}</div><div style="font-size:13px;margin-top:4px;">Correct: <strong>${escHtml([].concat(answerKey[x.k])[0])}</strong> &middot; Common wrong answers: ${x.common.map(([g,n])=>`<strong>${escHtml(g)}</strong> (${n})`).join(', ')}</div><div style="font-size:13px;margin-top:2px;"><span class="muted">Missed by:</span> ${x.missed.map(s=>escHtml(nameOf(s))).join(', ')}</div></div>`).join('')
+      : `<p class="muted" style="margin:6px 0 0;">No question was missed by more than a quarter of the class. 🎉</p>`;
+    const groupDefs = [
+      { label:'🔴 Needs support', note:'Under 60% — reteach in a small group', test:r=>r.pct<60, bg:'#fbdcdc' },
+      { label:'🟡 Almost there', note:'60–79% — quick targeted practice', test:r=>r.pct>=60 && r.pct<80, bg:'#fbf1d3' },
+      { label:'🟢 Secure', note:'80%+ — ready to extend', test:r=>r.pct>=80, bg:'#dcf2dc' },
+    ];
+    const groupsHtml = groupDefs.map(g=>{
+      const members = submitted.filter(s=>{ const r = results.get(s); return r && r.pct!=null && g.test(r); })
+        .sort((x,y)=>results.get(x).pct-results.get(y).pct);
+      const list = members.length ? members.map(s=>{
+        const r = results.get(s);
+        const miss = qs.filter(k=>!isCorrectAnswer(s.daily[date][k], answerKey[k])).map(k=>k.toUpperCase());
+        return `<li style="margin:3px 0;"><strong>${escHtml(nameOf(s))}</strong> ${r.pct}%${miss.length ? ` <span class="muted" style="font-size:12px;">missed ${miss.join(', ')}</span>` : ''}</li>`;
+      }).join('') : '<li class="muted" style="list-style:none;">No one</li>';
+      return `<div style="flex:1 1 220px;background:${g.bg};border-radius:10px;padding:10px 14px;"><strong>${g.label}</strong> <span class="muted">(${members.length})</span><div class="muted" style="font-size:12px;margin-bottom:4px;">${g.note}</div><ul style="margin:0;padding-left:18px;">${list}</ul></div>`;
     }).join('');
-    const hasMarks = act.fields.some(f=>marks[f.key]);
-    const card = el(`<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;"><h3 style="margin:0;">${escHtml(s.realName || s.alias)}${s.realName ? ` <span class="muted" style="font-weight:600;font-size:14px;">(${escHtml(s.alias)})</span>` : ''}</h3><span>${result && result.total ? `<strong style="font-size:18px;">${result.correct}/${result.total} · ${result.pct}%</strong>${result.bonusTotal ? ` <span class="muted">+ bonus ${result.bonusCorrect}/${result.bonusTotal}</span>` : ''} ` : ''}<span class="muted" style="font-size:12px;">Submitted ${escHtml(new Date(ans._submittedAt).toLocaleString())}</span></span></div>${body}<div class="no-print" style="display:flex;gap:8px;flex-wrap:wrap;"></div></div>`);
-    const actions = card.querySelector('.no-print');
-    if(hasMarks){
-      const save = el(`<button class="btn secondary" style="width:auto;margin:0;padding:8px 16px;">Save my edits</button>`);
-      save.onclick = async ()=>{
-        const edited = {};
-        card.querySelectorAll('select[data-k]').forEach(x=>{ (edited[x.dataset.k] = edited[x.dataset.k] || {})[x.dataset.c] = Number(x.value); });
-        card.querySelectorAll('textarea[data-comment]').forEach(x=>{ (edited[x.dataset.k] = edited[x.dataset.k] || {}).comment = x.value; });
-        save.disabled = true; save.textContent = 'Saving...';
-        const resp = await postJSON('/api/teacher/save-marks', { passcode: STATE.teacherPasscode, alias: s.alias, classCode: s.classCode || 'default', date, marks: edited });
-        if(resp.error){ alert('Could not save: ' + resp.error); save.disabled = false; save.textContent = 'Save my edits'; return; }
-        replaceTeacherRow(resp);
-        save.textContent = 'Saved ✅';
-        setTimeout(()=>{ if(STATE.screen==='teacherDaily') render(); }, 700);
-      };
-      actions.appendChild(save);
-    }
-    if(act.fields.some(f=>f.written && String(ans[f.key]||'').trim())){
-      const mark = el(`<button class="btn secondary" style="width:auto;margin:0;padding:8px 16px;">${hasMarks?'Re-mark with AI':'Mark with AI'}</button>`);
-      mark.onclick = async ()=>{
-        if(hasMarks && !confirm('Re-marking replaces the current marks (including your edits) for ' + s.alias + '. Continue?')) return;
-        mark.disabled = true; mark.textContent = 'Marking...';
-        try { await markStudentDaily(s, date, act); } catch(e){ alert('Could not mark: ' + e.message); }
-        render();
-      };
-      actions.appendChild(mark);
-    }
-    cards.appendChild(card);
-  });
-  if(submitted.length > 1 && pageStudents.length > 1) cards.appendChild(dailyPager(submitted.length));
+    cards.appendChild(el(`<div class="card"><h3 style="margin:0 0 2px;">🔎 Formative check</h3><p class="muted" style="margin:0 0 10px;">Based on ${submitted.length} submission${submitted.length===1?'':'s'}. Use this to plan reteaching, not for grades.</p><strong>Questions to revisit</strong>${troubleHtml}<div style="margin-top:14px;"><strong>Suggested groups</strong></div><div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px;">${groupsHtml}</div></div>`));
+  }
+
+  // ---- Everyone in one list; click a row to open that student's activity ----
+  if(submitted.length){
+    const sorted = submitted.slice().sort((x,y)=>{
+      if(STATE.dailySort==='score' && answerKey) return (results.get(x).pct||0)-(results.get(y).pct||0);
+      return nameOf(x).localeCompare(nameOf(y));
+    });
+    const sortSel = answerKey ? `<select class="sort-sel" style="width:auto;"><option value="name"${STATE.dailySort!=='score'?' selected':''}>Sort by name</option><option value="score"${STATE.dailySort==='score'?' selected':''}>Sort by score (lowest first)</option></select>` : '';
+    const listCard = el(`<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px;"><h3 style="margin:0;">All students (${submitted.length})</h3><span class="no-print">${sortSel}</span></div><div class="dl-rows"></div></div>`);
+    const ss = listCard.querySelector('.sort-sel');
+    if(ss) ss.onchange = e=>{ STATE.dailySort = e.target.value; render(); };
+    const rowsHost = listCard.querySelector('.dl-rows');
+    STATE.dailyOpen = STATE.dailyOpen || {};
+    sorted.forEach(s=>{ rowsHost.appendChild(studentDailyRow(s, date, act, answerKey, results.get(s), nameOf(s))); });
+    cards.appendChild(listCard);
+  }
   return c;
+}
+
+// One collapsible student row: name + score on the summary line, full answers when opened.
+function studentDailyRow(s, date, act, answerKey, result, name){
+  const ans = s.daily[date];
+  const marks = (s.dailyMarks && s.dailyMarks[date]) || {};
+  const openKey = s.alias + '|' + date;
+  const dot = result && result.pct!=null ? (result.pct>=80 ? '🟢' : result.pct>=60 ? '🟡' : '🔴') : '';
+  const scoreHtml = result && result.total ? `<strong>${result.correct}/${result.total} · ${result.pct}%</strong>${result.bonusTotal ? ` <span class="muted" style="font-size:12px;">+ bonus ${result.bonusCorrect}/${result.bonusTotal}</span>` : ''}` : '<span class="muted">answers</span>';
+  const body = act.fields.filter(f=>String(ans[f.key]||'').trim() || (answerKey && answerKey[f.key] !== undefined && !f.key.startsWith('bonus'))).map(f=>{
+    const m = marks[f.key];
+    let markHtml = '';
+    if(f.written && m){
+      const sel = cr=>`<label style="display:inline-block;margin:6px 12px 0 0;font-size:13px;">${cr.label} <select data-k="${escHtml(f.key)}" data-c="${cr.id}" style="width:auto;">${[4,3,2,1].map(n=>`<option value="${n}"${m[cr.id]===n?' selected':''}>${n}</option>`).join('')}</select></label>`;
+      markHtml = `<div>${MARK_CRITERIA.map(sel).join('')}<strong style="font-size:13px;">Avg ${markAverage(m)}/4</strong> <span class="muted" style="font-size:12px;">${m.source==='teacher'?'edited by you':'AI suggestion'}</span></div><textarea data-k="${escHtml(f.key)}" data-comment="1" style="width:100%;box-sizing:border-box;min-height:56px;margin-top:6px;font:inherit;">${escHtml(m.comment)}</textarea>`;
+    }
+    return `<div style="margin:12px 0;padding-top:10px;border-top:1px solid var(--line);"><div class="muted" style="font-size:13px;">${escHtml(f.prompt || f.key)}</div>${answerHtml(f.key, ans[f.key], answerKey)}${markHtml}</div>`;
+  }).join('');
+  const hasMarks = act.fields.some(f=>marks[f.key]);
+  const row = el(`<details style="border-top:1px solid var(--line);"${STATE.dailyOpen[openKey]?' open':''}><summary style="cursor:pointer;padding:10px 4px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;list-style:revert;"><span><span>${dot}</span> <strong>${escHtml(name)}</strong>${s.realName ? ` <span class="muted" style="font-size:13px;">(${escHtml(s.alias)})</span>` : ''}</span><span>${scoreHtml} <span class="muted" style="font-size:12px;">${escHtml(new Date(ans._submittedAt).toLocaleString())}</span></span></summary><div class="dl-body">${body}<div class="no-print" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;"></div></div></details>`);
+  row.addEventListener('toggle', ()=>{ STATE.dailyOpen[openKey] = row.open; });
+  const actions = row.querySelector('.no-print');
+  if(hasMarks){
+    const save = el(`<button class="btn secondary" style="width:auto;margin:0;padding:8px 16px;">Save my edits</button>`);
+    save.onclick = async ()=>{
+      const edited = {};
+      row.querySelectorAll('select[data-k]').forEach(x=>{ (edited[x.dataset.k] = edited[x.dataset.k] || {})[x.dataset.c] = Number(x.value); });
+      row.querySelectorAll('textarea[data-comment]').forEach(x=>{ (edited[x.dataset.k] = edited[x.dataset.k] || {}).comment = x.value; });
+      save.disabled = true; save.textContent = 'Saving...';
+      const resp = await postJSON('/api/teacher/save-marks', { passcode: STATE.teacherPasscode, alias: s.alias, classCode: s.classCode || 'default', date, marks: edited });
+      if(resp.error){ alert('Could not save: ' + resp.error); save.disabled = false; save.textContent = 'Save my edits'; return; }
+      replaceTeacherRow(resp);
+      save.textContent = 'Saved ✅';
+      setTimeout(()=>{ if(STATE.screen==='teacherDaily') render(); }, 700);
+    };
+    actions.appendChild(save);
+  }
+  if(act.fields.some(f=>f.written && String(ans[f.key]||'').trim())){
+    const mark = el(`<button class="btn secondary" style="width:auto;margin:0;padding:8px 16px;">${hasMarks?'Re-mark with AI':'Mark with AI'}</button>`);
+    mark.onclick = async ()=>{
+      if(hasMarks && !confirm('Re-marking replaces the current marks (including your edits) for ' + s.alias + '. Continue?')) return;
+      mark.disabled = true; mark.textContent = 'Marking...';
+      try { await markStudentDaily(s, date, act); } catch(e){ alert('Could not mark: ' + e.message); }
+      render();
+    };
+    actions.appendChild(mark);
+  }
+  return row;
 }
 
 async function saveReadingRange(alias, classCode, lexileMin, lexileMax){
