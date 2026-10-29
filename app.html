@@ -1802,7 +1802,7 @@ function screenTeacherDaily(){
   const scored = answerKey ? submitted.map(s=>scoreAnswers(s.daily[date], answerKey)).filter(r=>r.pct!=null) : [];
   const classAvgHtml = scored.length ? `<div class="stat"><div class="num">${Math.round(scored.reduce((a,r)=>a+r.pct,0)/scored.length)}%</div><div class="lbl">Class avg</div></div>` : '';
   const summary = c.querySelector('#summary');
-  summary.appendChild(el(`<div><div class="stat-row"><div class="stat"><div class="num">${submitted.length}</div><div class="lbl">Submitted</div></div><div class="stat"><div class="num">${missing.length}</div><div class="lbl">Not yet</div></div>${classAvgHtml}</div>${missing.length ? `<p class="muted" style="margin:0 0 10px;"><strong>Not submitted:</strong> ${missing.map(s=>escHtml(s.alias)).join(', ')}</p>` : ''}</div>`));
+  summary.appendChild(el(`<div><div class="stat-row"><div class="stat"><div class="num">${submitted.length}</div><div class="lbl">Submitted</div></div><div class="stat"><div class="num">${missing.length}</div><div class="lbl">Not yet</div></div>${classAvgHtml}</div>${missing.length ? `<p class="muted" style="margin:0 0 10px;"><strong>Not submitted:</strong> ${missing.map(s=>escHtml(s.alias)+(s.realName?' ('+escHtml(s.realName)+')':'')).join(', ')}</p>` : ''}</div>`));
   if(needMarks.length){
     const btn = el(`<button class="btn coral" style="margin-top:4px;">✨ Mark ${needMarks.length} student${needMarks.length===1?'':'s'} with AI</button>`);
     btn.onclick = ()=>{ btn.disabled = true; markAllDaily(submitted, date, act); };
@@ -1829,7 +1829,7 @@ function screenTeacherDaily(){
       return `<div style="margin:12px 0;padding-top:10px;border-top:1px solid var(--line);"><div class="muted" style="font-size:13px;">${escHtml(f.prompt || f.key)}</div>${answerHtml(f.key, ans[f.key], answerKey)}${markHtml}</div>`;
     }).join('');
     const hasMarks = act.fields.some(f=>marks[f.key]);
-    const card = el(`<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;"><h3 style="margin:0;">${escHtml(s.alias)}</h3><span>${result && result.total ? `<strong style="font-size:18px;">${result.correct}/${result.total} · ${result.pct}%</strong>${result.bonusTotal ? ` <span class="muted">+ bonus ${result.bonusCorrect}/${result.bonusTotal}</span>` : ''} ` : ''}<span class="muted" style="font-size:12px;">Submitted ${escHtml(new Date(ans._submittedAt).toLocaleString())}</span></span></div>${body}<div class="no-print" style="display:flex;gap:8px;flex-wrap:wrap;"></div></div>`);
+    const card = el(`<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;"><h3 style="margin:0;">${escHtml(s.realName || s.alias)}${s.realName ? ` <span class="muted" style="font-weight:600;font-size:14px;">(${escHtml(s.alias)})</span>` : ''}</h3><span>${result && result.total ? `<strong style="font-size:18px;">${result.correct}/${result.total} · ${result.pct}%</strong>${result.bonusTotal ? ` <span class="muted">+ bonus ${result.bonusCorrect}/${result.bonusTotal}</span>` : ''} ` : ''}<span class="muted" style="font-size:12px;">Submitted ${escHtml(new Date(ans._submittedAt).toLocaleString())}</span></span></div>${body}<div class="no-print" style="display:flex;gap:8px;flex-wrap:wrap;"></div></div>`);
     const actions = card.querySelector('.no-print');
     if(hasMarks){
       const save = el(`<button class="btn secondary" style="width:auto;margin:0;padding:8px 16px;">Save my edits</button>`);
