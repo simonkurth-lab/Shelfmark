@@ -211,7 +211,7 @@ const STATE = {
   teacherManagingAlias: null, teacherManagingClass: null, teacherClassFilter: 'all', showFullBookList: false,
   searchResults: [], searchQuery: '', currentBook: null, bookMode: 'quiz',
   rangeSaveMsg: '',
-  dailyDate: null, dailyActivities: {}, dailyMarkMsg: '', dailyPage: 0, dailyPageSize: 4,
+  dailyDate: null, dailyActivities: {}, dailyMarkMsg: '', dailyPage: 0, dailyPageSize: 4, dailySubject: null, dailyTab: null, dailyToday: null,
   quiz: null, quizAnswers: {}, loading: false, loadingMsg: '',
   quizSetup: { count: 7, confidence: 'medium', challenge: 'onlevel', bilingual: 0 },
   speechRate: 0.95,
@@ -570,15 +570,15 @@ function screenHome(){
   c.querySelector('#dashBtn').onclick = ()=>{ STATE.screen='dashboard'; render(); };
   if(DAILY_CLASSES.includes(STATE.classCode)){
     const todayBtn = el(`<button class="btn coral" style="margin-top:10px;">📝 Today's activity</button>`);
-    todayBtn.onclick = ()=>{ STATE.screen='daily'; STATE.daily=null; render(); };
+    todayBtn.onclick = ()=>{ STATE.screen='daily'; STATE.dailyToday=null; STATE.dailyTab=null; render(); };
     c.querySelector('.card').insertBefore(todayBtn, c.querySelector('#searchBtn'));
   }
   return c;
 }
 
 // ---------- Daily activities (Kurth class only) ----------
-// Each day's activity is a drop-in file at activities/YYYY-MM-DD.html (made
-// with Claude Design). Any <textarea>, <input> or <select> with a
+// Each activity is a drop-in file at activities/YYYY-MM-DD-subject.html (made
+// with Claude Design; see DAILY_SUBJECTS below). Any <textarea>, <input> or <select> with a
 // data-response="key" attribute is collected and saved to the student's
 // record under student.daily[date][key]. Scripts in the file are not run.
 const DAILY_CLASSES = ['period1'];
@@ -588,45 +588,85 @@ function todayStr(){
   return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
 }
 
+// Several activities can be posted per day, one per subject:
+// activities/YYYY-MM-DD-ela.html, -math.html, -social.html (a plain
+// YYYY-MM-DD.html still works as a single general activity). Each one is
+// saved under student.daily["YYYY-MM-DD-subject"].
+const DAILY_SUBJECTS = [
+  { id:'', label:'Activity', emoji:'📝' },
+  { id:'ela', label:'Language Arts', emoji:'📖' },
+  { id:'math', label:'Math', emoji:'➗' },
+  { id:'social', label:'Social Studies', emoji:'🌎' },
+];
+function dailyKeyFor(day, subjectId){ return day + (subjectId ? '-' + subjectId : ''); }
+
+// Builds one activity into host and wires up its Save button.
+function mountActivity(host, key, html){
+  host.innerHTML = '';
+  // Shadow DOM keeps the activity's own styles from leaking into Piki.
+  const root = host.attachShadow({mode:'open'});
+  root.innerHTML = html.replace(/<script[\s\S]*?<\/script>/gi, '');
+  const saved = (STATE.student.daily && STATE.student.daily[key]) || {};
+  const fields = root.querySelectorAll('[data-response]');
+  fields.forEach(f=>{ const v = saved[f.dataset.response]; if(v != null) f.value = v; });
+  const btn = document.createElement('button');
+  btn.className = 'btn coral';
+  btn.textContent = saved._submittedAt ? 'Update my answers' : 'Save my answers';
+  const msg = document.createElement('p');
+  msg.className = 'muted';
+  msg.textContent = saved._submittedAt ? 'Saved. You can edit and save again.' : '';
+  btn.onclick = async ()=>{
+    const answers = {};
+    fields.forEach(f=>{ answers[f.dataset.response] = f.value; });
+    answers._submittedAt = new Date().toISOString();
+    STATE.student.daily = STATE.student.daily || {};
+    STATE.student.daily[key] = answers;
+    btn.disabled = true;
+    await saveStudent(STATE.student.alias, STATE.student);
+    btn.disabled = false;
+    btn.textContent = 'Update my answers';
+    msg.textContent = 'Saved! ✅';
+  };
+  // host has a shadow root, so light-DOM children of it never render;
+  // the button and message go right after it instead.
+  host.after(btn, msg);
+}
+
 function screenDaily(){
-  const date = todayStr();
-  const c = el(`<div><button class="backlink" id="back">&larr; Back</button><div class="card"><h2 style="margin-bottom:6px;">Today's activity</h2><div id="activityHost"><div class="loading">Loading...</div></div></div></div>`);
+  const day = todayStr();
+  const c = el(`<div><button class="backlink" id="back">&larr; Back</button><div class="card"><h2 style="margin-bottom:6px;">Today's activity</h2><div id="tabs" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;"></div><div id="activityHost"><div class="loading">Loading...</div></div></div></div>`);
   c.querySelector('#back').onclick = ()=>{ STATE.screen='home'; render(); };
   const host = c.querySelector('#activityHost');
-  fetch('activities/' + date + '.html').then(r=>{
-    if(!r.ok) throw new Error('none');
-    return r.text();
-  }).then(html=>{
-    host.innerHTML = '';
-    // Shadow DOM keeps the activity's own styles from leaking into Piki.
-    const root = host.attachShadow({mode:'open'});
-    root.innerHTML = html.replace(/<script[\s\S]*?<\/script>/gi, '');
-    const saved = (STATE.student.daily && STATE.student.daily[date]) || {};
-    const fields = root.querySelectorAll('[data-response]');
-    fields.forEach(f=>{ const v = saved[f.dataset.response]; if(v != null) f.value = v; });
-    const btn = document.createElement('button');
-    btn.className = 'btn coral';
-    btn.textContent = saved._submittedAt ? 'Update my answers' : 'Save my answers';
-    const msg = document.createElement('p');
-    msg.className = 'muted';
-    msg.textContent = saved._submittedAt ? 'Saved. You can edit and save again.' : '';
-    btn.onclick = async ()=>{
-      const answers = {};
-      fields.forEach(f=>{ answers[f.dataset.response] = f.value; });
-      answers._submittedAt = new Date().toISOString();
-      STATE.student.daily = STATE.student.daily || {};
-      STATE.student.daily[date] = answers;
-      btn.disabled = true;
-      await saveStudent(STATE.student.alias, STATE.student);
-      btn.disabled = false;
-      btn.textContent = 'Update my answers';
-      msg.textContent = 'Saved! ✅';
-    };
-    // host has a shadow root, so light-DOM children of it never render;
-    // the button and message go right after it instead.
-    host.after(btn, msg);
-  }).catch(()=>{
-    host.innerHTML = `<div class="empty">No activity posted for today yet. Check back soon!</div>`;
+  const tabs = c.querySelector('#tabs');
+
+  const show = list=>{
+    if(!list.length){
+      host.innerHTML = `<div class="empty">No activity posted for today yet. Check back soon!</div>`;
+      return;
+    }
+    const cur = list.find(x=>x.id===STATE.dailyTab) || list[0];
+    if(list.length > 1){
+      list.forEach(x=>{
+        const done = STATE.student.daily && STATE.student.daily[dailyKeyFor(day, x.id)] && STATE.student.daily[dailyKeyFor(day, x.id)]._submittedAt;
+        const t = el(`<button class="btn ${x===cur?'':'secondary'}" style="width:auto;margin:0;padding:10px 16px;">${x.emoji} ${x.label}${done?' ✅':''}</button>`);
+        t.onclick = ()=>{ STATE.dailyTab = x.id; render(); };
+        tabs.appendChild(t);
+      });
+    }
+    mountActivity(host, dailyKeyFor(day, cur.id), cur.html);
+  };
+
+  // Which subjects exist today? No directory listing on a static site, so try each.
+  const cached = STATE.dailyToday && STATE.dailyToday.day === day ? STATE.dailyToday.list : null;
+  if(cached){ show(cached); return c; }
+  Promise.all(DAILY_SUBJECTS.map(sub=>
+    fetch('activities/' + dailyKeyFor(day, sub.id) + '.html')
+      .then(r=>r.ok ? r.text() : null).catch(()=>null)
+      .then(html=>html ? { ...sub, html } : null)
+  )).then(all=>{
+    const list = all.filter(Boolean);
+    STATE.dailyToday = { day, list };
+    if(STATE.screen==='daily') render();
   });
   return c;
 }
@@ -1624,7 +1664,7 @@ function parseActivity(html){
 
 function dailyAnswerDates(rows){
   const dates = new Set([todayStr()]);
-  rows.forEach(s=>Object.keys(s.daily||{}).forEach(d=>dates.add(d)));
+  rows.forEach(s=>Object.keys(s.daily||{}).forEach(k=>dates.add(k.slice(0,10))));
   return Array.from(dates).sort().reverse();
 }
 
@@ -1723,13 +1763,20 @@ function dailyPager(total){
 function screenTeacherDaily(){
   if(!STATE.teacherAuthed) return screenTeacherLogin();
   const allRows = (STATE.teacherRows || []).filter(s=>DAILY_CLASSES.includes(s.classCode||'default'));
-  const date = STATE.dailyDate || todayStr();
+  const day = STATE.dailyDate || todayStr();
+  // Subjects that have at least one submission that day get a check in the dropdown;
+  // with nothing chosen yet, open the first one that does.
+  const hasData = id=>allRows.some(s=>s.daily && s.daily[dailyKeyFor(day, id)] && s.daily[dailyKeyFor(day, id)]._submittedAt);
+  const subject = STATE.dailySubject != null ? STATE.dailySubject : ((DAILY_SUBJECTS.find(x=>hasData(x.id)) || DAILY_SUBJECTS[0]).id);
+  const date = dailyKeyFor(day, subject); // the key answers/marks/files are stored under
   const students = filterRowsByClass(allRows, STATE.teacherClassFilter).sort((a,b)=>a.alias.localeCompare(b.alias));
-  const dateOptions = dailyAnswerDates(allRows).map(d=>`<option value="${d}"${d===date?' selected':''}>${d}${d===todayStr()?' (today)':''}</option>`).join('');
-  const c = el(`<div><button class="backlink" id="back">&larr; Back to roster</button><div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;"><div><h2 style="margin-bottom:2px;">Daily answers</h2><p class="muted" style="margin:0;">Marks are suggested by AI using a 4-point rubric. Always review them.</p></div><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;"><span id="filterSlot"></span><select id="dateSel">${dateOptions}</select></div></div><div id="summary"></div></div><div id="cards"></div></div>`);
+  const dateOptions = dailyAnswerDates(allRows).map(d=>`<option value="${d}"${d===day?' selected':''}>${d}${d===todayStr()?' (today)':''}</option>`).join('');
+  const subjectOptions = DAILY_SUBJECTS.map(x=>`<option value="${x.id}"${x.id===subject?' selected':''}>${x.emoji} ${x.label}${hasData(x.id)?' ✓':''}</option>`).join('');
+  const c = el(`<div><button class="backlink" id="back">&larr; Back to roster</button><div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;"><div><h2 style="margin-bottom:2px;">Daily answers</h2><p class="muted" style="margin:0;">Marks are suggested by AI using a 4-point rubric. Always review them.</p></div><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;"><span id="filterSlot"></span><select id="dateSel">${dateOptions}</select><select id="subjectSel">${subjectOptions}</select></div></div><div id="summary"></div></div><div id="cards"></div></div>`);
   c.querySelector('#back').onclick = ()=>{ STATE.screen='teacher'; STATE.dailyMarkMsg=''; render(); };
   c.querySelector('#filterSlot').replaceWith(classFilterSelect(allRows));
-  c.querySelector('#dateSel').onchange = e=>{ STATE.dailyDate = e.target.value; STATE.dailyMarkMsg=''; STATE.dailyPage = 0; render(); };
+  c.querySelector('#dateSel').onchange = e=>{ STATE.dailyDate = e.target.value; STATE.dailySubject = null; STATE.dailyMarkMsg=''; STATE.dailyPage = 0; render(); };
+  c.querySelector('#subjectSel').onchange = e=>{ STATE.dailySubject = e.target.value; STATE.dailyMarkMsg=''; STATE.dailyPage = 0; render(); };
 
   // The activity file gives us each question's text. Fetched once per date.
   const cached = STATE.dailyActivities[date];
@@ -1764,7 +1811,7 @@ function screenTeacherDaily(){
   if(STATE.dailyMarkMsg) summary.appendChild(el(`<p class="muted" style="margin:10px 0 0;">${escHtml(STATE.dailyMarkMsg)}</p>`));
 
   const cards = c.querySelector('#cards');
-  if(!submitted.length) cards.appendChild(el(`<div class="card"><div class="empty">No answers submitted for ${date} yet.</div></div>`));
+  if(!submitted.length) cards.appendChild(el(`<div class="card"><div class="empty">No answers submitted for ${day}${subject ? ' (' + DAILY_SUBJECTS.find(x=>x.id===subject).label + ')' : ''} yet.</div></div>`));
   const pager = dailyPager(submitted.length);
   const pageStudents = STATE.dailyPageSize ? submitted.slice(STATE.dailyPage*STATE.dailyPageSize, (STATE.dailyPage+1)*STATE.dailyPageSize) : submitted;
   if(submitted.length) cards.appendChild(pager);
