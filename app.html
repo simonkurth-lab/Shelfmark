@@ -1754,7 +1754,7 @@ function screenTeacherDaily(){
   const students = filterRowsByClass(allRows, STATE.teacherClassFilter).sort((a,b)=>a.alias.localeCompare(b.alias));
   const dateOptions = dailyAnswerDates(allRows).map(d=>`<option value="${d}"${d===day?' selected':''}>${d}${d===todayStr()?' (today)':''}</option>`).join('');
   const subjectOptions = DAILY_SUBJECTS.map(x=>`<option value="${x.id}"${x.id===subject?' selected':''}>${x.emoji} ${x.label}${hasData(x.id)?' ✓':''}</option>`).join('');
-  const c = el(`<div><button class="backlink" id="back">&larr; Back to roster</button><div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;"><div><h2 style="margin-bottom:2px;">Daily answers</h2><p class="muted" style="margin:0;">Marks are suggested by AI using a 4-point rubric. Always review them.</p></div><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;"><span id="filterSlot"></span><select id="dateSel">${dateOptions}</select><select id="subjectSel">${subjectOptions}</select></div></div><div id="summary"></div></div><div id="cards"></div></div>`);
+  const c = el(`<div><button class="backlink" id="back">&larr; Back to roster</button><div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;"><div><h2 style="margin-bottom:2px;">Daily answers</h2><p class="muted" style="margin:0;">Scores, common problems and support groups for today's activity.</p></div><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;"><span id="filterSlot"></span><select id="dateSel" class="class-filter">${dateOptions}</select><select id="subjectSel" class="class-filter">${subjectOptions}</select></div></div><div id="summary"></div></div><div id="cards"></div></div>`);
   c.querySelector('#back').onclick = ()=>{ STATE.screen='teacher'; STATE.dailyMarkMsg=''; render(); };
   c.querySelector('#filterSlot').replaceWith(classFilterSelect(allRows));
   c.querySelector('#dateSel').onchange = e=>{ STATE.dailyDate = e.target.value; STATE.dailySubject = null; STATE.dailyMarkMsg=''; render(); };
@@ -1764,9 +1764,16 @@ function screenTeacherDaily(){
   const cached = STATE.dailyActivities[date];
   if(cached === undefined){
     const getText = url=>fetch(url).then(r=>{ if(!r.ok) throw new Error('none'); return r.text(); });
+    // If answers were saved under a key with no activity file (e.g. before the subject
+    // was set), borrow the activity and answer key from another subject that day.
+    const tryKeys = [date].concat(DAILY_SUBJECTS.map(x=>dailyKeyFor(day, x.id)).filter(k=>k!==date));
+    const firstFound = async path=>{
+      for(const k of tryKeys){ try { return await getText(path(k)); } catch(e){} }
+      return null;
+    };
     Promise.all([
-      getText('activities/' + date + '.html').then(parseActivity).catch(()=>null),
-      getText('activities/answers/' + date + '.json').then(t=>JSON.parse(t)).catch(()=>null),
+      firstFound(k=>'activities/' + k + '.html').then(h=>h ? parseActivity(h) : null),
+      firstFound(k=>'activities/answers/' + k + '.json').then(j=>j ? JSON.parse(j) : null),
     ]).then(([parsed, key])=>{ STATE.dailyActivities[date] = { act: parsed, key }; })
       .then(()=>{ if(STATE.screen==='teacherDaily') render(); });
     c.querySelector('#summary').appendChild(el(`<div class="loading">Loading...</div>`));
@@ -1784,7 +1791,7 @@ function screenTeacherDaily(){
   const scored = answerKey ? submitted.map(s=>scoreAnswers(s.daily[date], answerKey)).filter(r=>r.pct!=null) : [];
   const classAvgHtml = scored.length ? `<div class="stat"><div class="num">${Math.round(scored.reduce((a,r)=>a+r.pct,0)/scored.length)}%</div><div class="lbl">Class avg</div></div>` : '';
   const summary = c.querySelector('#summary');
-  summary.appendChild(el(`<div><div class="stat-row"><div class="stat"><div class="num">${submitted.length}</div><div class="lbl">Submitted</div></div><div class="stat"><div class="num">${missing.length}</div><div class="lbl">Not yet</div></div>${classAvgHtml}</div>${missing.length ? `<p class="muted" style="margin:0 0 10px;"><strong>Not submitted:</strong> ${missing.map(s=>escHtml(s.alias)+(s.realName?' ('+escHtml(s.realName)+')':'')).join(', ')}</p>` : ''}</div>`));
+  summary.appendChild(el(`<div><div class="stat-row"><div class="stat"><div class="num">${submitted.length}</div><div class="lbl">Submitted</div></div><div class="stat"><div class="num">${missing.length}</div><div class="lbl">Not yet</div></div>${classAvgHtml}</div>${missing.length ? `<details class="no-print" style="margin:0 0 10px;"><summary style="cursor:pointer;font-weight:700;color:var(--muted);">Show who hasn't submitted (${missing.length})</summary><div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;">${missing.map(s=>`<span style="background:#F6F1E4;border-radius:999px;padding:3px 10px;font-size:13px;">${escHtml(s.realName || s.alias)}${s.realName ? ` <span class="muted">(${escHtml(s.alias)})</span>` : ''}</span>`).join('')}</div></details>` : ''}</div>`));
   if(needMarks.length){
     const btn = el(`<button class="btn coral" style="margin-top:4px;">✨ Mark ${needMarks.length} student${needMarks.length===1?'':'s'} with AI</button>`);
     btn.onclick = ()=>{ btn.disabled = true; markAllDaily(submitted, date, act); };
@@ -1835,7 +1842,7 @@ function screenTeacherDaily(){
       if(STATE.dailySort==='score' && answerKey) return (results.get(x).pct||0)-(results.get(y).pct||0);
       return nameOf(x).localeCompare(nameOf(y));
     });
-    const sortSel = answerKey ? `<select class="sort-sel" style="width:auto;"><option value="name"${STATE.dailySort!=='score'?' selected':''}>Sort by name</option><option value="score"${STATE.dailySort==='score'?' selected':''}>Sort by score (lowest first)</option></select>` : '';
+    const sortSel = answerKey ? `<select class="sort-sel class-filter"><option value="name"${STATE.dailySort!=='score'?' selected':''}>Sort by name</option><option value="score"${STATE.dailySort==='score'?' selected':''}>Sort by score (lowest first)</option></select>` : '';
     const listCard = el(`<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px;"><h3 style="margin:0;">All students (${submitted.length})</h3><span class="no-print">${sortSel}</span></div><div class="dl-rows"></div></div>`);
     const ss = listCard.querySelector('.sort-sel');
     if(ss) ss.onchange = e=>{ STATE.dailySort = e.target.value; render(); };
@@ -1853,7 +1860,7 @@ function studentDailyRow(s, date, act, answerKey, result, name){
   const marks = (s.dailyMarks && s.dailyMarks[date]) || {};
   const openKey = s.alias + '|' + date;
   const dot = result && result.pct!=null ? (result.pct>=80 ? '🟢' : result.pct>=60 ? '🟡' : '🔴') : '';
-  const scoreHtml = result && result.total ? `<strong>${result.correct}/${result.total} · ${result.pct}%</strong>${result.bonusTotal ? ` <span class="muted" style="font-size:12px;">+ bonus ${result.bonusCorrect}/${result.bonusTotal}</span>` : ''}` : '<span class="muted">answers</span>';
+  const scoreHtml = result && result.total ? `<strong>${result.correct}/${result.total} · ${result.pct}%</strong>${result.bonusTotal ? ` <span class="muted" style="font-size:12px;">+ bonus ${result.bonusCorrect}/${result.bonusTotal}</span>` : ''}` : '<span class="muted" style="font-size:13px;">View answers</span>';
   const body = act.fields.filter(f=>String(ans[f.key]||'').trim() || (answerKey && answerKey[f.key] !== undefined && !f.key.startsWith('bonus'))).map(f=>{
     const m = marks[f.key];
     let markHtml = '';
@@ -1864,7 +1871,7 @@ function studentDailyRow(s, date, act, answerKey, result, name){
     return `<div style="margin:12px 0;padding-top:10px;border-top:1px solid var(--line);"><div class="muted" style="font-size:13px;">${escHtml(f.prompt || f.key)}</div>${answerHtml(f.key, ans[f.key], answerKey)}${markHtml}</div>`;
   }).join('');
   const hasMarks = act.fields.some(f=>marks[f.key]);
-  const row = el(`<details style="border-top:1px solid var(--line);"${STATE.dailyOpen[openKey]?' open':''}><summary style="cursor:pointer;padding:10px 4px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;list-style:revert;"><span><span>${dot}</span> <strong>${escHtml(name)}</strong>${s.realName ? ` <span class="muted" style="font-size:13px;">(${escHtml(s.alias)})</span>` : ''}</span><span>${scoreHtml} <span class="muted" style="font-size:12px;">${escHtml(new Date(ans._submittedAt).toLocaleString())}</span></span></summary><div class="dl-body">${body}<div class="no-print" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;"></div></div></details>`);
+  const row = el(`<details style="border-top:1px solid var(--line);"${STATE.dailyOpen[openKey]?' open':''}><summary style="cursor:pointer;padding:10px 4px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;list-style:revert;"><span><span>${dot}</span> <strong>${escHtml(name)}</strong>${s.realName ? ` <span class="muted" style="font-size:13px;">(${escHtml(s.alias)})</span>` : ''}</span><span>${scoreHtml} <span class="muted" style="font-size:12px;">${escHtml(new Date(ans._submittedAt).toLocaleTimeString([], {hour:'numeric', minute:'2-digit'}))}</span></span></summary><div class="dl-body">${body}<div class="no-print" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;"></div></div></details>`);
   row.addEventListener('toggle', ()=>{ STATE.dailyOpen[openKey] = row.open; });
   const actions = row.querySelector('.no-print');
   if(hasMarks){
