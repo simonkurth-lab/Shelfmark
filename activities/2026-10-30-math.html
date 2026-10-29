@@ -1,0 +1,191 @@
+<style>
+.activity{max-width:720px;margin:0 auto;padding:16px;font-size:17px;line-height:1.6;color:#201e1d}
+h2{font-size:1.55em;line-height:1.2;margin:0 0 6px}
+h3{font-size:1.25em;margin:32px 0 10px}
+p{margin:0 0 12px}
+.pep{background:#fdf3e3;border:2px solid #d8c7ad;border-radius:16px;padding:12px 16px;font-weight:600}
+.panel{background:#fdf3e3;border:2px solid #d8c7ad;border-radius:16px;padding:14px 16px;margin:0 0 16px}
+.chart-wrap{overflow-x:auto;border-radius:16px;border:2px solid #d8c7ad}
+table{border-collapse:collapse;width:100%;min-width:640px;font-size:14px;text-align:center}
+th,td{border:1px solid #d8c7ad;padding:8px 4px}
+th{background:#fdf3e3;font-weight:700}
+th.dec,td.dec{background:#e6ecd9}
+th.pt,td.pt{background:#fff;font-size:22px;font-weight:800;width:18px}
+td{background:#fff;font-size:20px;font-weight:700}
+.legend{font-size:15px;margin:8px 0 0}
+.steps{margin:8px 0 0;padding-left:22px}
+.steps li{margin-bottom:6px}
+dl{margin:0}
+dt{font-weight:800;margin-top:8px}
+dd{margin:0 0 4px}
+.q{background:#fff;border:2px solid #d8c7ad;border-radius:16px;padding:14px 16px;margin:0 0 14px}
+label{display:block;font-weight:700;margin-bottom:10px}
+.big{display:block;font-size:24px;font-weight:800;letter-spacing:.5px;margin:4px 0}
+input,select{font:inherit;width:100%;box-sizing:border-box;min-height:52px;border:2px solid #d8c7ad;border-radius:12px;padding:10px 14px;background:#fff;color:#201e1d}
+input:focus,select:focus{outline:3px solid #c67139;outline-offset:2px;border-color:#c67139}
+details{margin-top:10px}
+summary{cursor:pointer;font-weight:700;color:#8a4520;padding:8px 0;min-height:44px;display:flex;align-items:center}
+details p{background:#fdf3e3;border-radius:12px;padding:10px 12px;margin:4px 0 0;font-size:16px}
+.work{background:#fdf3e3;border-radius:12px;padding:10px 12px;font-family:inherit;font-weight:700}
+.challenge{border-color:#c67139;border-style:dashed}
+.tag{display:inline-block;background:#c67139;color:#fff;border-radius:999px;padding:2px 12px;font-size:14px;font-weight:800;margin-bottom:8px}
+</style>
+<div class="activity">
+<h2>Decimals: Compare, Order &amp; Round</h2>
+<p class="pep">Take it one question at a time. Use the hints whenever you need them. 💪</p>
+<h3>📖 Worked example</h3>
+<div class="panel">
+<p><strong>Which is greater: 0.6 or 0.58?</strong></p>
+<ol class="steps">
+<li>Line up the decimal points: 0.60 and 0.58.</li>
+<li>Compare the tenths first: 6 tenths is more than 5 tenths.</li>
+<li>So <strong>0.6 is greater</strong>. Adding a zero doesn't change a decimal's value!</li>
+</ol>
+</div>
+<div data-tier="support">
+<h3>✏️ Let’s build it step by step</h3>
+<div class="q"><label for="s1">1. What is the value of the 4 in 0.47?</label>
+<input id="s1" type="text" inputmode="decimal" data-response="s1" placeholder="Type a number">
+<details><summary>💡 Need a hint?</summary><p>The 4 is the first digit after the point. What place is that?</p></details>
+</div>
+<div class="q"><label for="s2">2. Which digit is in the tenths place of 5.38?</label>
+<input id="s2" type="text" inputmode="decimal" data-response="s2" placeholder="Type one digit">
+<details><summary>💡 Need a hint?</summary><p>Tenths is the first place after the decimal point.</p></details>
+</div>
+<div class="q"><label for="s3">3. Choose the sign that makes this true: <span class="big">0.5 ___ 0.3</span></label>
+<select id="s3" data-response="s3"><option value="">Choose...</option><option value="&lt;">&lt; (less than)</option><option value="&gt;">&gt; (greater than)</option><option value="=">= (equal to)</option></select>
+<details><summary>💡 Need a hint?</summary><p>Compare the tenths: 5 tenths or 3 tenths?</p></details>
+</div>
+<div class="q"><label for="s4">4. Choose the sign that makes this true: <span class="big">0.6 ___ 0.62</span></label>
+<select id="s4" data-response="s4"><option value="">Choose...</option><option value="&lt;">&lt; (less than)</option><option value="&gt;">&gt; (greater than)</option><option value="=">= (equal to)</option></select>
+<details><summary>💡 Need a hint?</summary><p>Write 0.6 as 0.60. Now compare 60 hundredths with 62 hundredths.</p></details>
+</div>
+<div class="q"><label for="s5">5. Round 4.3 to the nearest whole number.</label>
+<input id="s5" type="text" inputmode="decimal" data-response="s5" placeholder="Type a number">
+<details><summary>💡 Need a hint?</summary><p>Look at the tenths digit. Is it 5 or more?</p></details>
+</div>
+<div class="q"><label for="s6">6. Round 7.8 to the nearest whole number.</label>
+<input id="s6" type="text" inputmode="decimal" data-response="s6" placeholder="Type a number">
+<details><summary>💡 Need a hint?</summary><p>Look at the tenths digit (8). Is it 5 or more? If so, round up.</p></details>
+</div>
+</div>
+<div data-tier="core">
+<h3>✏️ Practice</h3>
+<div class="q"><label for="c1">1. Choose the sign that makes this true: <span class="big">0.45 ___ 0.405</span></label>
+<select id="c1" data-response="c1"><option value="">Choose...</option><option value="&lt;">&lt; (less than)</option><option value="&gt;">&gt; (greater than)</option><option value="=">= (equal to)</option></select>
+<details><summary>💡 Need a hint?</summary><p>Write both with 3 decimal places: 0.450 and 0.405.</p></details>
+</div>
+<div class="q"><label for="c2">2. Which number is the greatest: 0.38, 0.308 or 0.83?</label>
+<input id="c2" type="text" inputmode="decimal" data-response="c2" placeholder="Type a number">
+<details><summary>💡 Need a hint?</summary><p>Compare the tenths digits first.</p></details>
+</div>
+<div class="q"><label for="c3">3. Which list is in order from least to greatest?</label>
+<select id="c3" data-response="c3"><option value="">Choose...</option><option value="A">A) 0.3, 0.29, 0.31</option><option value="B">B) 0.29, 0.3, 0.31</option><option value="C">C) 0.31, 0.3, 0.29</option></select>
+<details><summary>💡 Need a hint?</summary><p>Write each number with 2 decimal places: 0.30, 0.29, 0.31.</p></details>
+</div>
+<div class="q"><label for="c4">4. Round 6.847 to the nearest tenth.</label>
+<input id="c4" type="text" inputmode="decimal" data-response="c4" placeholder="Type a number">
+<details><summary>💡 Need a hint?</summary><p>The tenths digit is 8. Look at the hundredths digit (4). Is it 5 or more?</p></details>
+</div>
+<div class="q"><label for="c5">5. Round 2.396 to the nearest hundredth.</label>
+<input id="c5" type="text" inputmode="decimal" data-response="c5" placeholder="Type a number">
+<details><summary>💡 Need a hint?</summary><p>The hundredths digit is 9. Look at the thousandths digit (6). Round up!</p></details>
+</div>
+<div class="q"><label for="c6">6. 🏃 Runner A finished in 12.34 seconds. Runner B finished in 12.4 seconds. What was the faster time (the smaller number)?</label>
+<input id="c6" type="text" inputmode="decimal" data-response="c6" placeholder="Type a number">
+<details><summary>💡 Need a hint?</summary><p>Write 12.4 as 12.40. Which is smaller, 12.34 or 12.40?</p></details>
+</div>
+</div>
+<div data-tier="extend">
+<h3>✏️ Stretch it</h3>
+<div class="q"><label for="e1">1. Choose the sign that makes this true: <span class="big">3.07 ___ 3.7</span></label>
+<select id="e1" data-response="e1"><option value="">Choose...</option><option value="&lt;">&lt; (less than)</option><option value="&gt;">&gt; (greater than)</option><option value="=">= (equal to)</option></select>
+<details><summary>💡 Need a hint?</summary><p>The whole numbers match. Compare tenths: 0 tenths or 7 tenths?</p></details>
+</div>
+<div class="q"><label for="e2">2. Which list is in order from least to greatest?</label>
+<select id="e2" data-response="e2"><option value="">Choose...</option><option value="A">A) 5.61, 5.6, 5.059</option><option value="B">B) 5.059, 5.6, 5.61</option><option value="C">C) 5.059, 5.61, 5.6</option></select>
+<details><summary>💡 Need a hint?</summary><p>Write each with 3 decimal places: 5.610, 5.600, 5.059.</p></details>
+</div>
+<div class="q"><label for="e3">3. Round 19.996 to the nearest hundredth.</label>
+<input id="e3" type="text" inputmode="decimal" data-response="e3" placeholder="Type a number">
+<details><summary>💡 Need a hint?</summary><p>The thousandths digit is 6, so round up. Watch what happens when 9s round up!</p></details>
+</div>
+<div class="q"><span class="tag">🕵️ Error detective</span><label for="e4">4. Maya says 0.35 is greater than 0.4 because 35 is greater than 4. Which number is really greater?</label>
+<input id="e4" type="text" inputmode="decimal" data-response="e4" placeholder="Type a number">
+<details><summary>💡 Need a hint?</summary><p>Write 0.4 as 0.40 and compare hundredths.</p></details>
+</div>
+<div class="q"><label for="e5">5. Which number rounds to 4.6 when rounded to the nearest tenth?</label>
+<select id="e5" data-response="e5"><option value="">Choose...</option><option value="4.54">4.54</option><option value="4.58">4.58</option><option value="4.65">4.65</option></select>
+<details><summary>💡 Need a hint?</summary><p>Round each one to the nearest tenth and see which gives 4.6.</p></details>
+</div>
+<div class="q"><label for="e6">6. What is 10 times 0.47?</label>
+<input id="e6" type="text" inputmode="decimal" data-response="e6" placeholder="Type a number">
+<details><summary>💡 Need a hint?</summary><p>Multiplying by 10 moves every digit one place to the left.</p></details>
+</div>
+<div class="q challenge"><span class="tag">For fast finishers</span><label for="bonus">Bonus: Here are four numbers: 0.6, 0.06, 0.66, 0.606. Which one is the <strong>second greatest</strong>?</label>
+<input id="bonus" type="text" inputmode="decimal" data-response="bonus" placeholder="Type a number">
+<details><summary>💡 Need a hint?</summary><p>Order them all with 3 decimal places first.</p></details>
+</div>
+</div>
+<div data-review="q1">
+<div class="q"><span class="tag">Quick review of yesterday</span><label for="r1">What is the value of the 6 in 5,264?</label>
+<input id="r1" type="text" inputmode="decimal" data-response="r1" placeholder="Type a number">
+<details><summary>💡 Need a hint?</summary><p>Which place is the 6 in?</p></details>
+</div>
+</div>
+<div data-review="q2">
+<div class="q"><span class="tag">Quick review of yesterday</span><label for="r2">What is the value of the 9 in 0.093?</label>
+<input id="r2" type="text" inputmode="decimal" data-response="r2" placeholder="Type a number">
+<details><summary>💡 Need a hint?</summary><p>Count the places after the decimal point.</p></details>
+</div>
+</div>
+<div data-review="q3">
+<div class="q"><span class="tag">Quick review of yesterday</span><label for="r3">What digit is in the thousandths place of 6.182?</label>
+<input id="r3" type="text" inputmode="decimal" data-response="r3" placeholder="Type one digit">
+<details><summary>💡 Need a hint?</summary><p>Tenths, hundredths, thousandths: count 3 places.</p></details>
+</div>
+</div>
+<div data-review="q4">
+<div class="q"><span class="tag">Quick review of yesterday</span><label for="r4">Fill in the missing number: 8 + 0.4 + ___ + 0.009 = 8.429</label>
+<input id="r4" type="text" inputmode="decimal" data-response="r4" placeholder="Type a number">
+<details><summary>💡 Need a hint?</summary><p>Which digit is missing, and what place is it in?</p></details>
+</div>
+</div>
+<div data-review="q5">
+<div class="q"><span class="tag">Quick review of yesterday</span><label for="r5">Choose the sign: <span class="big">0.9 ___ 0.85</span></label>
+<select id="r5" data-response="r5"><option value="">Choose...</option><option value="&lt;">&lt; (less than)</option><option value="&gt;">&gt; (greater than)</option><option value="=">= (equal to)</option></select>
+<details><summary>💡 Need a hint?</summary><p>Write 0.9 as 0.90.</p></details>
+</div>
+</div>
+<div data-review="q6">
+<div class="q"><span class="tag">Quick review of yesterday</span><label for="r6">Choose the sign: <span class="big">4.07 ___ 4.7</span></label>
+<select id="r6" data-response="r6"><option value="">Choose...</option><option value="&lt;">&lt; (less than)</option><option value="&gt;">&gt; (greater than)</option><option value="=">= (equal to)</option></select>
+<details><summary>💡 Need a hint?</summary><p>Compare the tenths digits.</p></details>
+</div>
+</div>
+<div data-review="q7">
+<div class="q"><span class="tag">Quick review of yesterday</span><label for="r7">A concert had 36,284 fans. Round that to the nearest thousand.</label>
+<input id="r7" type="text" inputmode="decimal" data-response="r7" placeholder="Type a number">
+<details><summary>💡 Need a hint?</summary><p>Look at the hundreds digit. Is it 5 or more?</p></details>
+</div>
+</div>
+<div data-review="q8">
+<div class="q"><span class="tag">Quick review of yesterday</span><label for="r8">Sam says the value of the 2 in 0.526 is 0.2. What is the correct value?</label>
+<input id="r8" type="text" inputmode="decimal" data-response="r8" placeholder="Type a number">
+<details><summary>💡 Need a hint?</summary><p>Which place is the 2 in?</p></details>
+</div>
+</div>
+<div data-review="q9">
+<div class="q"><span class="tag">Quick review of yesterday</span><label for="r9">What is 1/10 of 500?</label>
+<input id="r9" type="text" inputmode="decimal" data-response="r9" placeholder="Type a number">
+<details><summary>💡 Need a hint?</summary><p>1/10 of a number moves each digit one place to the right.</p></details>
+</div>
+</div>
+<div data-review="q10">
+<div class="q"><span class="tag">Quick review of yesterday</span><label for="r10">Round 5.281 to the nearest tenth.</label>
+<input id="r10" type="text" inputmode="decimal" data-response="r10" placeholder="Type a number">
+<details><summary>💡 Need a hint?</summary><p>Look at the hundredths digit next to the tenths digit.</p></details>
+</div>
+</div>
+<p class="pep">Awesome work today! Every question you tried made your brain stronger. 🌟</p>
+</div>

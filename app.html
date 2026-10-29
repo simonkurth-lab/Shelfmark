@@ -211,7 +211,7 @@ const STATE = {
   teacherManagingAlias: null, teacherManagingClass: null, teacherClassFilter: 'all', showFullBookList: false,
   searchResults: [], searchQuery: '', currentBook: null, bookMode: 'quiz',
   rangeSaveMsg: '',
-  dailyDate: null, dailyActivities: {}, dailyMarkMsg: '', dailySort: 'name', dailyOpen: {}, dailySubject: null, dailyTab: null, dailyToday: null,
+  dailyDate: null, dailyActivities: {}, dailyMarkMsg: '', dailySort: 'name', trendSubject: 'all', trendCount: 10, dailyOpen: {}, dailySubject: null, dailyTab: null, dailyToday: null,
   quiz: null, quizAnswers: {}, loading: false, loadingMsg: '',
   quizSetup: { count: 7, confidence: 'medium', challenge: 'onlevel', bilingual: 0 },
   speechRate: 0.95,
@@ -394,6 +394,7 @@ function buildScreen(){
   else if(STATE.screen==='teacherStudent') body = screenTeacherStudent();
   else if(STATE.screen==='teacherSummary') body = screenTeacherSummary();
   else if(STATE.screen==='teacherDaily') body = screenTeacherDaily();
+  else if(STATE.screen==='teacherTrends') body = screenTeacherTrends();
   else if(!STATE.classConfirmed) body = screenClassPick();
   else if(STATE.screen==='login') body = screenLogin();
   else if(STATE.screen==='nameCapture') body = screenNameCapture();
@@ -600,12 +601,45 @@ const DAILY_SUBJECTS = [
 ];
 function dailyKeyFor(day, subjectId){ return day + (subjectId ? '-' + subjectId : ''); }
 
+// ---- Progressive activities ----
+// An activity can contain <div data-tier="support|core|extend"> sections and
+// <div data-review="q5"> blocks (one per question of the previous activity).
+// Each student sees only their own tier, picked from how they did on the previous
+// activity in the same subject (under 60% -> support, 80%+ -> extend, otherwise
+// core), plus review blocks for up to 2 questions they missed last time.
+const TIER_SUPPORT_BELOW = 60, TIER_EXTEND_AT = 80, REVIEW_MAX = 2;
+
+async function planActivity(day, key, html){
+  const saved = STATE.student.daily && STATE.student.daily[key];
+  if(saved && saved._tier) return { tier: saved._tier, review: saved._review ? saved._review.split(',').filter(Boolean) : [] };
+  if(!/data-tier|data-review/.test(html)) return null;
+  const sub = key.slice(10); // '' or '-math'
+  const prev = Object.keys(STATE.student.daily || {})
+    .filter(k=>k.slice(0,10) < day && (k.slice(10) === sub || k.slice(10) === '') && STATE.student.daily[k]._submittedAt)
+    .sort().pop();
+  if(!prev) return { tier:'core', review:[] };
+  const loaded = await loadDailyActivity(prev.slice(0,10), prev);
+  const ans = STATE.student.daily[prev];
+  if(!loaded || !loaded.key) return { tier:'core', review:[] };
+  const r = scoreAnswers(ans, loaded.key);
+  if(r.pct == null) return { tier:'core', review:[] };
+  const missed = Object.keys(loaded.key).filter(q=>!q.startsWith('bonus') && isShownQ(ans, q) && !isCorrectAnswer(ans[q], loaded.key[q]));
+  return {
+    tier: r.pct < TIER_SUPPORT_BELOW ? 'support' : r.pct >= TIER_EXTEND_AT ? 'extend' : 'core',
+    review: missed.slice(0, REVIEW_MAX),
+  };
+}
+
 // Builds one activity into host and wires up its Save button.
-function mountActivity(host, key, html){
+function mountActivity(host, key, html, plan){
   host.innerHTML = '';
   // Shadow DOM keeps the activity's own styles from leaking into Piki.
   const root = host.attachShadow({mode:'open'});
   root.innerHTML = html.replace(/<script[\s\S]*?<\/script>/gi, '');
+  if(plan){
+    root.querySelectorAll('[data-tier]').forEach(n=>{ if(n.dataset.tier !== plan.tier) n.remove(); });
+    root.querySelectorAll('[data-review]').forEach(n=>{ if(!plan.review.includes(n.dataset.review)) n.remove(); });
+  }
   const saved = (STATE.student.daily && STATE.student.daily[key]) || {};
   const fields = root.querySelectorAll('[data-response]');
   fields.forEach(f=>{ const v = saved[f.dataset.response]; if(v != null) f.value = v; });
@@ -619,6 +653,7 @@ function mountActivity(host, key, html){
     const answers = {};
     fields.forEach(f=>{ answers[f.dataset.response] = f.value; });
     answers._submittedAt = new Date().toISOString();
+    if(plan){ answers._tier = plan.tier; answers._review = plan.review.join(','); answers._shown = Array.from(fields).map(f=>f.dataset.response).join(','); }
     STATE.student.daily = STATE.student.daily || {};
     STATE.student.daily[key] = answers;
     btn.disabled = true;
@@ -653,7 +688,9 @@ function screenDaily(){
         tabs.appendChild(t);
       });
     }
-    mountActivity(host, dailyKeyFor(day, cur.id), cur.html);
+    const k = dailyKeyFor(day, cur.id);
+    host.innerHTML = '<div class="loading">Loading...</div>';
+    planActivity(day, k, cur.html).then(plan=>{ if(document.body.contains(host)) mountActivity(host, k, cur.html, plan); });
   };
 
   // Which subjects exist today? No directory listing on a static site, so try each.
@@ -1721,8 +1758,10 @@ function isCorrectAnswer(given, accepted){
     return g.num !== undefined ? n.num === g.num : (n.txt !== undefined && n.txt === g.txt);
   });
 }
+// Progressive activities record which fields a student was shown in ans._shown.
+function isShownQ(ans, q){ return !ans._shown || ans._shown.split(',').includes(q); }
 function scoreAnswers(ans, key){
-  const ids = Object.keys(key);
+  const ids = Object.keys(key).filter(q=>isShownQ(ans, q));
   const main = ids.filter(k=>!k.startsWith('bonus'));
   const bonus = ids.filter(k=>k.startsWith('bonus'));
   const correct = main.filter(k=>isCorrectAnswer(ans[k], key[k])).length;
@@ -1742,6 +1781,23 @@ function answerHtml(key, given, answerKey){
   return `<p style="margin:4px 0;padding:6px 10px;border-radius:8px;${box}">${ok?'✅':'❌'} ${text ? '<strong>'+escHtml(text)+'</strong>' : '<em>No answer</em>'}${ok ? '' : ` &nbsp;<span style="font-size:13px;">Correct answer: <strong>${escHtml(right)}</strong></span>`}</p>`;
 }
 
+// Loads (once) an activity's question text and answer key into STATE.dailyActivities[date].
+// If answers were saved under a key with no activity file (e.g. before the subject
+// was set), borrows the activity and answer key from another subject that day.
+function loadDailyActivity(day, date){
+  if(STATE.dailyActivities[date] !== undefined) return Promise.resolve(STATE.dailyActivities[date]);
+  const getText = url=>fetch(url).then(r=>{ if(!r.ok) throw new Error('none'); return r.text(); });
+  const tryKeys = [date].concat(DAILY_SUBJECTS.map(x=>dailyKeyFor(day, x.id)).filter(k=>k!==date));
+  const firstFound = async path=>{
+    for(const k of tryKeys){ try { return await getText(path(k)); } catch(e){} }
+    return null;
+  };
+  return Promise.all([
+    firstFound(k=>'activities/' + k + '.html').then(h=>h ? parseActivity(h) : null),
+    firstFound(k=>'activities/answers/' + k + '.json').then(j=>j ? JSON.parse(j) : null),
+  ]).then(([parsed, key])=>(STATE.dailyActivities[date] = { act: parsed, key }));
+}
+
 function screenTeacherDaily(){
   if(!STATE.teacherAuthed) return screenTeacherLogin();
   const allRows = (STATE.teacherRows || []).filter(s=>DAILY_CLASSES.includes(s.classCode||'default'));
@@ -1754,34 +1810,23 @@ function screenTeacherDaily(){
   const students = filterRowsByClass(allRows, STATE.teacherClassFilter).sort((a,b)=>a.alias.localeCompare(b.alias));
   const dateOptions = dailyAnswerDates(allRows).map(d=>`<option value="${d}"${d===day?' selected':''}>${d}${d===todayStr()?' (today)':''}</option>`).join('');
   const subjectOptions = DAILY_SUBJECTS.map(x=>`<option value="${x.id}"${x.id===subject?' selected':''}>${x.emoji} ${x.label}${hasData(x.id)?' ✓':''}</option>`).join('');
-  const c = el(`<div><button class="backlink" id="back">&larr; Back to roster</button><div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;"><div><h2 style="margin-bottom:2px;">Daily answers</h2><p class="muted" style="margin:0;">Scores, common problems and support groups for today's activity.</p></div><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;"><span id="filterSlot"></span><select id="dateSel" class="class-filter">${dateOptions}</select><select id="subjectSel" class="class-filter">${subjectOptions}</select></div></div><div id="summary"></div></div><div id="cards"></div></div>`);
+  const c = el(`<div><button class="backlink" id="back">&larr; Back to roster</button><div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;"><div><h2 style="margin-bottom:2px;">Daily answers</h2><p class="muted" style="margin:0;">Scores, common problems and support groups for today's activity.</p></div><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;"><span id="filterSlot"></span><button class="btn secondary no-print" id="trendBtn" style="width:auto;margin:0;padding:9px 16px;">📈 Trends</button><select id="dateSel" class="class-filter">${dateOptions}</select><select id="subjectSel" class="class-filter">${subjectOptions}</select></div></div><div id="summary"></div></div><div id="cards"></div></div>`);
   c.querySelector('#back').onclick = ()=>{ STATE.screen='teacher'; STATE.dailyMarkMsg=''; render(); };
   c.querySelector('#filterSlot').replaceWith(classFilterSelect(allRows));
+  c.querySelector('#trendBtn').onclick = ()=>{ STATE.screen='teacherTrends'; render(); };
   c.querySelector('#dateSel').onchange = e=>{ STATE.dailyDate = e.target.value; STATE.dailySubject = null; STATE.dailyMarkMsg=''; render(); };
   c.querySelector('#subjectSel').onchange = e=>{ STATE.dailySubject = e.target.value; STATE.dailyMarkMsg=''; render(); };
 
   // The activity file gives us each question's text. Fetched once per date.
   const cached = STATE.dailyActivities[date];
   if(cached === undefined){
-    const getText = url=>fetch(url).then(r=>{ if(!r.ok) throw new Error('none'); return r.text(); });
-    // If answers were saved under a key with no activity file (e.g. before the subject
-    // was set), borrow the activity and answer key from another subject that day.
-    const tryKeys = [date].concat(DAILY_SUBJECTS.map(x=>dailyKeyFor(day, x.id)).filter(k=>k!==date));
-    const firstFound = async path=>{
-      for(const k of tryKeys){ try { return await getText(path(k)); } catch(e){} }
-      return null;
-    };
-    Promise.all([
-      firstFound(k=>'activities/' + k + '.html').then(h=>h ? parseActivity(h) : null),
-      firstFound(k=>'activities/answers/' + k + '.json').then(j=>j ? JSON.parse(j) : null),
-    ]).then(([parsed, key])=>{ STATE.dailyActivities[date] = { act: parsed, key }; })
-      .then(()=>{ if(STATE.screen==='teacherDaily') render(); });
+    loadDailyActivity(day, date).then(()=>{ if(STATE.screen==='teacherDaily') render(); });
     c.querySelector('#summary').appendChild(el(`<div class="loading">Loading...</div>`));
     return c;
   }
   // No file for that date: fall back to showing the raw answer keys.
   const keys = new Set();
-  students.forEach(s=>Object.keys((s.daily||{})[date]||{}).forEach(k=>{ if(k!=='_submittedAt') keys.add(k); }));
+  students.forEach(s=>Object.keys((s.daily||{})[date]||{}).forEach(k=>{ if(!k.startsWith('_')) keys.add(k); }));
   const answerKey = cached.key;
   const act = cached.act || { context:'', fields: Array.from(keys).map(k=>({ key:k, prompt:k, written:true })) };
 
@@ -1809,14 +1854,15 @@ function screenTeacherDaily(){
     const qs = Object.keys(answerKey).filter(k=>!k.startsWith('bonus'));
     const promptOf = k=>{ const f = act.fields.find(x=>x.key===k); return (f && f.prompt) || k; };
     const stats = qs.map(k=>{
-      const missed = submitted.filter(s=>!isCorrectAnswer(s.daily[date][k], answerKey[k]));
+      const pop = submitted.filter(s=>isShownQ(s.daily[date], k));
+      const missed = pop.filter(s=>!isCorrectAnswer(s.daily[date][k], answerKey[k]));
       const wrong = {};
       missed.forEach(s=>{ const g = String(s.daily[date][k]==null?'':s.daily[date][k]).trim() || '(blank)'; wrong[g] = (wrong[g]||0)+1; });
       const common = Object.entries(wrong).sort((x,y)=>y[1]-x[1]).slice(0,3);
-      return { k, missed, pct: Math.round((submitted.length-missed.length)/submitted.length*100), common };
+      return { k, missed, n: pop.length, pct: pop.length ? Math.round((pop.length-missed.length)/pop.length*100) : 100, common };
     });
-    const trouble = stats.filter(x=>x.missed.length && x.pct < 75).sort((x,y)=>x.pct-y.pct);
-    const troubleHtml = trouble.length ? trouble.map(x=>`<div style="margin:10px 0;padding-top:10px;border-top:1px solid var(--line);"><div style="display:flex;justify-content:space-between;gap:10px;"><strong>${escHtml(x.k.toUpperCase())}</strong><strong style="color:#b03a3a;">${x.pct}% correct</strong></div><div class="muted" style="font-size:13px;">${escHtml(promptOf(x.k))}</div><div style="font-size:13px;margin-top:4px;">Correct: <strong>${escHtml([].concat(answerKey[x.k])[0])}</strong> &middot; Common wrong answers: ${x.common.map(([g,n])=>`<strong>${escHtml(g)}</strong> (${n})`).join(', ')}</div><div style="font-size:13px;margin-top:2px;"><span class="muted">Missed by:</span> ${x.missed.map(s=>escHtml(nameOf(s))).join(', ')}</div></div>`).join('')
+    const trouble = stats.filter(x=>x.n >= 2 && x.missed.length && x.pct < 75).sort((x,y)=>x.pct-y.pct);
+    const troubleHtml = trouble.length ? trouble.map(x=>`<div style="margin:10px 0;padding-top:10px;border-top:1px solid var(--line);"><div style="display:flex;justify-content:space-between;gap:10px;"><strong>${escHtml(x.k.toUpperCase())}</strong><strong style="color:#b03a3a;">${x.pct}% correct <span class="muted" style="font-weight:600;font-size:12px;">(of ${x.n})</span></strong></div><div class="muted" style="font-size:13px;">${escHtml(promptOf(x.k))}</div><div style="font-size:13px;margin-top:4px;">Correct: <strong>${escHtml([].concat(answerKey[x.k])[0])}</strong> &middot; Common wrong answers: ${x.common.map(([g,n])=>`<strong>${escHtml(g)}</strong> (${n})`).join(', ')}</div><div style="font-size:13px;margin-top:2px;"><span class="muted">Missed by:</span> ${x.missed.map(s=>escHtml(nameOf(s))).join(', ')}</div></div>`).join('')
       : `<p class="muted" style="margin:6px 0 0;">No question was missed by more than a quarter of the class. 🎉</p>`;
     const groupDefs = [
       { label:'🔴 Needs support', note:'Under 60% — reteach in a small group', test:r=>r.pct<60, bg:'#fbdcdc' },
@@ -1828,7 +1874,7 @@ function screenTeacherDaily(){
         .sort((x,y)=>results.get(x).pct-results.get(y).pct);
       const list = members.length ? members.map(s=>{
         const r = results.get(s);
-        const miss = qs.filter(k=>!isCorrectAnswer(s.daily[date][k], answerKey[k])).map(k=>k.toUpperCase());
+        const miss = qs.filter(k=>isShownQ(s.daily[date], k) && !isCorrectAnswer(s.daily[date][k], answerKey[k])).map(k=>k.toUpperCase());
         return `<li style="margin:3px 0;"><strong>${escHtml(nameOf(s))}</strong> ${r.pct}%${miss.length ? ` <span class="muted" style="font-size:12px;">missed ${miss.join(', ')}</span>` : ''}</li>`;
       }).join('') : '<li class="muted" style="list-style:none;">No one</li>';
       return `<div style="flex:1 1 220px;background:${g.bg};border-radius:10px;padding:10px 14px;"><strong>${g.label}</strong> <span class="muted">(${members.length})</span><div class="muted" style="font-size:12px;margin-bottom:4px;">${g.note}</div><ul style="margin:0;padding-left:18px;">${list}</ul></div>`;
@@ -1861,7 +1907,7 @@ function studentDailyRow(s, date, act, answerKey, result, name){
   const openKey = s.alias + '|' + date;
   const dot = result && result.pct!=null ? (result.pct>=80 ? '🟢' : result.pct>=60 ? '🟡' : '🔴') : '';
   const scoreHtml = result && result.total ? `<strong>${result.correct}/${result.total} · ${result.pct}%</strong>${result.bonusTotal ? ` <span class="muted" style="font-size:12px;">+ bonus ${result.bonusCorrect}/${result.bonusTotal}</span>` : ''}` : '<span class="muted" style="font-size:13px;">View answers</span>';
-  const body = act.fields.filter(f=>String(ans[f.key]||'').trim() || (answerKey && answerKey[f.key] !== undefined && !f.key.startsWith('bonus'))).map(f=>{
+  const body = act.fields.filter(f=>isShownQ(ans, f.key) && (String(ans[f.key]||'').trim() || (answerKey && answerKey[f.key] !== undefined && !f.key.startsWith('bonus')))).map(f=>{
     const m = marks[f.key];
     let markHtml = '';
     if(f.written && m){
@@ -1871,7 +1917,7 @@ function studentDailyRow(s, date, act, answerKey, result, name){
     return `<div style="margin:12px 0;padding-top:10px;border-top:1px solid var(--line);"><div class="muted" style="font-size:13px;">${escHtml(f.prompt || f.key)}</div>${answerHtml(f.key, ans[f.key], answerKey)}${markHtml}</div>`;
   }).join('');
   const hasMarks = act.fields.some(f=>marks[f.key]);
-  const row = el(`<details style="border-top:1px solid var(--line);"${STATE.dailyOpen[openKey]?' open':''}><summary style="cursor:pointer;padding:10px 4px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;list-style:revert;"><span><span>${dot}</span> <strong>${escHtml(name)}</strong>${s.realName ? ` <span class="muted" style="font-size:13px;">(${escHtml(s.alias)})</span>` : ''}</span><span>${scoreHtml} <span class="muted" style="font-size:12px;">${escHtml(new Date(ans._submittedAt).toLocaleTimeString([], {hour:'numeric', minute:'2-digit'}))}</span></span></summary><div class="dl-body">${body}<div class="no-print" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;"></div></div></details>`);
+  const row = el(`<details style="border-top:1px solid var(--line);"${STATE.dailyOpen[openKey]?' open':''}><summary style="cursor:pointer;padding:10px 4px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;list-style:revert;"><span><span>${dot}</span> <strong>${escHtml(name)}</strong>${s.realName ? ` <span class="muted" style="font-size:13px;">(${escHtml(s.alias)})</span>` : ''}${ans._tier ? ` <span style="background:#F6F1E4;border-radius:999px;padding:2px 10px;font-size:12px;margin-left:6px;">${({support:'🌱 Back to basics',core:'🌿 On track',extend:'🌳 Stretch'})[ans._tier]||''}${ans._review ? ' · review ' + escHtml(ans._review.toUpperCase().split(',').join(', ')) : ''}</span>` : ''}</span><span>${scoreHtml} <span class="muted" style="font-size:12px;">${escHtml(new Date(ans._submittedAt).toLocaleTimeString([], {hour:'numeric', minute:'2-digit'}))}</span></span></summary><div class="dl-body">${body}<div class="no-print" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;"></div></div></details>`);
   row.addEventListener('toggle', ()=>{ STATE.dailyOpen[openKey] = row.open; });
   const actions = row.querySelector('.no-print');
   if(hasMarks){
@@ -1900,6 +1946,94 @@ function studentDailyRow(s, date, act, answerKey, result, name){
     actions.appendChild(mark);
   }
   return row;
+}
+
+// ---- Trends: how the class and each student do across activities ----
+function screenTeacherTrends(){
+  if(!STATE.teacherAuthed) return screenTeacherLogin();
+  const allRows = (STATE.teacherRows || []).filter(s=>DAILY_CLASSES.includes(s.classCode||'default'));
+  const students = filterRowsByClass(allRows, STATE.teacherClassFilter);
+  const nameOf = s=>s.realName || s.alias;
+  const subjOf = k=>k.slice(11);
+  const subjSel = ['all'].concat(DAILY_SUBJECTS.map(x=>x.id)).map(id=>{
+    const lab = id==='all' ? 'All subjects' : (DAILY_SUBJECTS.find(x=>x.id===id).emoji + ' ' + DAILY_SUBJECTS.find(x=>x.id===id).label);
+    return `<option value="${id}"${STATE.trendSubject===id?' selected':''}>${lab}</option>`;
+  }).join('');
+  const countSel = [5,10,20].map(n=>`<option value="${n}"${STATE.trendCount===n?' selected':''}>Last ${n}</option>`).join('');
+  const c = el(`<div><button class="backlink" id="back">&larr; Back to daily answers</button><div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;"><div><h2 style="margin-bottom:2px;">Trends</h2><p class="muted" style="margin:0;">Scores across activities that have an answer key.</p></div><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;"><span id="filterSlot"></span><select id="subjSel" class="class-filter">${subjSel}</select><select id="cntSel" class="class-filter">${countSel}</select></div></div></div><div id="trendBody"><div class="card"><div class="loading">Loading...</div></div></div></div>`);
+  c.querySelector('#back').onclick = ()=>{ STATE.screen='teacherDaily'; render(); };
+  c.querySelector('#filterSlot').replaceWith(classFilterSelect(allRows));
+  c.querySelector('#subjSel').onchange = e=>{ STATE.trendSubject = e.target.value; render(); };
+  c.querySelector('#cntSel').onchange = e=>{ STATE.trendCount = Number(e.target.value); render(); };
+
+  // Every day+subject any student has submitted, newest first.
+  const keySet = new Set();
+  allRows.forEach(s=>Object.keys(s.daily||{}).forEach(k=>{ if(s.daily[k] && s.daily[k]._submittedAt) keySet.add(k); }));
+  let keys = Array.from(keySet).filter(k=>STATE.trendSubject==='all' || subjOf(k).replace(/^-/,'')===STATE.trendSubject)
+    .filter(k=>STATE.trendSubject!=='' || subjOf(k)==='').sort().reverse();
+  if(STATE.trendSubject==='') keys = keys.filter(k=>k.length===10);
+  Promise.all(keys.map(k=>loadDailyActivity(k.slice(0,10), k))).then(()=>{
+    if(STATE.screen!=='teacherTrends') return;
+    const host = c.querySelector('#trendBody');
+    host.innerHTML = '';
+    // Keep only activities with an answer key, newest N, shown oldest -> newest.
+    const acts = keys.filter(k=>STATE.dailyActivities[k] && STATE.dailyActivities[k].key).slice(0, STATE.trendCount).reverse();
+    if(!acts.length){ host.appendChild(el(`<div class="card"><div class="empty">No scored activities yet. Trends appear once an activity has an answer key.</div></div>`)); return; }
+    const labelOf = k=>{
+      const sub = DAILY_SUBJECTS.find(x=>x.id===subjOf(k).replace(/^-/,'')) || DAILY_SUBJECTS[0];
+      return { date: k.slice(5,10).replace('-','/'), emoji: sub.emoji, label: sub.label };
+    };
+    const score = (s,k)=>{
+      const a = s.daily && s.daily[k];
+      if(!a || !a._submittedAt) return null;
+      return scoreAnswers(a, STATE.dailyActivities[k].key).pct;
+    };
+    const avg = arr=>arr.length ? Math.round(arr.reduce((x,y)=>x+y,0)/arr.length) : null;
+    const col = p=>p==null ? '' : p>=80 ? 'background:#dcf2dc;' : p>=60 ? 'background:#fbf1d3;' : 'background:#fbdcdc;';
+
+    // Class average per activity
+    const bars = acts.map(k=>{
+      const ps = students.map(s=>score(s,k)).filter(p=>p!=null);
+      const a = avg(ps), L = labelOf(k);
+      return `<div style="display:flex;align-items:center;gap:10px;margin:6px 0;"><div style="width:96px;font-size:13px;">${L.emoji} ${L.date}</div><div style="flex:1;background:#F6F1E4;border-radius:8px;height:22px;overflow:hidden;"><div style="width:${a||0}%;height:100%;${col(a)}border-right:2px solid #b9b19c;"></div></div><div style="width:92px;font-size:13px;text-align:right;"><strong>${a==null?'—':a+'%'}</strong> <span class="muted">(${ps.length})</span></div></div>`;
+    }).join('');
+    host.appendChild(el(`<div class="card"><h3 style="margin:0 0 2px;">Class average</h3><p class="muted" style="margin:0 0 8px;">Number in brackets is how many students submitted.</p>${bars}</div>`));
+
+    // Questions missed most often across these activities
+    const qStats = [];
+    acts.forEach(k=>{
+      const { act, key } = STATE.dailyActivities[k];
+      const subs = students.filter(s=>s.daily && s.daily[k] && s.daily[k]._submittedAt);
+      if(subs.length < 2) return;
+      Object.keys(key).filter(q=>!q.startsWith('bonus')).forEach(q=>{
+        const pop = subs.filter(s=>isShownQ(s.daily[k], q));
+        if(pop.length < 2) return;
+        const missed = pop.filter(s=>!isCorrectAnswer(s.daily[k][q], key[q]));
+        const f = act && act.fields.find(x=>x.key===q);
+        qStats.push({ k, q, pct: Math.round((pop.length-missed.length)/pop.length*100), prompt: (f&&f.prompt)||q, n: pop.length, missed: missed.length });
+      });
+    });
+    const weak = qStats.filter(x=>x.pct<70).sort((x,y)=>x.pct-y.pct).slice(0,8);
+    host.appendChild(el(`<div class="card"><h3 style="margin:0 0 2px;">Skills to revisit</h3><p class="muted" style="margin:0 0 6px;">Questions the most students got wrong across these activities.</p>${weak.length ? weak.map(x=>{ const L = labelOf(x.k); return `<div style="display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid var(--line);"><span style="font-size:14px;"><span class="muted">${L.emoji} ${L.date} ${escHtml(x.q.toUpperCase())}</span><br>${escHtml(x.prompt)}</span><strong style="color:#b03a3a;white-space:nowrap;">${x.pct}% correct</strong></div>`; }).join('') : '<p class="muted">Nothing stands out: every question was answered correctly by 70%+ of the class.</p>'}</div>`));
+
+    // Per-student grid
+    const rows = students.map(s=>{
+      const sc = acts.map(k=>score(s,k));
+      const done = sc.filter(p=>p!=null);
+      const half = Math.floor(done.length/2);
+      const trend = done.length>=4 ? (avg(done.slice(half))-avg(done.slice(0,half))) : null;
+      return { s, sc, a: avg(done), n: done.length, trend };
+    }).filter(r=>r.n>0);
+    const worst = rows.slice().sort((x,y)=>x.a-y.a);
+    rows.sort((x,y)=>nameOf(x.s).localeCompare(nameOf(y.s)));
+    const arrow = tr=>tr==null ? '' : tr>=8 ? '<span style="color:#2f7d2f;">▲ improving</span>' : tr<=-8 ? '<span style="color:#b03a3a;">▼ slipping</span>' : '<span class="muted">► steady</span>';
+    const head = acts.map(k=>{ const L = labelOf(k); return `<th style="text-align:center;white-space:nowrap;">${L.emoji}<br>${L.date}</th>`; }).join('');
+    const body = rows.map(r=>`<tr><td style="white-space:nowrap;"><strong>${escHtml(nameOf(r.s))}</strong>${r.s.realName ? ` <span class="muted" style="font-size:12px;">(${escHtml(r.s.alias)})</span>` : ''}</td>${r.sc.map(p=>`<td style="text-align:center;${col(p)}">${p==null?'<span class="muted">–</span>':p+'%'}</td>`).join('')}<td style="text-align:center;${col(r.a)}"><strong>${r.a}%</strong></td><td style="white-space:nowrap;font-size:13px;">${arrow(r.trend)}</td></tr>`).join('');
+    const support = worst.filter(r=>r.a<70).slice(0,10);
+    host.appendChild(el(`<div class="card"><h3 style="margin:0 0 2px;">Needing the most support</h3><p class="muted" style="margin:0 0 6px;">Lowest averages over these activities (under 70%).</p>${support.length ? `<div style="display:flex;flex-wrap:wrap;gap:6px;">${support.map(r=>`<span style="${col(r.a)}border-radius:999px;padding:4px 12px;font-size:13px;"><strong>${escHtml(nameOf(r.s))}</strong> ${r.a}% ${r.trend!=null&&r.trend<=-8?'▼':''}</span>`).join('')}</div>` : '<p class="muted">No one is averaging under 70%. 🎉</p>'}</div>`));
+    host.appendChild(el(`<div class="card"><h3 style="margin:0 0 8px;">Every student</h3><div style="overflow-x:auto;"><table class="roster-table"><thead><tr><th>Student</th>${head}<th style="text-align:center;">Avg</th><th>Trend</th></tr></thead><tbody>${body}</tbody></table></div><p class="muted" style="font-size:12px;margin:8px 0 0;">– means not submitted. Trend compares the earlier and later half of the activities shown (needs 4+).</p></div>`));
+  });
+  return c;
 }
 
 async function saveReadingRange(alias, classCode, lexileMin, lexileMax){
