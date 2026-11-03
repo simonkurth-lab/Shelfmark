@@ -666,6 +666,87 @@ function mountActivity(host, key, html, plan){
   // host has a shadow root, so light-DOM children of it never render;
   // the button and message go right after it instead.
   host.after(btn, msg);
+  loadFeedbackData(key).then(fb=>attachFeedback(root, fb));
+}
+
+// ---- Instant feedback ----
+// Each question with an answer key gets a Check button. Right = green. Wrong = red
+// with a short explanation (activities/answers/KEY.help.json, optional) and then
+// practice questions of the same type: {"q1": {"why": "...", "retry": [{"q": "...", "a": "70"}]}}.
+// Without a help file a wrong answer just says to try again; the answer is never shown.
+async function loadFeedbackData(key){
+  const get = async p=>{ try { const r = await fetch(p); return r.ok ? await r.json() : null; } catch(e){ return null; } };
+  const [answers, help] = await Promise.all([get('activities/answers/' + key + '.json'), get('activities/answers/' + key + '.help.json')]);
+  return { answers, help: help || {} };
+}
+function feedbackBox(ok, html){
+  const d = document.createElement('div');
+  d.style.cssText = 'margin-top:10px;padding:10px 14px;border-radius:12px;font-size:16px;line-height:1.5;' +
+    (ok ? 'background:#dcf2dc;border:2px solid #4a9d4a;' : 'background:#fbdcdc;border:2px solid #cc4b4b;');
+  d.innerHTML = html;
+  return d;
+}
+function attachFeedback(root, fb){
+  if(!fb.answers) return;
+  const btnStyle = 'font:inherit;font-weight:700;margin-top:10px;padding:10px 18px;min-height:44px;border:2px solid #c67139;border-radius:12px;background:#fff;color:#8a4520;cursor:pointer;';
+  const inputStyle = 'font:inherit;width:100%;box-sizing:border-box;min-height:52px;border:2px solid #d8c7ad;border-radius:12px;padding:10px 14px;background:#fff;color:#201e1d;margin-top:8px;';
+  root.querySelectorAll('[data-response]').forEach(f=>{
+    const q = f.dataset.response;
+    if(fb.answers[q] === undefined) return;
+    const wrap = f.closest('.q') || f.parentElement;
+    const help = fb.help[q] || {};
+    const retries = help.retry || [];
+    let tried = 0;
+    const out = document.createElement('div');
+    const check = document.createElement('button');
+    check.type = 'button'; check.style.cssText = btnStyle; check.textContent = 'Check ✓';
+    wrap.append(check, out);
+
+    const showRetry = ()=>{
+      const r = retries[tried++ % retries.length];
+      const box = document.createElement('div');
+      box.style.cssText = 'margin-top:10px;padding:10px 14px;border-radius:12px;background:#fdf3e3;border:2px dashed #c67139;';
+      const inp = document.createElement('input');
+      inp.type = 'text'; inp.setAttribute('inputmode', 'decimal'); inp.placeholder = 'Type your answer'; inp.style.cssText = inputStyle;
+      const go = document.createElement('button');
+      go.type = 'button'; go.style.cssText = btnStyle; go.textContent = 'Check ✓';
+      const res = document.createElement('div');
+      box.innerHTML = '<strong>🔁 Try another one:</strong><br>' + escHtml(r.q);
+      box.append(inp, go, res);
+      const run = ()=>{
+        if(!inp.value.trim()) return;
+        const ok = isCorrectAnswer(inp.value, r.a);
+        res.innerHTML = '';
+        if(ok){
+          res.appendChild(feedbackBox(true, '✅ Yes! Nice work.'));
+          go.remove(); inp.disabled = true;
+          if(tried < retries.length){
+            const more = document.createElement('button');
+            more.type = 'button'; more.style.cssText = btnStyle; more.textContent = 'One more →';
+            more.onclick = ()=>{ box.remove(); out.appendChild(showRetry()); };
+            res.appendChild(more);
+          }
+        } else res.appendChild(feedbackBox(false, '❌ Not quite. Look at the explanation again and try once more.'));
+      };
+      go.onclick = run;
+      inp.addEventListener('keydown', e=>{ if(e.key === 'Enter') run(); });
+      return box;
+    };
+
+    const run = ()=>{
+      out.innerHTML = '';
+      const given = String(f.value == null ? '' : f.value).trim();
+      if(!given){ out.appendChild(feedbackBox(false, 'Type or choose an answer first.')); return; }
+      if(isCorrectAnswer(given, fb.answers[q])){
+        out.appendChild(feedbackBox(true, '✅ Correct! Great job.'));
+        return;
+      }
+      out.appendChild(feedbackBox(false, '❌ Not quite.' + (help.why ? '<br><strong>How to do it:</strong> ' + help.why : ' Check the hint and try again.')));
+      if(retries.length){ tried = 0; out.appendChild(showRetry()); }
+    };
+    check.onclick = run;
+    if(f.tagName === 'INPUT') f.addEventListener('keydown', e=>{ if(e.key === 'Enter'){ e.preventDefault(); run(); } });
+  });
 }
 
 function screenDaily(){

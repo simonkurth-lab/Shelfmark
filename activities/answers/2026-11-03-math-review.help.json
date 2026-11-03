@@ -1,0 +1,278 @@
+{
+ "a1": {
+  "why": "Find the 7 in 3,724. It is in the <strong>hundreds</strong> place. 7 × 100 = <strong>700</strong>.",
+  "retry": [
+   {
+    "q": "What is the value of the 6 in 5,613?",
+    "a": "600"
+   },
+   {
+    "q": "What is the value of the 4 in 8,241?",
+    "a": "200"
+   }
+  ]
+ },
+ "a2": {
+  "why": "The 4 in 0.143 is the 2nd digit after the point: <strong>hundredths</strong>. 4 × 0.01 = <strong>0.04</strong>.",
+  "retry": [
+   {
+    "q": "What is the value of the 5 in 0.258?",
+    "a": "0.05"
+   },
+   {
+    "q": "What is the value of the 3 in 0.431?",
+    "a": "0.03"
+   }
+  ]
+ },
+ "a3": {
+  "why": "Tenths is the 1st place after the point. In 9.315 the tenths digit is <strong>3</strong>.",
+  "retry": [
+   {
+    "q": "What digit is in the tenths place of 5.472?",
+    "a": "4"
+   },
+   {
+    "q": "What digit is in the tenths place of 2.908?",
+    "a": "9"
+   }
+  ]
+ },
+ "a4": {
+  "why": "Hundredths is the 2nd place after the point. In 6.184 it is <strong>8</strong>.",
+  "retry": [
+   {
+    "q": "What digit is in the hundredths place of 3.265?",
+    "a": "6"
+   },
+   {
+    "q": "What digit is in the hundredths place of 7.041?",
+    "a": "4"
+   }
+  ]
+ },
+ "a5": {
+  "why": "The 9 in 0.392 is in the hundredths place. 9 × 0.01 = <strong>0.09</strong>.",
+  "retry": [
+   {
+    "q": "What is the value of the 8 in 0.186?",
+    "a": "0.08"
+   },
+   {
+    "q": "What is the value of the 2 in 0.724?",
+    "a": "0.02"
+   }
+  ]
+ },
+ "a6": {
+  "why": "The 6 in 0.462 is in the <strong>hundredths</strong> place, not tenths. 6 × 0.01 = <strong>0.06</strong>. Jordan used the tenths value.",
+  "retry": [
+   {
+    "q": "What is the value of the 3 in 0.835?",
+    "a": "0.03"
+   },
+   {
+    "q": "What is the value of the 9 in 0.092?",
+    "a": "0.09"
+   }
+  ]
+ },
+ "b7": {
+  "why": "9.153 = 9 + 0.1 + 0.05 + 0.003. The missing digit is 5 in the hundredths place: <strong>0.05</strong>.",
+  "retry": [
+   {
+    "q": "4 + 0.2 + ___ + 0.006 = 4.286",
+    "a": "0.08"
+   },
+   {
+    "q": "7 + 0.3 + ___ + 0.004 = 7.374",
+    "a": "0.07"
+   }
+  ]
+ },
+ "b8": {
+  "why": "2.874 = 2 + 0.8 + 0.07 + 0.004. The missing part is 8 tenths: <strong>0.8</strong>.",
+  "retry": [
+   {
+    "q": "5 + ___ + 0.02 + 0.009 = 5.629",
+    "a": "0.6"
+   },
+   {
+    "q": "1 + ___ + 0.05 + 0.003 = 1.753",
+    "a": "0.7"
+   }
+  ]
+ },
+ "b9": {
+  "why": "4.629 = 4 + 0.6 + 0.02 + 0.009. The 9 is in the thousandths place: <strong>0.009</strong>.",
+  "retry": [
+   {
+    "q": "3 + 0.5 + 0.01 + ___ = 3.518",
+    "a": "0.008"
+   },
+   {
+    "q": "8 + 0.4 + 0.07 + ___ = 8.472",
+    "a": "0.002"
+   }
+  ]
+ },
+ "c11": {
+  "why": "1/10 of 800 means 800 ÷ 10 = <strong>80</strong>. Each digit moves one place to the right.",
+  "retry": [
+   {
+    "q": "What is 1/10 of 600?",
+    "a": "60"
+   },
+   {
+    "q": "What is 1/10 of 300?",
+    "a": "30"
+   }
+  ]
+ },
+ "c12": {
+  "why": "2,500 ÷ 10 = <strong>250</strong>. Every digit moves one place to the right.",
+  "retry": [
+   {
+    "q": "What is 1/10 of 4,500?",
+    "a": "450"
+   },
+   {
+    "q": "What is 1/10 of 1,200?",
+    "a": "120"
+   }
+  ]
+ },
+ "c13": {
+  "why": "70 ÷ 10 = <strong>7</strong>. 7 tens becomes 7 ones.",
+  "retry": [
+   {
+    "q": "What is 1/10 of 90?",
+    "a": "9"
+   },
+   {
+    "q": "What is 1/10 of 40?",
+    "a": "4"
+   }
+  ]
+ },
+ "c14": {
+  "why": "10 times a number moves each digit one place to the <strong>left</strong>. 10 × 50 = <strong>500</strong>.",
+  "retry": [
+   {
+    "q": "What is 10 × 30?",
+    "a": "300"
+   },
+   {
+    "q": "What is 10 × 70?",
+    "a": "700"
+   }
+  ]
+ },
+ "c14b": {
+  "why": "1/10 of 50 means 50 ÷ 10 = <strong>5</strong>. It should be smaller than 50.",
+  "retry": [
+   {
+    "q": "What is 1/10 of 80?",
+    "a": "8"
+   },
+   {
+    "q": "What is 1/10 of 20?",
+    "a": "2"
+   }
+  ]
+ },
+ "c15": {
+  "why": "Sam multiplied by 10 instead of dividing. 1/10 of a number is <strong>smaller</strong>, and 5,000 is bigger than 500. So Sam is not correct."
+ },
+ "c15b": {
+  "why": "1/10 of 500 means 500 ÷ 10 = <strong>50</strong>.",
+  "retry": [
+   {
+    "q": "What is 1/10 of 700?",
+    "a": "70"
+   },
+   {
+    "q": "What is 1/10 of 200?",
+    "a": "20"
+   }
+  ]
+ },
+ "d18": {
+  "why": "Underline the 4 (thousands place). Next door is 3. 4 or less means <strong>stay</strong>, and the rest become 0: <strong>64,000</strong>.",
+  "retry": [
+   {
+    "q": "Round 72,481 to the nearest thousand.",
+    "a": "72000"
+   },
+   {
+    "q": "Round 35,290 to the nearest thousand.",
+    "a": "35000"
+   }
+  ]
+ },
+ "d19": {
+  "why": "Underline the 8 (thousands place). Next door is 5. 5 or more means <strong>round up</strong>: 8 becomes 9, so <strong>29,000</strong>.",
+  "retry": [
+   {
+    "q": "Round 46,508 to the nearest thousand.",
+    "a": "47000"
+   },
+   {
+    "q": "Round 83,650 to the nearest thousand.",
+    "a": "84000"
+   }
+  ]
+ },
+ "d20": {
+  "why": "Underline the 2 (tenths place). Next door is 3, so it <strong>stays</strong>. Digits after it drop off: <strong>4.2</strong>.",
+  "retry": [
+   {
+    "q": "Round 6.341 to the nearest tenth.",
+    "a": "6.3"
+   },
+   {
+    "q": "Round 2.714 to the nearest tenth.",
+    "a": "2.7"
+   }
+  ]
+ },
+ "d21": {
+  "why": "Underline the 8 (tenths place). Next door is 5, so the 8 goes <strong>up</strong> to 9. Digits after drop off: <strong>9.9</strong>.",
+  "retry": [
+   {
+    "q": "Round 3.652 to the nearest tenth.",
+    "a": "3.7"
+   },
+   {
+    "q": "Round 5.481 to the nearest tenth.",
+    "a": "5.5"
+   }
+  ]
+ },
+ "d22": {
+  "why": "Underline the 3 (thousands place). Next door is 8, so <strong>round up</strong> to 4 and the rest become 0: <strong>24,000</strong>.",
+  "retry": [
+   {
+    "q": "A game had 41,760 fans. Round to the nearest thousand.",
+    "a": "42000"
+   },
+   {
+    "q": "A fair had 18,240 visitors. Round to the nearest thousand.",
+    "a": "18000"
+   }
+  ]
+ },
+ "d23": {
+  "why": "Underline the 3 (tenths place). Next door is 5, so round up to 4. Nearest tenth keeps only <strong>one</strong> decimal digit: <strong>8.4</strong>, not 8.350.",
+  "retry": [
+   {
+    "q": "Round 6.253 to the nearest tenth.",
+    "a": "6.3"
+   },
+   {
+    "q": "Round 4.749 to the nearest tenth.",
+    "a": "4.7"
+   }
+  ]
+ }
+}
