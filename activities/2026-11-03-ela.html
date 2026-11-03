@@ -12,59 +12,77 @@ textarea,select,input{font:inherit;width:100%;box-sizing:border-box;border:2px s
 textarea{min-height:96px;resize:vertical}
 textarea:focus,select:focus,input:focus{outline:2px solid #c67139;outline-offset:2px;border-color:#c67139}
 .tip{font-size:15px;color:#5a524b}
+.vocab{background:#fdf3e3;border:2px solid #d8c7ad;border-radius:16px;padding:12px 16px;margin:0 0 16px}
+.vocab dl{margin:0}.vocab dt{font-weight:800;margin-top:8px}.vocab dd{margin:0 0 4px}
+.pep{background:#fdf3e3;border:2px solid #d8c7ad;border-radius:16px;padding:10px 16px;font-weight:600}
+.vw{font-weight:800;color:#8a4520}
 </style>
-<div class="activity">
+<div class="activity" data-readaloud>
 <h2>Esperanza Rising: Chapter 13 Quiz</h2>
 <p class="meta">November 3, 2026 · Los Duraznos · About 10 minutes</p>
+<p class="pep">Tap 🔊 Read to me on any question to hear it. Take your time! 💪</p>
+
+<h3>🔤 Words to know</h3>
+<div class="vocab" data-readable>
+<dl>
+<dt>unfair</dt><dd>Not fair. Someone is treated worse for no good reason.</dd>
+<dt>prejudice</dt><dd>Judging people in a bad way because of who they are, not what they do.</dd>
+<dt>strike</dt><dd>When workers stop working to ask for better pay or better treatment.</dd>
+<dt>raid</dt><dd>A sudden visit by officials to search a place or take people away.</dd>
+<dt>deport</dt><dd>To send a person out of the country.</dd>
+<dt>citizen</dt><dd>A person who legally belongs to a country.</dd>
+<dt>valise</dt><dd>A small suitcase.</dd>
+</dl>
+</div>
 
 <h3>🧠 Check your understanding</h3>
 <div class="q">
-<label for="q1">1. Which of these best explains why Isabel losing the Queen of the May title, despite having the best grades, matters so much?</label>
+<label for="q1">1. Isabel has the best grades, but she does not win Queen of the May. What does this show?</label>
 <select id="q1" data-response="q1">
 <option value="">Choose...</option>
-<option value="a">A. The teacher wanted every student to have a turn.</option>
-<option value="b">B. Hard work did not guarantee fair treatment for Mexican children.</option>
-<option value="c">C. Grades are never considered in school contests.</option>
-<option value="d">D. Isabel did not want the title.</option>
+<option value="a">A. Hard work did not always lead to fair treatment for Mexican children.</option>
+<option value="b">B. The teacher wanted every student to have a turn.</option>
+<option value="c">C. Grades do not matter in school contests.</option>
+<option value="d">D. Isabel did not want to win.</option>
 </select>
 </div>
 <div class="q">
-<label for="q2">2. Why is it so unfair that Miguel is replaced at the railroad garage?</label>
+<label for="q2">2. Miguel loses his job at the railroad garage. Why is this unfair?</label>
 <select id="q2" data-response="q2">
 <option value="">Choose...</option>
-<option value="a">A. He was replaced by workers who would accept lower pay, not because he did poor work.</option>
-<option value="b">B. He asked for a vacation during the busiest season.</option>
-<option value="c">C. The garage no longer needed any mechanics.</option>
-<option value="d">D. He refused to work on Saturdays.</option>
+<option value="a">A. Other workers would take less pay. He did not lose it for doing bad work.</option>
+<option value="b">B. He asked for too much time off.</option>
+<option value="c">C. The garage closed for good.</option>
+<option value="d">D. He did not want to work on Saturdays.</option>
 </select>
 </div>
 <div class="q">
-<label for="q3">3. What does the immigration raid on the strikers' camp suggest about the authorities' actions?</label>
+<label for="q3">3. Officials <span class="vw">raid</span> the strikers' camp. What is unfair about what they do?</label>
 <select id="q3" data-response="q3">
 <option value="">Choose...</option>
-<option value="a">A. They were careful to protect only people without papers.</option>
-<option value="b">B. They were trying to help the workers return home safely.</option>
-<option value="c">C. They acted unfairly by removing even people who were citizens.</option>
-<option value="d">D. They were following the workers' request to leave the camp.</option>
+<option value="a">A. They keep only people without papers safe.</option>
+<option value="b">B. They help the workers get home safely.</option>
+<option value="c">C. They send away many people, even some who are <span class="vw">citizens</span>.</option>
+<option value="d">D. They give the workers new jobs.</option>
 </select>
 </div>
 <div class="q">
-<label for="q4">4. Which statement best expresses a theme of this chapter?</label>
+<label for="q4">4. Which sentence tells a big idea (a theme) of this chapter?</label>
 <select id="q4" data-response="q4">
 <option value="">Choose...</option>
-<option value="a">A. Hard work is always rewarded fairly.</option>
-<option value="b">B. Prejudice and unfair treatment can harm families no matter how hard they work.</option>
+<option value="a">A. Hard work always gets a fair reward.</option>
+<option value="b">B. Unfair treatment can hurt families, even when they work hard.</option>
 <option value="c">C. Moving to a new place is always easy.</option>
-<option value="d">D. Winning a contest is the most important goal.</option>
+<option value="d">D. Winning a contest is the most important thing.</option>
 </select>
 </div>
 <div class="q">
-<label for="q5">5. In this chapter, Esperanza keeps her belongings in a valise. What is a valise?</label>
+<label for="q5">5. Esperanza keeps her things in a <span class="vw">valise</span>. What is a valise?</label>
 <select id="q5" data-response="q5">
 <option value="">Choose...</option>
 <option value="a">A. A small suitcase</option>
-<option value="b">B. A kind of sewing kit</option>
-<option value="c">C. A wooden trunk for a wagon</option>
+<option value="b">B. A sewing kit</option>
+<option value="c">C. A big wooden trunk</option>
 <option value="d">D. A bag of gifts</option>
 </select>
 </div>

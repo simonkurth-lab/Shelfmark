@@ -701,7 +701,67 @@ function mountActivity(host, key, html, plan){
   // host has a shadow root, so light-DOM children of it never render;
   // the button and message go right after it instead.
   host.after(btn, msg);
+  if(root.querySelector('[data-readaloud]')) addReadAloud(root);
   loadFeedbackData(key).then(fb=>attachFeedback(root, fb));
+}
+
+// ---- Read-aloud for activities ----
+// An activity opts in with data-readaloud on any element. Every .q question (and any element
+// marked data-readable, like a vocabulary panel) gets a 🔊 button that reads the question and
+// its choices, using the same narrator speed choice as the Piki quizzes.
+function addReadAloud(root){
+  if(!('speechSynthesis' in window)) return;
+  const style = document.createElement('style');
+  style.textContent = '.speak{font:inherit;font-size:15px;font-weight:700;float:right;margin:0 0 6px 8px;min-height:40px;padding:6px 14px;border:2px solid #c67139;border-radius:999px;background:#fff;color:#8a4520;cursor:pointer}' +
+    '.speak.speaking{background:#c67139;color:#fff}.reading-now{background:#fff3b0;border-radius:6px}' +
+    '.speedrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0}.speedrow button{font:inherit;font-weight:700;min-height:40px;padding:6px 14px;border:2px solid #d8c7ad;border-radius:999px;background:#fff;color:#201e1d;cursor:pointer}.speedrow button.on{border-color:#c67139;background:#fdf3e3}';
+  root.appendChild(style);
+  const clean = t=>String(t).replace(/_{2,}/g, ' blank ').replace(/\s+/g, ' ').trim();
+  const stopAll = ()=>{ stopQuizSpeech(); root.querySelectorAll('.speaking').forEach(b=>b.classList.remove('speaking')); root.querySelectorAll('.reading-now').forEach(n=>n.classList.remove('reading-now')); };
+
+  const row = document.createElement('div');
+  row.className = 'speedrow';
+  row.innerHTML = '<span>🔊 Narrator speed:</span>';
+  SPEECH_RATES.forEach(sr=>{
+    const b = document.createElement('button');
+    b.type = 'button'; b.textContent = sr.label; b.className = STATE.speechRate === sr.rate ? 'on' : '';
+    b.onclick = ()=>{ STATE.speechRate = sr.rate; row.querySelectorAll('button').forEach(x=>x.classList.toggle('on', x === b)); };
+    row.appendChild(b);
+  });
+  const act = root.querySelector('.activity');
+  const h2 = act && act.querySelector('h2');
+  if(act) act.insertBefore(row, h2 ? h2.nextSibling : act.firstChild);
+
+  root.querySelectorAll('.q, [data-readable]').forEach(box=>{
+    const items = [];
+    const label = box.querySelector('label');
+    if(label) items.push({ text: clean(label.textContent), el: label });
+    else items.push({ text: clean(box.textContent.replace(/💡[\s\S]*$/, '')), el: box });
+    box.querySelectorAll('select option').forEach(o=>{ if(o.value) items.push({ text: clean(o.textContent), el: null }); });
+    const btn = document.createElement('button');
+    btn.type = 'button'; btn.className = 'speak'; btn.textContent = '🔊 Read to me';
+    btn.setAttribute('aria-label', 'Read this aloud');
+    box.insertBefore(btn, box.firstChild);
+    btn.onclick = ()=>{
+      const was = btn.classList.contains('speaking');
+      stopAll();
+      if(was) return;
+      const token = speechToken;
+      btn.classList.add('speaking');
+      let i = 0;
+      const next = ()=>{
+        if(token !== speechToken) return;
+        if(i >= items.length){ btn.classList.remove('speaking'); return; }
+        const it = items[i++];
+        const u = new SpeechSynthesisUtterance(it.text);
+        u.lang = 'en-US'; u.rate = STATE.speechRate;
+        if(it.el) it.el.classList.add('reading-now');
+        u.onend = u.onerror = ()=>{ if(it.el) it.el.classList.remove('reading-now'); next(); };
+        window.speechSynthesis.speak(u);
+      };
+      next();
+    };
+  });
 }
 
 // ---- Instant feedback ----
