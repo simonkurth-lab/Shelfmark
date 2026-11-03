@@ -670,14 +670,14 @@ function mountActivity(host, key, html, plan){
 }
 
 // ---- Instant feedback ----
-// Each question with an answer key gets a Check button. Right = green. Wrong = red
-// with a short explanation (activities/answers/KEY.help.json, optional) and then
-// practice questions of the same type: {"q1": {"why": "...", "retry": [{"q": "...", "a": "70"}]}}.
-// Without a help file a wrong answer just says to try again; the answer is never shown.
+// Opt-in per activity: only activities that have activities/answers/KEY.help.json
+// get this. Each question with an answer key then gets a Check button. Right = green.
+// Wrong = red with a short explanation and practice questions of the same type:
+// {"q1": {"why": "...", "retry": [{"q": "...", "a": "70"}]}}. The answer is never shown.
 async function loadFeedbackData(key){
   const get = async p=>{ try { const r = await fetch(p); return r.ok ? await r.json() : null; } catch(e){ return null; } };
   const [answers, help] = await Promise.all([get('activities/answers/' + key + '.json'), get('activities/answers/' + key + '.help.json')]);
-  return { answers, help: help || {} };
+  return { answers, help };
 }
 function feedbackBox(ok, html){
   const d = document.createElement('div');
@@ -687,7 +687,7 @@ function feedbackBox(ok, html){
   return d;
 }
 function attachFeedback(root, fb){
-  if(!fb.answers) return;
+  if(!fb.answers || !fb.help) return;
   const btnStyle = 'font:inherit;font-weight:700;margin-top:10px;padding:10px 18px;min-height:44px;border:2px solid #c67139;border-radius:12px;background:#fff;color:#8a4520;cursor:pointer;';
   const inputStyle = 'font:inherit;width:100%;box-sizing:border-box;min-height:52px;border:2px solid #d8c7ad;border-radius:12px;padding:10px 14px;background:#fff;color:#201e1d;margin-top:8px;';
   root.querySelectorAll('[data-response]').forEach(f=>{
