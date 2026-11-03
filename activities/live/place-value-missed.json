@@ -1,0 +1,65 @@
+{
+ "title": "Place value: most-missed questions",
+ "questions": [
+  {
+   "q": "What is the value of the 6 in 5,264?",
+   "type": "text",
+   "a": "60",
+   "why": "The 6 is in the tens place (5 thousands, 2 hundreds, 6 tens, 4 ones). 6 × 10 = 60. Value means a number, not just the digit."
+  },
+  {
+   "q": "What digit is in the hundredths place of 6.184?",
+   "type": "text",
+   "a": "8",
+   "why": "Count right from the point: tenths (1), hundredths (8), thousandths (4). Answer with just the digit."
+  },
+  {
+   "q": "What is the value of the 4 in 0.143?",
+   "type": "text",
+   "a": "0.04",
+   "why": "The 4 is the second digit after the point: hundredths. 4 × 0.01 = 0.04."
+  },
+  {
+   "q": "Jordan says the value of the 6 in 0.462 is 0.6. What is the correct value?",
+   "type": "choice",
+   "a": "0.06",
+   "why": "The 6 is in the hundredths place (4 tenths, 6 hundredths, 2 thousandths), so 6 × 0.01 = 0.06. Jordan used the tenths value.",
+   "options": [
+    "0.6",
+    "0.06",
+    "0.006",
+    "6"
+   ]
+  },
+  {
+   "q": "2 + ___ + 0.07 + 0.004 = 2.874. What is the missing number?",
+   "type": "text",
+   "a": "0.8",
+   "why": "2.874 = 2 + 0.8 + 0.07 + 0.004. The 8 is in the tenths place, so it is worth 0.8."
+  },
+  {
+   "q": "What is 1/10 of 2,500?",
+   "type": "text",
+   "a": "250",
+   "why": "1/10 means divide by 10, so every digit moves one place right: 2,500 ÷ 10 = 250. The answer should be smaller."
+  },
+  {
+   "q": "Round 8.351 to the nearest tenth.",
+   "type": "text",
+   "a": "8.4",
+   "why": "The tenths digit is 3. Next door is 5, so round up to 8.4. Nearest tenth keeps only one decimal digit, so not 8.350."
+  },
+  {
+   "q": "Round 19.96 to the nearest tenth.",
+   "type": "text",
+   "a": "20",
+   "why": "The tenths digit is 9. Next door is 6, so the 9 goes up, which makes 10 tenths. That carries to 20.0 (20)."
+  },
+  {
+   "q": "Write this number in standard form: 4 tens + 3 tenths + 5 thousandths",
+   "type": "text",
+   "a": "40.305",
+   "why": "4 tens = 40, 3 tenths = 0.3, 5 thousandths = 0.005. There is nothing in the hundredths place, so it gets a 0: 40.305."
+  }
+ ]
+}
