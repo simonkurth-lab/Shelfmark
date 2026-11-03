@@ -1,0 +1,154 @@
+<style>
+.activity{max-width:720px;margin:0 auto;padding:16px;font-size:17px;line-height:1.6;color:#201e1d}
+h2{font-size:1.55em;line-height:1.2;margin:0 0 6px}
+h3{font-size:1.25em;margin:32px 0 10px}
+p{margin:0 0 12px}
+.pep{background:#fdf3e3;border:2px solid #d8c7ad;border-radius:16px;padding:12px 16px;font-weight:600}
+.panel{background:#fdf3e3;border:2px solid #d8c7ad;border-radius:16px;padding:14px 16px;margin:0 0 16px}
+.chart-wrap{overflow-x:auto;border-radius:16px;border:2px solid #d8c7ad}
+table{border-collapse:collapse;width:100%;min-width:640px;font-size:14px;text-align:center}
+th,td{border:1px solid #d8c7ad;padding:8px 4px}
+th{background:#fdf3e3;font-weight:700}
+th.dec,td.dec{background:#e6ecd9}
+th.pt,td.pt{background:#fff;font-size:22px;font-weight:800;width:18px}
+td{background:#fff;font-size:20px;font-weight:700}
+.legend{font-size:15px;margin:8px 0 0}
+.steps{margin:8px 0 0;padding-left:22px}
+.steps li{margin-bottom:6px}
+dl{margin:0}
+dt{font-weight:800;margin-top:8px}
+dd{margin:0 0 4px}
+.q{background:#fff;border:2px solid #d8c7ad;border-radius:16px;padding:14px 16px;margin:0 0 14px}
+label{display:block;font-weight:700;margin-bottom:10px}
+.big{display:block;font-size:24px;font-weight:800;letter-spacing:.5px;margin:4px 0}
+input,select{font:inherit;width:100%;box-sizing:border-box;min-height:52px;border:2px solid #d8c7ad;border-radius:12px;padding:10px 14px;background:#fff;color:#201e1d}
+input:focus,select:focus{outline:3px solid #c67139;outline-offset:2px;border-color:#c67139}
+details{margin-top:10px}
+summary{cursor:pointer;font-weight:700;color:#8a4520;padding:8px 0;min-height:44px;display:flex;align-items:center}
+details p{background:#fdf3e3;border-radius:12px;padding:10px 12px;margin:4px 0 0;font-size:16px}
+.work{background:#fdf3e3;border-radius:12px;padding:10px 12px;font-family:inherit;font-weight:700}
+.challenge{border-color:#c67139;border-style:dashed}
+.tag{display:inline-block;background:#c67139;color:#fff;border-radius:999px;padding:2px 12px;font-size:14px;font-weight:800;margin-bottom:8px}
+</style>
+<div class="activity">
+<h2>Place Value Rescue: Fix-It Practice</h2>
+<p class="pep">Mistakes help us learn! Go one part at a time, read the examples, and use the hints. 💪</p>
+<h3>📌 Part A: Digit, place, or value?</h3>
+<div class="panel"><p><strong>Read the question carefully.</strong> These are three different questions:</p>
+<ul><li><strong>What digit?</strong> Answer with just the digit. Example: 2</li>
+<li><strong>What place?</strong> Answer with a place name. Example: hundredths</li>
+<li><strong>What value?</strong> Answer with a number. Example: 0.02 (never a word like "tens")</li></ul></div>
+<div class="chart-wrap"><table><thead><tr><th>Thousands</th><th>Hundreds</th><th>Tens</th><th>Ones</th><th class="pt">.</th><th class="dec">Tenths</th><th class="dec">Hundredths</th><th class="dec">Thousandths</th></tr></thead>
+<tbody><tr><td>1,000</td><td>100</td><td>10</td><td>1</td><td class="pt">.</td><td class="dec">0.1</td><td class="dec">0.01</td><td class="dec">0.001</td></tr></tbody></table></div>
+<h3>📖 Worked examples</h3>
+<div class="panel"><p><strong>In 4.738, look at the 3.</strong></p><p>Digit: <strong>3</strong> · Place: <strong>hundredths</strong> · Value: 3 × 0.01 = <strong>0.03</strong></p>
+<p><strong>In 2,486, look at the 8.</strong></p><p>Place: <strong>tens</strong> · Value: 8 × 10 = <strong>80</strong></p>
+<p><strong>In 0.361, look at the 3.</strong></p><p>Place: <strong>tenths</strong> · Value: 3 × 0.1 = <strong>0.3</strong></p></div>
+<h3>✏️ Try it</h3>
+<div class="q"><label for="a1">1. What is the <strong>value</strong> of the 7 in 3,724?</label>
+<input id="a1" type="text" inputmode="decimal" data-response="a1" placeholder="Type a number">
+<details><summary>💡 Need a hint?</summary><p>Which place is the 7 in? Then multiply the digit by the place.</p></details>
+</div>
+<div class="q"><label for="a2">2. What is the <strong>value</strong> of the 4 in 0.143?</label>
+<input id="a2" type="text" inputmode="decimal" data-response="a2" placeholder="Type a number">
+<details><summary>💡 Need a hint?</summary><p>The 4 is the second digit after the point: hundredths.</p></details>
+</div>
+<div class="q"><label for="a3">3. What <strong>digit</strong> is in the tenths place of 9.315?</label>
+<input id="a3" type="text" inputmode="decimal" data-response="a3" placeholder="Type one digit">
+<details><summary>💡 Need a hint?</summary><p>Tenths is the first place after the point.</p></details>
+</div>
+<div class="q"><label for="a4">4. What <strong>digit</strong> is in the hundredths place of 6.184?</label>
+<input id="a4" type="text" inputmode="decimal" data-response="a4" placeholder="Type one digit">
+<details><summary>💡 Need a hint?</summary><p>Count two places after the point.</p></details>
+</div>
+<div class="q"><label for="a5">5. What is the <strong>value</strong> of the 9 in 0.392?</label>
+<input id="a5" type="text" inputmode="decimal" data-response="a5" placeholder="Type a number">
+<details><summary>💡 Need a hint?</summary><p>The 9 is in the hundredths place. 9 × 0.01 = ?</p></details>
+</div>
+<div class="q"><label for="a6">6. 🕵️ <strong>Find the mistake.</strong> Jordan says the value of the 6 in 0.462 is 0.6. What is the correct value?</label>
+<input id="a6" type="text" inputmode="decimal" data-response="a6" placeholder="Type a number">
+<details><summary>💡 Need a hint?</summary><p>Is the 6 in the tenths place or the hundredths place?</p></details>
+</div>
+<div class="q"><label for="a6x">Explain what Jordan did wrong.</label>
+<textarea id="a6x" data-response="a6x" style="font:inherit;width:100%;box-sizing:border-box;min-height:80px;border:2px solid #d8c7ad;border-radius:12px;padding:10px 14px"></textarea>
+</div>
+<h3>📌 Part B: Expanded form with decimals</h3>
+<div class="panel"><p>Each digit becomes its <strong>value</strong>. Line up each part with its place.</p><p><strong>3.257</strong> = 3 + 0.2 + 0.05 + 0.007 (ones + tenths + hundredths + thousandths)</p><p><strong>Example:</strong> 5.384 = 5 + 0.3 + <strong>0.08</strong> + <strong>0.004</strong></p></div>
+<div class="q"><label for="b7">7. 9 + 0.1 + ___ + 0.003 = 9.153</label>
+<input id="b7" type="text" inputmode="decimal" data-response="b7" placeholder="Type a number">
+<details><summary>💡 Need a hint?</summary><p>Which digit is missing? It is the 5, in the hundredths place.</p></details>
+</div>
+<div class="q"><label for="b8">8. 2 + ___ + 0.07 + 0.004 = 2.874</label>
+<input id="b8" type="text" inputmode="decimal" data-response="b8" placeholder="Type a number">
+<details><summary>💡 Need a hint?</summary><p>The missing digit is 8, in the tenths place.</p></details>
+</div>
+<div class="q"><label for="b9">9. 4 + 0.6 + 0.02 + ___ = 4.629</label>
+<input id="b9" type="text" inputmode="decimal" data-response="b9" placeholder="Type a number">
+<details><summary>💡 Need a hint?</summary><p>The missing digit is 9, in the thousandths place.</p></details>
+</div>
+<div class="q"><label for="b10">10. Write 6.092 in expanded form.</label>
+<textarea id="b10" data-response="b10" style="font:inherit;width:100%;box-sizing:border-box;min-height:80px;border:2px solid #d8c7ad;border-radius:12px;padding:10px 14px"></textarea>
+</div>
+<h3>📌 Part C: Finding 1/10 of a number</h3>
+<div class="panel"><p><strong>1/10 of</strong> a number means <strong>divide by 10</strong>. Every digit moves <strong>one place to the right</strong>, so the answer gets <strong>smaller</strong>.</p><p><strong>Check yourself:</strong> Is your answer smaller than the number you started with? If it got bigger, you multiplied by mistake.</p><p><strong>Example:</strong> 1/10 of 300 → 300 ÷ 10 = <strong>30</strong> (30 is smaller than 300 ✓)</p></div>
+<div class="q"><label for="c11">11. What is 1/10 of 800?</label>
+<input id="c11" type="text" inputmode="decimal" data-response="c11" placeholder="Type a number">
+<details><summary>💡 Need a hint?</summary><p>Divide by 10. Every digit moves one place to the right.</p></details>
+</div>
+<div class="q"><label for="c12">12. What is 1/10 of 2,500?</label>
+<input id="c12" type="text" inputmode="decimal" data-response="c12" placeholder="Type a number">
+<details><summary>💡 Need a hint?</summary><p>Divide by 10. Every digit moves one place to the right.</p></details>
+</div>
+<div class="q"><label for="c13">13. What is 1/10 of 70?</label>
+<input id="c13" type="text" inputmode="decimal" data-response="c13" placeholder="Type a number">
+<details><summary>💡 Need a hint?</summary><p>Divide by 10. Every digit moves one place to the right.</p></details>
+</div>
+<div class="q"><label for="c14">14. What is 10 × 50?</label>
+<input id="c14" type="text" inputmode="decimal" data-response="c14" placeholder="Type a number">
+</div>
+<div class="q"><label for="c14b">15. What is 1/10 of 50?</label>
+<input id="c14b" type="text" inputmode="decimal" data-response="c14b" placeholder="Type a number">
+</div>
+<div class="q"><label for="c15">16. 🕵️ <strong>Find the mistake.</strong> Sam says 1/10 of 500 is 5,000. Is Sam correct?</label>
+<select id="c15" data-response="c15"><option value="">Choose...</option><option value="yes">Yes</option><option value="no">No</option></select>
+</div>
+<div class="q"><label for="c15b">17. What is the right answer for 1/10 of 500?</label>
+<input id="c15b" type="text" inputmode="decimal" data-response="c15b" placeholder="Type a number">
+</div>
+<div class="q"><label for="c15x">How do you know?</label>
+<textarea id="c15x" data-response="c15x" style="font:inherit;width:100%;box-sizing:border-box;min-height:80px;border:2px solid #d8c7ad;border-radius:12px;padding:10px 14px"></textarea>
+</div>
+<h3>📌 Part D: Rounding</h3>
+<div class="panel"><ol class="steps"><li><strong>Underline</strong> the digit in the rounding place.</li><li><strong>Look next door</strong>: the digit just to its right.</li><li><strong>5 or more:</strong> the underlined digit goes up 1. <strong>4 or less:</strong> it stays the same.</li><li>Whole numbers: digits to the right become <strong>0</strong>. Decimals: digits to the right <strong>drop off</strong>.</li></ol></div>
+<h3>📖 Worked examples</h3>
+<div class="panel"><p>52,618 to the nearest thousand: 5<u>2</u>,618 → next door is 6 → round up → <strong>53,000</strong></p>
+<p>3.847 to the nearest tenth: 3.<u>8</u>47 → next door is 4 → stay → <strong>3.8</strong> (not 3.800 or 3.850)</p>
+<p>46,291 to the nearest thousand: next door is 2 → stay → <strong>46,000</strong></p></div>
+<div class="q"><label for="d18">18. Round 64,381 to the nearest thousand.</label>
+<input id="d18" type="text" inputmode="decimal" data-response="d18" placeholder="Type a number">
+<details><summary>💡 Need a hint?</summary><p>Underline the 4 (thousands). Next door is 3.</p></details>
+</div>
+<div class="q"><label for="d19">19. Round 28,509 to the nearest thousand.</label>
+<input id="d19" type="text" inputmode="decimal" data-response="d19" placeholder="Type a number">
+<details><summary>💡 Need a hint?</summary><p>Underline the 8 (thousands). Next door is 5. Is it 5 or more?</p></details>
+</div>
+<div class="q"><label for="d20">20. Round 4.239 to the nearest tenth.</label>
+<input id="d20" type="text" inputmode="decimal" data-response="d20" placeholder="Type a number">
+<details><summary>💡 Need a hint?</summary><p>Underline the 2 (tenths). Next door is 3.</p></details>
+</div>
+<div class="q"><label for="d21">21. Round 9.851 to the nearest tenth.</label>
+<input id="d21" type="text" inputmode="decimal" data-response="d21" placeholder="Type a number">
+<details><summary>💡 Need a hint?</summary><p>Underline the 8 (tenths). Next door is 5, so the 8 goes up.</p></details>
+</div>
+<div class="q"><label for="d22">22. A concert had 23,817 people. The news rounded to the nearest thousand. What did the news report?</label>
+<input id="d22" type="text" inputmode="decimal" data-response="d22" placeholder="Type a number">
+<details><summary>💡 Need a hint?</summary><p>Underline the 3 (thousands). Next door is 8.</p></details>
+</div>
+<div class="q"><label for="d23">23. 🕵️ <strong>Find the mistake.</strong> Ana rounded 8.351 to the nearest tenth and wrote 8.350. What should the answer be?</label>
+<input id="d23" type="text" inputmode="decimal" data-response="d23" placeholder="Type a number">
+<details><summary>💡 Need a hint?</summary><p>Next door to the 3 is 5, so round up. Nearest tenth keeps only one decimal digit.</p></details>
+</div>
+<div class="q"><label for="d23x">What did Ana do wrong?</label>
+<textarea id="d23x" data-response="d23x" style="font:inherit;width:100%;box-sizing:border-box;min-height:80px;border:2px solid #d8c7ad;border-radius:12px;padding:10px 14px"></textarea>
+</div>
+<p class="pep">Great job fixing mistakes! That is how mathematicians get stronger. 🌟</p></div>
