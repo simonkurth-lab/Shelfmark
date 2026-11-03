@@ -607,7 +607,7 @@ function screenHome(){
       } else if(d && !d.active && banner){ banner.remove(); banner = null; }
     }).catch(()=>{});
     check();
-    STATE.liveTimer = setInterval(check, 5000);
+    STATE.liveTimer = setInterval(check, 3000);
   }
   return c;
 }
@@ -789,7 +789,7 @@ function attachFeedback(root, fb){
 // and a small group, then reveals one question at a time. Students answer from their own
 // device; the teacher sees each answer land in real time. Both sides poll every few seconds.
 // State lives in the worker (see /api/live and /api/teacher/live/*).
-const LIVE_POLL_MS = 3000;
+const LIVE_POLL_MS = 1500;
 function clearLiveTimer(){ if(STATE.liveTimer){ clearInterval(STATE.liveTimer); STATE.liveTimer = null; } }
 function liveClass(){ return DAILY_CLASSES[0]; }
 
