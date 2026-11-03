@@ -1,0 +1,41 @@
+{
+ "title": "Place value: warm-up group set",
+ "questions": [
+  {
+   "q": "What is the value of the 6 in 5,264?",
+   "type": "text",
+   "a": "60",
+   "why": "The 6 is in the tens place (5 thousands, 2 hundreds, 6 tens, 4 ones). 6 × 10 = 60."
+  },
+  {
+   "q": "What is the value of the 4 in 0.143?",
+   "type": "text",
+   "a": "0.04",
+   "why": "The first digit after the point is tenths, the second is hundredths. The 4 is in the hundredths place: 4 × 0.01 = 0.04."
+  },
+  {
+   "q": "What digit is in the hundredths place of 7.926?",
+   "type": "text",
+   "a": "2",
+   "why": "Count right from the point: tenths (9), then hundredths (2)."
+  },
+  {
+   "q": "Which is greater: 0.6 or 0.58?",
+   "type": "text",
+   "a": "0.6",
+   "why": "Write 0.6 as 0.60. Compare 60 hundredths with 58 hundredths: 60 is more."
+  },
+  {
+   "q": "Round 5.627 to the nearest tenth.",
+   "type": "text",
+   "a": "5.6",
+   "why": "The tenths digit is 6. Next door is 2, so it stays. Answer: 5.6."
+  },
+  {
+   "q": "What is 1/10 of 400?",
+   "type": "text",
+   "a": "40",
+   "why": "1/10 means divide by 10. 400 ÷ 10 = 40."
+  }
+ ]
+}

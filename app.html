@@ -367,7 +367,7 @@ function quizLoadingSlide(idx){
 }
 
 function el(html){ const d=document.createElement('div'); d.innerHTML=html.trim(); return d.firstChild; }
-function render(){ stopQuizSpeech(); document.getElementById('app').innerHTML=''; document.getElementById('app').appendChild(buildScreen()); }
+function render(){ clearLiveTimer(); stopQuizSpeech(); document.getElementById('app').innerHTML=''; document.getElementById('app').appendChild(buildScreen()); }
 
 async function api(path, opts){
   const res = await fetch(WORKER_URL + path, opts);
@@ -395,11 +395,13 @@ function buildScreen(){
   else if(STATE.screen==='teacherSummary') body = screenTeacherSummary();
   else if(STATE.screen==='teacherDaily') body = screenTeacherDaily();
   else if(STATE.screen==='teacherTrends') body = screenTeacherTrends();
+  else if(STATE.screen==='teacherLive') body = screenTeacherLive();
   else if(!STATE.classConfirmed) body = screenClassPick();
   else if(STATE.screen==='login') body = screenLogin();
   else if(STATE.screen==='nameCapture') body = screenNameCapture();
   else if(STATE.screen==='home') body = screenHome();
   else if(STATE.screen==='daily') body = screenDaily();
+  else if(STATE.screen==='live') body = screenLive();
   else if(STATE.screen==='search') body = screenSearch();
   else if(STATE.screen==='manualBook') body = screenManualBook();
   else if(STATE.screen==='book') body = screenBook();
@@ -573,6 +575,18 @@ function screenHome(){
     const todayBtn = el(`<button class="btn coral" style="margin-top:10px;">📝 Today's activity</button>`);
     todayBtn.onclick = ()=>{ STATE.screen='daily'; STATE.dailyToday=null; STATE.dailyTab=null; render(); };
     c.querySelector('.card').insertBefore(todayBtn, c.querySelector('#searchBtn'));
+    // A teacher-led group question is live for this student: show a join button.
+    let banner = null;
+    const check = ()=>liveFetchStudent().then(d=>{
+      if(STATE.screen !== 'home') return;
+      if(d && d.active && !banner){
+        banner = el(`<button class="btn" style="margin-top:10px;background:#4a9d4a;color:#fff;">👥 Your teacher started a group question. Join!</button>`);
+        banner.onclick = ()=>{ STATE.screen='live'; STATE.liveStu = null; render(); };
+        c.querySelector('.card').insertBefore(banner, c.querySelector('#searchBtn'));
+      } else if(d && !d.active && banner){ banner.remove(); banner = null; }
+    }).catch(()=>{});
+    check();
+    STATE.liveTimer = setInterval(check, 5000);
   }
   return c;
 }
@@ -747,6 +761,210 @@ function attachFeedback(root, fb){
     check.onclick = run;
     if(f.tagName === 'INPUT') f.addEventListener('keydown', e=>{ if(e.key === 'Enter'){ e.preventDefault(); run(); } });
   });
+}
+
+// ---------- Live group sessions (teacher-paced) ----------
+// The teacher picks a question set (activities/live/*.json, listed in activities/live/index.json)
+// and a small group, then reveals one question at a time. Students answer from their own
+// device; the teacher sees each answer land in real time. Both sides poll every few seconds.
+// State lives in the worker (see /api/live and /api/teacher/live/*).
+const LIVE_POLL_MS = 3000;
+function clearLiveTimer(){ if(STATE.liveTimer){ clearInterval(STATE.liveTimer); STATE.liveTimer = null; } }
+function liveClass(){ return DAILY_CLASSES[0]; }
+
+function liveFetchStudent(){
+  return api('/api/live?class=' + encodeURIComponent(STATE.classCode) + '&alias=' + encodeURIComponent(STATE.student.alias));
+}
+
+// ---- Teacher ----
+async function liveTeacherRefresh(){
+  const L = STATE.live, seq = L.seq;
+  const r = await postJSON('/api/teacher/live/state', { passcode: STATE.teacherPasscode, classCode: liveClass() });
+  if(seq !== L.seq) return false; // a local change happened while this was in flight
+  L.session = r.session || null; L.responses = r.responses || {};
+  return true;
+}
+async function liveTeacherSave(){
+  const L = STATE.live;
+  L.seq++;
+  await postJSON('/api/teacher/live/save', { passcode: STATE.teacherPasscode, classCode: liveClass(), session: L.session });
+}
+
+function screenTeacherLive(){
+  if(!STATE.teacherAuthed) return screenTeacherLogin();
+  const L = STATE.live = STATE.live || { sets:null, setId:'', picked:null, session:null, responses:{}, loaded:false, seq:0, msg:'' };
+  const c = el(`<div><button class="backlink" id="back">&larr; Back</button><div class="card"><h2 style="margin-bottom:2px;">👥 Live group</h2><p class="muted" style="margin:0;">Send one question at a time to a small group and watch their answers arrive.</p></div><div id="body"></div></div>`);
+  c.querySelector('#back').onclick = ()=>{ STATE.screen='teacher'; render(); };
+  const body = c.querySelector('#body');
+  const paint = ()=>{ if(STATE.screen !== 'teacherLive') return; body.innerHTML = ''; body.appendChild(L.session ? liveRunView(paint) : liveSetupView(paint)); };
+  if(!L.sets) fetch('activities/live/index.json').then(r=>r.ok ? r.json() : []).catch(()=>[]).then(s=>{ L.sets = s; if(!L.setId && s[0]) L.setId = s[0].id; paint(); });
+  if(!L.loaded) liveTeacherRefresh().then(()=>{ L.loaded = true; paint(); }).catch(()=>{ L.loaded = true; paint(); });
+  paint();
+  STATE.liveTimer = setInterval(async ()=>{
+    if(!L.loaded) return;
+    try { if(await liveTeacherRefresh()) paint(); } catch(e){}
+  }, LIVE_POLL_MS);
+  return c;
+}
+
+function liveSetupView(paint){
+  const L = STATE.live;
+  const students = (STATE.teacherRows || []).filter(s=>(s.classCode||'default') === liveClass()).sort((a,b)=>a.alias.localeCompare(b.alias));
+  L.picked = L.picked || new Set();
+  const sets = L.sets || [];
+  const c = el(`<div class="card"><h3 style="margin-top:0;">Start a group</h3>
+    <label style="font-weight:700;display:block;margin-bottom:6px;">Question set</label>
+    <select id="set">${sets.map(s=>`<option value="${escHtml(s.id)}"${s.id===L.setId?' selected':''}>${escHtml(s.title)}</option>`).join('')}</select>
+    <label style="font-weight:700;display:block;margin:14px 0 6px;">Who is in the group?</label>
+    <div id="who" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
+    <p class="error-text" id="msg">${escHtml(L.msg)}</p>
+    <button class="btn coral" id="start">Start group session</button></div>`);
+  const who = c.querySelector('#who');
+  students.forEach(s=>{
+    const on = L.picked.has(s.alias);
+    const b = el(`<button class="btn ${on?'':'secondary'}" style="width:auto;margin:0;padding:8px 14px;">${on?'✓ ':''}${escHtml(s.alias)}</button>`);
+    b.onclick = ()=>{ on ? L.picked.delete(s.alias) : L.picked.add(s.alias); paint(); };
+    who.appendChild(b);
+  });
+  if(!students.length) who.innerHTML = '<span class="muted">No students found for this class.</span>';
+  c.querySelector('#set').onchange = e=>{ L.setId = e.target.value; };
+  c.querySelector('#start').onclick = async ()=>{
+    if(!L.picked.size){ L.msg = 'Pick at least one student.'; paint(); return; }
+    if(!L.setId){ L.msg = 'No question set found.'; paint(); return; }
+    L.msg = '';
+    try {
+      const set = await fetch('activities/live/' + L.setId + '.json').then(r=>r.json());
+      L.session = { id:'L' + Date.now().toString(36), classCode:liveClass(), title:set.title, group:Array.from(L.picked), questions:set.questions, current:0, revealed:{}, startedAt:new Date().toISOString() };
+      L.responses = {};
+      await liveTeacherSave();
+    } catch(e){ L.session = null; L.msg = 'Could not start the session. Is the worker deployed with the live endpoints?'; }
+    paint();
+  };
+  return c;
+}
+
+function liveRunView(paint){
+  const L = STATE.live, s = L.session, cur = s.current, total = s.questions.length;
+  const q = s.questions[cur];
+  const resp = alias=>L.responses[alias] || {};
+  const answered = s.group.filter(a=>resp(a)[cur]).length;
+  const correct = s.group.filter(a=>resp(a)[cur] && resp(a)[cur].ok).length;
+  const c = el(`<div><div class="card">
+    <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center;"><h3 style="margin:0;">${escHtml(s.title)}</h3><span class="pill gold">Question ${cur+1} of ${total}</span></div>
+    <div id="pips" style="display:flex;gap:4px;margin:12px 0;"></div>
+    <p style="font-size:20px;font-weight:700;margin:8px 0;">${escHtml(q.q)}</p>
+    ${q.type==='choice' && q.options ? `<ul style="margin:0 0 8px;">${q.options.map(o=>`<li>${escHtml(o)}</li>`).join('')}</ul>` : ''}
+    <p class="muted" style="margin:0 0 10px;">Answer: <strong>${escHtml([].concat(q.a)[0])}</strong>${q.why ? ' · ' + escHtml(q.why) : ''}</p>
+    <p style="margin:0 0 12px;"><strong>${answered}/${s.group.length}</strong> answered · <strong style="color:#2f7a2f;">${correct}</strong> correct${s.revealed[cur] ? ' · <em>answer revealed to students</em>' : ''}</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;" id="ctl"></div></div>
+    <div class="card"><div style="overflow-x:auto;"><table class="roster-table" id="grid"></table></div></div></div>`);
+  const pips = c.querySelector('#pips');
+  s.questions.forEach((_,i)=>{
+    const done = i < cur, now = i === cur;
+    pips.appendChild(el(`<div title="Question ${i+1}" style="flex:1;height:10px;border-radius:5px;background:${now?'#c67139':done?'#4a9d4a':'#e6dccb'};"></div>`));
+  });
+  const ctl = c.querySelector('#ctl');
+  const btn = (label, cls, fn, disabled)=>{
+    const b = el(`<button class="btn ${cls}" style="width:auto;margin:0;padding:10px 18px;"${disabled?' disabled':''}>${label}</button>`);
+    b.onclick = async ()=>{ b.disabled = true; await fn(); paint(); };
+    ctl.appendChild(b);
+  };
+  btn('◀ Back', 'secondary', async ()=>{ s.current--; await liveTeacherSave(); }, cur === 0);
+  btn(s.revealed[cur] ? '✅ Revealed' : '👁 Reveal answer', 'secondary', async ()=>{ s.revealed[cur] = true; await liveTeacherSave(); }, !!s.revealed[cur]);
+  btn(cur === total-1 ? 'Last question' : 'Next question ▶', 'coral', async ()=>{ s.current++; await liveTeacherSave(); }, cur === total-1);
+  btn('End session', 'secondary', async ()=>{
+    if(!confirm('End this group session? Students will be sent back.')) return;
+    await postJSON('/api/teacher/live/end', { passcode: STATE.teacherPasscode, classCode: liveClass() });
+    L.seq++; L.session = null; L.responses = {};
+  });
+  const grid = c.querySelector('#grid');
+  let head = '<thead><tr><th>Student</th>';
+  s.questions.forEach((_,i)=>{ head += `<th style="text-align:center;${i===cur?'background:#fdf3e3;':''}">Q${i+1}</th>`; });
+  grid.innerHTML = head + '<th style="text-align:center;">Score</th></tr></thead>';
+  const tb = document.createElement('tbody');
+  s.group.forEach(alias=>{
+    const r = resp(alias);
+    let row = `<tr><td><strong>${escHtml(alias)}</strong></td>`, score = 0;
+    s.questions.forEach((_,i)=>{
+      const m = r[i];
+      if(m && m.ok) score++;
+      let cell = '<span class="muted">·</span>', bg = '';
+      if(i <= cur){
+        if(!m){ cell = '<span class="muted">…</span>'; }
+        else { bg = m.ok ? 'background:#dcf2dc;' : 'background:#fbdcdc;'; cell = (m.ok ? '✅' : '❌') + (i===cur ? `<div style="font-size:12px;">${escHtml(m.a)}</div>` : ''); }
+      }
+      row += `<td style="text-align:center;${bg}${i===cur?'border-left:2px solid #c67139;border-right:2px solid #c67139;':''}">${cell}</td>`;
+    });
+    tb.insertAdjacentHTML('beforeend', row + `<td style="text-align:center;"><strong>${score}</strong>/${Math.min(cur+1,total)}</td></tr>`);
+  });
+  grid.appendChild(tb);
+  return c;
+}
+
+// ---- Student ----
+function screenLive(){
+  const c = el(`<div><button class="backlink" id="back">&larr; Back</button><div class="card" id="box"><div class="loading">Loading...</div></div></div>`);
+  c.querySelector('#back').onclick = ()=>{ STATE.screen='home'; render(); };
+  const box = c.querySelector('#box');
+  const S = STATE.liveStu = STATE.liveStu || { sig:'', draft:{} };
+  const paint = d=>{
+    box.innerHTML = '';
+    if(!d || !d.active){ box.innerHTML = '<h2>👥 Group time</h2><p class="muted">Waiting for your teacher to send a question…</p>'; return; }
+    const cur = d.current, q = d.questions[cur];
+    box.appendChild(el(`<div><div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center;"><h2 style="margin:0;">👥 ${escHtml(d.title)}</h2><span class="pill gold">Question ${cur+1}</span></div></div>`));
+    box.appendChild(el(`<p style="font-size:20px;font-weight:700;margin:14px 0 8px;">${escHtml(q.q)}</p>`));
+    const draft = S.draft[d.id + ':' + cur];
+    const mine = q.mine ? q.mine.a : undefined;
+    let value = draft !== undefined ? draft : (mine || '');
+    const closed = !!q.revealed;
+    let field;
+    if(q.type === 'choice' && q.options){
+      field = el(`<div style="display:grid;gap:8px;"></div>`);
+      q.options.forEach(o=>{
+        const b = el(`<button class="btn ${value===o?'':'secondary'}" style="margin:0;text-align:left;"${closed?' disabled':''}>${escHtml(o)}</button>`);
+        b.onclick = ()=>{ S.draft[d.id + ':' + cur] = o; S.sig = ''; paint(d); };
+        field.appendChild(b);
+      });
+    } else {
+      field = el(`<input type="text" inputmode="decimal" placeholder="Type your answer"${closed?' disabled':''}>`);
+      field.value = value;
+      field.oninput = ()=>{ S.draft[d.id + ':' + cur] = field.value; };
+    }
+    box.appendChild(field);
+    const status = el(`<p class="muted" style="margin:10px 0 0;"></p>`);
+    if(!closed){
+      const send = el(`<button class="btn coral" style="margin-top:10px;">${mine !== undefined ? 'Change my answer' : 'Send my answer'}</button>`);
+      send.onclick = async ()=>{
+        const text = String(S.draft[d.id + ':' + cur] !== undefined ? S.draft[d.id + ':' + cur] : value).trim();
+        if(!text){ status.textContent = 'Type or choose an answer first.'; return; }
+        send.disabled = true;
+        const r = await postJSON('/api/live/answer', { classCode: STATE.classCode, alias: STATE.student.alias, sessionId: d.id, qIndex: cur, answer: text }).catch(()=>({error:'net'}));
+        send.disabled = false;
+        status.textContent = r.ok ? 'Answer sent ✅ Wait for your teacher.' : r.error === 'closed' ? 'Your teacher already closed this question.' : 'Could not send. Try again.';
+        if(r.ok){ S.sig = ''; }
+      };
+      box.append(send);
+      if(mine !== undefined) status.textContent = 'Answer sent ✅ Wait for your teacher. You can change it until the answer is revealed.';
+    } else {
+      const ok = q.mine && q.mine.ok;
+      box.appendChild(feedbackBox(!!ok, (q.mine ? (ok ? '✅ Correct!' : '❌ Not quite.') : '⏱ No answer sent.') + `<br><strong>Answer:</strong> ${escHtml(q.answer)}` + (q.why ? `<br><strong>How to do it:</strong> ${escHtml(q.why)}` : '')));
+      status.textContent = 'Wait for your teacher to send the next question.';
+    }
+    box.appendChild(status);
+    const past = d.questions.slice(0, cur).map((p,i)=>({p,i})).filter(x=>x.p.revealed);
+    if(past.length) box.appendChild(el(`<div style="margin-top:16px;"><div class="muted">Earlier:</div>${past.map(x=>`<div style="padding:4px 0;">${x.p.mine ? (x.p.mine.ok ? '✅' : '❌') : '⏱'} Q${x.i+1}: ${escHtml(x.p.answer)}</div>`).join('')}</div>`));
+  };
+  const poll = async ()=>{
+    let d = null;
+    try { d = await liveFetchStudent(); } catch(e){ return; }
+    if(STATE.screen !== 'live') return;
+    const sig = JSON.stringify(d);
+    if(sig === S.sig) return; // nothing changed; don't disturb what they're typing
+    S.sig = sig; paint(d);
+  };
+  poll();
+  STATE.liveTimer = setInterval(poll, LIVE_POLL_MS);
+  return c;
 }
 
 function screenDaily(){
@@ -1630,6 +1848,9 @@ function screenTeacher(){
   c.querySelector('#printBtn').onclick = ()=> window.print();
   c.querySelector('#summaryBtn').onclick = ()=>{ STATE.screen='teacherSummary'; render(); };
   c.querySelector('#dailyBtn').onclick = ()=>{ STATE.screen='teacherDaily'; render(); };
+  const liveBtn = el(`<button class="btn secondary" style="width:auto;margin:0;padding:10px 18px;">👥 Live group</button>`);
+  liveBtn.onclick = ()=>{ STATE.screen='teacherLive'; render(); };
+  c.querySelector('#dailyBtn').after(liveBtn);
   c.querySelector('#filterSlot').replaceWith(classFilterSelect(rows));
   const groupsDiv = c.querySelector('#groups');
   if(groups.length===0){
