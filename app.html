@@ -520,7 +520,7 @@ async function doSignup(alias, pin){
   STATE.alias = resp.alias;
   STATE.student = resp;
   STATE.rosterLoaded = false;
-  STATE.screen = resp.realName ? 'home' : 'nameCapture';
+  STATE.screen = needsRealName(resp) ? 'nameCapture' : 'home';
   render();
 }
 
@@ -533,24 +533,46 @@ async function doLogin(alias, pin){
   if(resp.error){ STATE.loginError='Could not find that alias.'; render(); return; }
   STATE.alias = resp.alias;
   STATE.student = resp;
-  STATE.screen = resp.realName ? 'home' : 'nameCapture';
+  STATE.screen = needsRealName(resp) ? 'nameCapture' : 'home';
   render();
 }
 
-// One-time prompt shown after login/signup when a student has no realName
-// on file yet. This never touches the AI-facing endpoints or the public
+// Rough check that a first name is plausible: letters only, sensible length, no keyboard
+// mashing or placeholder words. A student who really has an unusual name can still confirm it.
+const JUNK_NAMES = ['test','asdf','qwerty','idk','none','no','na','abc','xxx','name','student','hi','hello','lol','poop','bruh','me','user','guest','x','null','undefined'];
+function looksLikeRealName(n){
+  const t = String(n||'').trim();
+  if(t.length < 2 || t.length > 20) return false;
+  if(!/^[A-Za-zÀ-ÖØ-öø-ÿ][A-Za-zÀ-ÖØ-öø-ÿ'’-]*$/.test(t)) return false;
+  const l = t.toLowerCase();
+  if(JUNK_NAMES.includes(l)) return false;
+  if(/(.)\1\1/.test(l)) return false;
+  if(l.length >= 4 && !/[aeiouy]/.test(l)) return false;
+  if(/^(asd|sdf|dfg|qwe|wer|zxc|xcv|jkl|hjk|uiop|qaz)/.test(l)) return false;
+  return true;
+}
+function needsRealName(s){ return !s.realName || !looksLikeRealName(s.realName); }
+
+// Prompt shown after login/signup when a student has no realName on file, or one that
+// doesn't look like a real name. This never touches the AI-facing endpoints or the public
 // roster - it's merged into the student's own record via the normal save
 // path and only ever surfaced back out through the teacher-passcode-gated
 // dashboard, so it stays private even though the student enters it.
 function screenNameCapture(){
-  const c = el(`<div><div class="card"><h2 style="margin-bottom:6px;">One more thing!</h2><p class="muted" style="margin:0 0 14px;">What's your first name? Only your teacher can see this — no one else in the app ever will. First name only, please, no last name.</p><input type="text" id="nameInput" placeholder="Your first name" maxlength="40" /><button class="btn coral" id="goBtn" style="margin-top:16px;">Continue</button><button class="backlink" id="skipBtn" style="margin-top:14px;margin-bottom:0;">Skip for now</button></div></div>`);
+  const c = el(`<div><div class="card"><h2 style="margin-bottom:6px;">One more thing!</h2><p class="muted" style="margin:0 0 14px;">What's your first name? Only your teacher can see this — no one else in the app ever will. First name only, please, no last name.</p><input type="text" id="nameInput" placeholder="Your first name" maxlength="40" /><button class="btn coral" id="goBtn" style="margin-top:16px;">Continue</button><p class="error-text" id="nameMsg"></p></div></div>`);
   const nameInput = c.querySelector('#nameInput');
+  let confirmFake = false;
   const submit = ()=>{
     // Only the first name, never a last name - keeps this field a light
     // teacher-side note rather than anything that could re-identify a
     // student on its own.
     const firstWord = nameInput.value.trim().split(/\s+/)[0];
     if(!firstWord) return;
+    if(!confirmFake && !looksLikeRealName(firstWord)){
+      confirmFake = true;
+      c.querySelector('#nameMsg').innerHTML = `Hmm, that doesn't look like a first name. Please type your real first name. If that really is your name, press Continue again.`;
+      return;
+    }
     STATE.student.realName = firstWord.toUpperCase();
     saveStudent(STATE.student.alias, STATE.student);
     STATE.screen = 'home';
@@ -558,7 +580,6 @@ function screenNameCapture(){
   };
   nameInput.addEventListener('keydown', e=>{ if(e.key==='Enter') submit(); });
   c.querySelector('#goBtn').onclick = submit;
-  c.querySelector('#skipBtn').onclick = ()=>{ STATE.screen='home'; render(); };
   setTimeout(()=>nameInput.focus(), 0);
   return c;
 }
@@ -822,7 +843,7 @@ function liveSetupView(paint){
   const who = c.querySelector('#who');
   students.forEach(s=>{
     const on = L.picked.has(s.alias);
-    const b = el(`<button class="btn ${on?'':'secondary'}" style="width:auto;margin:0;padding:8px 14px;">${on?'✓ ':''}${escHtml(s.alias)}</button>`);
+    const b = el(`<button class="btn ${on?'':'secondary'}" style="width:auto;margin:0;padding:8px 14px;">${on?'✓ ':''}${escHtml(s.realName || s.alias)}${s.realName ? ` <span style="font-size:12px;opacity:.7;">(${escHtml(s.alias)})</span>` : ''}</button>`);
     b.onclick = ()=>{ on ? L.picked.delete(s.alias) : L.picked.add(s.alias); paint(); };
     who.appendChild(b);
   });
@@ -847,6 +868,8 @@ function liveRunView(paint){
   const L = STATE.live, s = L.session, cur = s.current, total = s.questions.length;
   const q = s.questions[cur];
   const resp = alias=>L.responses[alias] || {};
+  const rec = alias=>(STATE.teacherRows || []).find(r=>r.alias === alias && (r.classCode||'default') === liveClass());
+  const nameCell = alias=>{ const r = rec(alias); return r && r.realName ? `<strong>${escHtml(r.realName)}</strong> <span class="muted" style="font-size:12px;">(${escHtml(alias)})</span>` : `<strong>${escHtml(alias)}</strong>`; };
   const answered = s.group.filter(a=>resp(a)[cur]).length;
   const correct = s.group.filter(a=>resp(a)[cur] && resp(a)[cur].ok).length;
   const c = el(`<div><div class="card">
@@ -884,7 +907,7 @@ function liveRunView(paint){
   const tb = document.createElement('tbody');
   s.group.forEach(alias=>{
     const r = resp(alias);
-    let row = `<tr><td><strong>${escHtml(alias)}</strong></td>`, score = 0;
+    let row = `<tr><td>${nameCell(alias)}</td>`, score = 0;
     s.questions.forEach((_,i)=>{
       const m = r[i];
       if(m && m.ok) score++;
