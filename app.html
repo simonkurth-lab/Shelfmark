@@ -1216,6 +1216,30 @@ async function searchOpenLibrary(q){
 // Library comes back empty - Open Library can return a handful of wrong
 // matches for a misspelled query instead of zero, which used to skip the
 // Google fallback entirely.
+// Apple Books search (no API key, allows browser requests). A reliable backup when Google Books
+// is over its daily quota, and it copes with typos like "Dogman" or "dav pilkey".
+function cleanAppleTitle(t){
+  return String(t||'').replace(/\s*\([^)]*\)/g,'').replace(/:\s*(A|An|The)\s+[^:]*\b(Novel|Graphic Novel|Series)\b.*$/i,'').replace(/:\s*From the (Creator|Author|#1).*$/i,'').replace(/\s+/g,' ').trim();
+}
+async function searchAppleBooks(q){
+  try{
+    const resp = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(q)}&media=ebook&entity=ebook&limit=15`);
+    const data = await resp.json();
+    return (data.results||[]).filter(r=>r.trackName).map(r=>{
+      const year = r.releaseDate ? parseInt(r.releaseDate.slice(0,4), 10) : null;
+      return {
+        title: cleanAppleTitle(r.trackName),
+        author_name: r.artistName ? [r.artistName] : ['Unknown'],
+        key: '/works/apple:' + r.trackId,
+        number_of_pages_median: null,
+        first_publish_year: isNaN(year) ? null : year,
+        coverUrl: r.artworkUrl100 ? r.artworkUrl100.replace('100x100','200x200') : null,
+        description: r.description || '',
+        source: 'apple',
+      };
+    });
+  }catch(e){ return []; }
+}
 async function searchGoogleBooks(q){
   try{
     const resp = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&maxResults=15&printType=books&langRestrict=en`);
@@ -1293,8 +1317,8 @@ async function runSearch(){
   STATE.searchQuery = q;
   STATE.loading = true; STATE.loadingMsg='Searching...'; render();
   try{
-    const [gbResults, olResults] = await Promise.all([searchGoogleBooks(q), searchOpenLibrary(q)]);
-    STATE.searchResults = mergeSearchResults(gbResults, olResults, q);
+    const [gbResults, olResults, apResults] = await Promise.all([searchGoogleBooks(q), searchOpenLibrary(q), searchAppleBooks(q)]);
+    STATE.searchResults = mergeSearchResults(gbResults.concat(apResults), olResults, q);
   }catch(e){ STATE.searchResults = []; }
   STATE.loading = false;
   render();
@@ -1329,7 +1353,7 @@ async function openBook(b){
       description = (vd.volumeInfo && vd.volumeInfo.description) || '';
     }catch(e){}
   }
-  if(b.source !== 'gbooks'){
+  if(b.source !== 'gbooks' && b.source !== 'apple'){
     try{
       const workResp = await fetch(`https://openlibrary.org${b.key}.json`);
       const work = await workResp.json();
