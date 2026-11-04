@@ -1,0 +1,81 @@
+<style>
+.activity{max-width:720px;margin:0 auto;padding:16px;font-size:17px;line-height:1.6;color:#201e1d}
+h2{font-size:1.55em;line-height:1.2;margin:0 0 6px}
+h3{font-size:1.25em;margin:32px 0 10px}
+p{margin:0 0 12px}
+.pep{background:#fdf3e3;border:2px solid #d8c7ad;border-radius:16px;padding:12px 16px;font-weight:600}
+.panel{background:#fdf3e3;border:2px solid #d8c7ad;border-radius:16px;padding:14px 16px;margin:0 0 16px}
+.chart-wrap{overflow-x:auto;border-radius:16px;border:2px solid #d8c7ad}
+table{border-collapse:collapse;width:100%;min-width:640px;font-size:14px;text-align:center}
+th,td{border:1px solid #d8c7ad;padding:8px 4px}
+th{background:#fdf3e3;font-weight:700}
+th.dec,td.dec{background:#e6ecd9}
+th.pt,td.pt{background:#fff;font-size:22px;font-weight:800;width:18px}
+td{background:#fff;font-size:20px;font-weight:700}
+.legend{font-size:15px;margin:8px 0 0}
+.steps{margin:8px 0 0;padding-left:22px}
+.steps li{margin-bottom:6px}
+dl{margin:0}
+dt{font-weight:800;margin-top:8px}
+dd{margin:0 0 4px}
+.q{background:#fff;border:2px solid #d8c7ad;border-radius:16px;padding:14px 16px;margin:0 0 14px}
+label{display:block;font-weight:700;margin-bottom:10px}
+.big{display:block;font-size:24px;font-weight:800;letter-spacing:.5px;margin:4px 0}
+input,select{font:inherit;width:100%;box-sizing:border-box;min-height:52px;border:2px solid #d8c7ad;border-radius:12px;padding:10px 14px;background:#fff;color:#201e1d}
+input:focus,select:focus{outline:3px solid #c67139;outline-offset:2px;border-color:#c67139}
+details{margin-top:10px}
+summary{cursor:pointer;font-weight:700;color:#8a4520;padding:8px 0;min-height:44px;display:flex;align-items:center}
+details p{background:#fdf3e3;border-radius:12px;padding:10px 12px;margin:4px 0 0;font-size:16px}
+.work{background:#fdf3e3;border-radius:12px;padding:10px 12px;font-family:inherit;font-weight:700}
+.challenge{border-color:#c67139;border-style:dashed}
+.tag{display:inline-block;background:#c67139;color:#fff;border-radius:999px;padding:2px 12px;font-size:14px;font-weight:800;margin-bottom:8px}
+</style>
+<div class="activity">
+<h2>Daily Math: 1/10 of a Number &amp; Expanded Form</h2>
+<p class="pep">Ten questions. Take your time and check each answer! 💪</p>
+<h3>📌 Part A: Finding 1/10 of a number</h3>
+<div class="panel"><p><strong>1/10 of</strong> a number means <strong>divide by 10</strong>. Every digit moves <strong>one place to the right</strong>, so the answer gets <strong>smaller</strong>.</p>
+<p><strong>Check yourself:</strong> Is your answer smaller than the number you started with?</p>
+<p><strong>Examples:</strong> 1/10 of 300 = <strong>30</strong> · 1/10 of 2,000 = <strong>200</strong> · 1/10 of 50 = <strong>5</strong></p></div>
+<div class="q"><label for="q1">1. What is 1/10 of 600?</label>
+<input id="q1" type="text" inputmode="decimal" data-response="q1" placeholder="Type a number">
+<details><summary>💡 Need a hint?</summary><p>Divide by 10. 600 ÷ 10 = ?</p></details>
+</div>
+<div class="q"><label for="q2">2. What is 1/10 of 3,200?</label>
+<input id="q2" type="text" inputmode="decimal" data-response="q2" placeholder="Type a number">
+<details><summary>💡 Need a hint?</summary><p>Every digit moves one place to the right.</p></details>
+</div>
+<div class="q"><label for="q3">3. What is 1/10 of 90?</label>
+<input id="q3" type="text" inputmode="decimal" data-response="q3" placeholder="Type a number">
+</div>
+<div class="q"><label for="q4">4. What is 1/10 of 120?</label>
+<input id="q4" type="text" inputmode="decimal" data-response="q4" placeholder="Type a number">
+<details><summary>💡 Need a hint?</summary><p>Divide by 10. 120 ÷ 10 = ?</p></details>
+</div>
+<div class="q"><label for="q5">5. What is 1/10 of 4,500?</label>
+<input id="q5" type="text" inputmode="decimal" data-response="q5" placeholder="Type a number">
+<details><summary>💡 Need a hint?</summary><p>Every digit moves one place to the right. 4,500 ÷ 10 = ?</p></details>
+</div>
+<div class="q"><label for="q6">6. 🕵️ <strong>Find the mistake.</strong> Mia says 1/10 of 40 is 400. Is Mia correct?</label>
+<select id="q6" data-response="q6"><option value="">Choose...</option><option value="yes">Yes</option><option value="no">No</option></select>
+</div>
+<div class="q"><label for="q7">7. What is the right answer for 1/10 of 40?</label>
+<input id="q7" type="text" inputmode="decimal" data-response="q7" placeholder="Type a number">
+</div>
+<h3>📌 Part B: Expanded form</h3>
+<div class="panel"><p>Expanded form shows what each digit is <strong>worth</strong>.</p>
+<p><strong>Example:</strong> 4,357 = 4,000 + 300 + 50 + 7</p>
+<p><strong>Example:</strong> 8,042 = 8,000 + 40 + 2</p></div>
+<div class="q"><label for="q8">8. 5,000 + 600 + 20 + ___ = 5,628</label>
+<input id="q8" type="text" inputmode="decimal" data-response="q8" placeholder="Type a number">
+<details><summary>💡 Need a hint?</summary><p>Which digit is left over? It is the 8, in the ones place.</p></details>
+</div>
+<div class="q"><label for="q9">9. 8,000 + 100 + ___ + 4 = 8,154</label>
+<input id="q9" type="text" inputmode="decimal" data-response="q9" placeholder="Type a number">
+<details><summary>💡 Need a hint?</summary><p>The missing digit is 5, in the tens place. What is 5 tens worth?</p></details>
+</div>
+<div class="q"><label for="q10">10. Write 3,406 in expanded form.</label>
+<input id="q10" type="text" data-response="q10" placeholder="Example: 1,000 + 200 + 30 + 4">
+<details><summary>💡 Need a hint?</summary><p>There are no tens, so skip the tens place.</p></details>
+</div>
+<p class="pep">Nice work today! 🌟</p></div>
