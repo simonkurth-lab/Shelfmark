@@ -730,6 +730,24 @@ function mountActivity(host, key, html, plan){
       host.before(note);
     }
   }
+  // data-wordbank: buttons with data-insert="text" add that text where the student last clicked in a box.
+  if(root.querySelector('[data-wordbank]')){
+    let last = null;
+    root.addEventListener('focusin', e=>{ if(e.target.matches && e.target.matches('[data-response]')) last = e.target; });
+    root.querySelectorAll('[data-insert]').forEach(chip=>{
+      chip.addEventListener('mousedown', e=>e.preventDefault()); // keep the cursor in the box
+      chip.addEventListener('click', ()=>{
+        if(!last){ msg.textContent = 'Click inside a box first, then tap a word.'; return; }
+        const t = chip.dataset.insert + ' ';
+        const a0 = last.selectionStart != null ? last.selectionStart : last.value.length, b0 = last.selectionEnd != null ? last.selectionEnd : a0;
+        const before = last.value.slice(0, a0), after = last.value.slice(b0);
+        last.value = before + (before && !/\s$/.test(before) ? ' ' : '') + t + after;
+        const pos = (before + (before && !/\s$/.test(before) ? ' ' : '') + t).length;
+        last.focus(); try{ last.setSelectionRange(pos, pos); }catch(e){}
+        last.dispatchEvent(new Event('input', { bubbles:true }));
+      });
+    });
+  }
   if(root.querySelector('[data-gdoc]')){
     const docBtn = document.createElement('button');
     docBtn.className = 'btn secondary';
