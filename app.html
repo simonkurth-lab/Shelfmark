@@ -203,7 +203,7 @@ function classLabel(code){
 
 const STATE = {
   classCode: getSavedClass(), classConfirmed: false,
-  screen: new URLSearchParams(location.search).get('teacher') ? 'teacher' : 'login', alias: null, student: null,
+  screen: 'login', alias: null, student: null,
   roster: [], rosterLoaded: false,
   loginMode: 'pick', pendingAlias: null, loginError: '',
   signupAlias: '', signupPin: '', signupGrade: '35',
@@ -439,7 +439,7 @@ function logout(){
 
 function screenClassPick(){
   const lastClass = STATE.classCode; // whatever was remembered from last time, before this session's pick
-  const c = el(`<div><img class="class-pick-banner" src="images/class-select-banner.jpg" alt="A mountain overlooking the coast, from the Piki reading app art."><div class="card"><h2 style="margin-bottom:6px;">Which class are you in?</h2><p class="muted" style="margin:0 0 14px;">Pick your class so you see the right classmates.</p><div id="classCol"></div><button class="backlink" id="teacherBtn" style="margin-top:14px;margin-bottom:0;">Teacher dashboard</button></div></div>`);
+  const c = el(`<div><img class="class-pick-banner" src="images/class-select-banner.jpg" alt="A mountain overlooking the coast, from the Piki reading app art."><div class="card"><h2 style="margin-bottom:6px;">Which class are you in?</h2><p class="muted" style="margin:0 0 14px;">Pick your class so you see the right classmates.</p><div id="classCol"></div></div></div>`);
   const col = c.querySelector('#classCol');
   CLASSES.forEach(cls=>{
     const isLast = cls.code === lastClass;
@@ -447,7 +447,6 @@ function screenClassPick(){
     btn.onclick = ()=>{ STATE.classCode = cls.code; STATE.classConfirmed = true; saveClass(cls.code); STATE.rosterLoaded = false; render(); };
     col.appendChild(btn);
   });
-  c.querySelector('#teacherBtn').onclick = ()=>{ STATE.screen='teacher'; render(); };
   return c;
 }
 
@@ -455,7 +454,7 @@ function screenLogin(){
   if(STATE.loginMode==='pin') return screenLoginPin();
   if(STATE.loginMode==='signup') return screenSignup();
 
-  const c = el(`<div><a href="index.html" class="backlink" style="text-decoration:none;display:inline-block;">&larr; Back to home</a><div class="card"><h2 style="margin-bottom:6px;">Who's reading?</h2><p class="muted" style="margin:0 0 14px;">Pick your alias below — ${classLabel(STATE.classCode)}.</p><div id="names"></div><div class="divider">New here?</div><button class="btn secondary" id="newBtn">Create an alias</button><button class="btn secondary" id="teacherBtn">Teacher dashboard</button><button class="backlink" id="switchClass" style="margin-top:14px;margin-bottom:0;">Not your class? Switch</button></div></div>`);
+  const c = el(`<div><a href="index.html" class="backlink" style="text-decoration:none;display:inline-block;">&larr; Back to home</a><div class="card"><h2 style="margin-bottom:6px;">Who's reading?</h2><p class="muted" style="margin:0 0 14px;">Pick your alias below — ${classLabel(STATE.classCode)}.</p><div id="names"></div><div class="divider">New here?</div><button class="btn secondary" id="newBtn">Create an alias</button><button class="backlink" id="switchClass" style="margin-top:14px;margin-bottom:0;">Not your class? Switch</button></div></div>`);
   const namesDiv = c.querySelector('#names');
   if(!STATE.rosterLoaded){
     namesDiv.innerHTML = `<div class="loading">Loading class list...</div>`;
@@ -470,7 +469,6 @@ function screenLogin(){
     namesDiv.innerHTML = `<div class="empty">No aliases yet — be the first!</div>`;
   }
   c.querySelector('#newBtn').onclick = ()=>{ STATE.loginMode='signup'; STATE.signupAlias=''; STATE.signupPin=''; STATE.loginError=''; render(); };
-  c.querySelector('#teacherBtn').onclick = ()=>{ STATE.screen='teacher'; render(); };
   c.querySelector('#switchClass').onclick = ()=>{ STATE.classCode=null; STATE.classConfirmed=false; clearSavedClass(); STATE.rosterLoaded=false; render(); };
   return c;
 }
@@ -2468,6 +2466,15 @@ async function teacherLogin(passcode){
 }
 
 render();
+// Teacher dashboard is only reachable through a private link: app.html?teacher=<secret>.
+// Only a SHA-256 hash of the secret lives here, so students can't read the link from the source.
+(async()=>{
+  const t = new URLSearchParams(location.search).get('teacher');
+  if(!t || !window.crypto || !crypto.subtle) return;
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t));
+  const hex = Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+  if(hex === '5acd5f5f41e627ee9c6bfee22d289937d8121c8c817927ba621381ae8f76ee48'){ STATE.screen = 'teacher'; render(); }
+})();
 </script>
 </body>
 </html>
