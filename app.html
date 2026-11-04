@@ -855,6 +855,11 @@ function liveFetchStudent(){
   return api('/api/live?class=' + encodeURIComponent(STATE.classCode) + '&alias=' + encodeURIComponent(STATE.student.alias));
 }
 
+// Live questions can end with [img:name] to show images/numberlines/name.svg under the question text.
+function liveQParts(text){
+  const m = /\s*\[img:([a-z0-9-]+)\]\s*$/.exec(text || '');
+  return { text: m ? text.slice(0, m.index) : (text || ''), img: m ? `<img src="images/numberlines/${m[1]}.svg" alt="Number line for this question" style="display:block;width:100%;max-width:720px;margin:8px 0 12px;">` : '' };
+}
 // ---- Teacher ----
 async function liveTeacherRefresh(){
   const L = STATE.live, seq = L.seq;
@@ -933,7 +938,7 @@ function liveRunView(paint){
   const c = el(`<div><div class="card">
     <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center;"><h3 style="margin:0;">${escHtml(s.title)}</h3><span class="pill gold">Question ${cur+1} of ${total}</span></div>
     <div id="pips" style="display:flex;gap:4px;margin:12px 0;"></div>
-    <p style="font-size:20px;font-weight:700;margin:8px 0;">${escHtml(q.q)}</p>
+    <p style="font-size:20px;font-weight:700;margin:8px 0;">${escHtml(liveQParts(q.q).text)}</p>${liveQParts(q.q).img}
     ${q.type==='choice' && q.options ? `<ul style="margin:0 0 8px;">${q.options.map(o=>`<li>${escHtml(o)}</li>`).join('')}</ul>` : ''}
     <p class="muted" style="margin:0 0 10px;">Answer: <strong>${escHtml([].concat(q.a)[0])}</strong>${q.why ? ' · ' + escHtml(q.why) : ''}</p>
     <p style="margin:0 0 12px;"><strong>${answered}/${s.group.length}</strong> answered · <strong style="color:#2f7a2f;">${correct}</strong> correct${s.revealed[cur] ? ' · <em>answer revealed to students</em>' : ''}</p>
@@ -993,7 +998,9 @@ function screenLive(){
     if(!d || !d.active){ box.innerHTML = '<h2>👥 Group time</h2><p class="muted">Waiting for your teacher to send a question…</p>'; return; }
     const cur = d.current, q = d.questions[cur];
     box.appendChild(el(`<div><div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center;"><h2 style="margin:0;">👥 ${escHtml(d.title)}</h2><span class="pill gold">Question ${cur+1}</span></div></div>`));
-    box.appendChild(el(`<p style="font-size:20px;font-weight:700;margin:14px 0 8px;">${escHtml(q.q)}</p>`));
+    const qp = liveQParts(q.q);
+    box.appendChild(el(`<p style="font-size:20px;font-weight:700;margin:14px 0 8px;">${escHtml(qp.text)}</p>`));
+    if(qp.img) box.appendChild(el(`<div>${qp.img}</div>`));
     const draft = S.draft[d.id + ':' + cur];
     const mine = q.mine ? q.mine.a : undefined;
     let value = draft !== undefined ? draft : (mine || '');

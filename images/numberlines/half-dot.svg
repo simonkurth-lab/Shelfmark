@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 150" role="img" font-family="Nunito,Arial,sans-serif">
+<rect width="720" height="150" rx="14" fill="#fdf3e3" stroke="#d8c7ad" stroke-width="2"/>
+<line x1="40" y1="70" x2="680" y2="70" stroke="#201e1d" stroke-width="4" stroke-linecap="round"/>
+<line x1="40.0" y1="56" x2="40.0" y2="84" stroke="#201e1d" stroke-width="3"/>
+<text x="40.0" y="110" text-anchor="middle" font-size="22" font-weight="800" fill="#201e1d">0</text>
+<line x1="104.0" y1="56" x2="104.0" y2="84" stroke="#201e1d" stroke-width="3"/>
+<line x1="168.0" y1="56" x2="168.0" y2="84" stroke="#201e1d" stroke-width="3"/>
+<line x1="232.0" y1="56" x2="232.0" y2="84" stroke="#201e1d" stroke-width="3"/>
+<line x1="296.0" y1="56" x2="296.0" y2="84" stroke="#201e1d" stroke-width="3"/>
+<line x1="360.0" y1="56" x2="360.0" y2="84" stroke="#201e1d" stroke-width="3"/>
+<line x1="424.0" y1="56" x2="424.0" y2="84" stroke="#201e1d" stroke-width="3"/>
+<line x1="488.0" y1="56" x2="488.0" y2="84" stroke="#201e1d" stroke-width="3"/>
+<line x1="552.0" y1="56" x2="552.0" y2="84" stroke="#201e1d" stroke-width="3"/>
+<line x1="616.0" y1="56" x2="616.0" y2="84" stroke="#201e1d" stroke-width="3"/>
+<line x1="680.0" y1="56" x2="680.0" y2="84" stroke="#201e1d" stroke-width="3"/>
+<text x="680.0" y="110" text-anchor="middle" font-size="22" font-weight="800" fill="#201e1d">1</text>
+<circle cx="360.0" cy="70" r="11" fill="#c67139" stroke="#fff" stroke-width="3"/>
+</svg>
