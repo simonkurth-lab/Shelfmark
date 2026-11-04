@@ -396,6 +396,7 @@ function buildScreen(){
   else if(STATE.screen==='teacherDaily') body = screenTeacherDaily();
   else if(STATE.screen==='teacherTrends') body = screenTeacherTrends();
   else if(STATE.screen==='teacherLive') body = screenTeacherLive();
+  else if(STATE.screen==='teacherEssays') body = screenTeacherEssays();
   else if(!STATE.classConfirmed) body = screenClassPick();
   else if(STATE.screen==='login') body = screenLogin();
   else if(STATE.screen==='nameCapture') body = screenNameCapture();
@@ -632,6 +633,7 @@ const DAILY_SUBJECTS = [
   { id:'math', label:'Math', emoji:'➗' },
   { id:'math-review', label:'Math Review', emoji:'🛟' },
   { id:'social', label:'Social Studies', emoji:'🌎' },
+  { id:'essay', label:'Essay', emoji:'✍️' },
 ];
 function dailyKeyFor(day, subjectId){ return day + (subjectId ? '-' + subjectId : ''); }
 
@@ -677,13 +679,19 @@ function mountActivity(host, key, html, plan){
   const saved = (STATE.student.daily && STATE.student.daily[key]) || {};
   const fields = root.querySelectorAll('[data-response]');
   fields.forEach(f=>{ const v = saved[f.dataset.response]; if(v != null) f.value = v; });
+  // data-carry: an activity that continues over several days starts from the student's latest earlier save.
+  if(root.querySelector('[data-carry]') && !saved._submittedAt){
+    const sub = key.slice(10), daily = STATE.student.daily || {};
+    const prevKey = Object.keys(daily).filter(k=>k !== key && k.slice(10) === sub && daily[k]._submittedAt && k.slice(0,10) < key.slice(0,10)).sort().pop();
+    if(prevKey) fields.forEach(f=>{ const v = daily[prevKey][f.dataset.response]; if(v != null) f.value = v; });
+  }
   const btn = document.createElement('button');
   btn.className = 'btn coral';
   btn.textContent = saved._submittedAt ? 'Update my answers' : 'Save my answers';
   const msg = document.createElement('p');
   msg.className = 'muted';
   msg.textContent = saved._submittedAt ? 'Saved. You can edit and save again.' : '';
-  btn.onclick = async ()=>{
+  const doSave = async (auto)=>{
     const answers = {};
     fields.forEach(f=>{ answers[f.dataset.response] = f.value; });
     answers._submittedAt = new Date().toISOString();
@@ -694,13 +702,71 @@ function mountActivity(host, key, html, plan){
     await saveStudent(STATE.student.alias, STATE.student);
     btn.disabled = false;
     btn.textContent = 'Update my answers';
-    msg.textContent = 'Saved! ✅';
+    msg.textContent = auto ? 'Saved automatically ✅' : 'Saved! ✅';
   };
+  btn.onclick = ()=>doSave(false);
+  // Activities marked data-carry (multi-day work like the essay) save on their own a couple of seconds after typing stops.
+  if(root.querySelector('[data-carry]')){
+    let timer = null;
+    fields.forEach(f=>f.addEventListener('input', ()=>{
+      msg.textContent = 'Saving…';
+      clearTimeout(timer);
+      timer = setTimeout(()=>{ if(document.body.contains(host)) doSave(true); }, 2000);
+    }));
+  }
   // host has a shadow root, so light-DOM children of it never render;
   // the button and message go right after it instead.
   host.after(btn, msg);
+  if(root.querySelector('[data-gdoc]')){
+    const docBtn = document.createElement('button');
+    docBtn.className = 'btn secondary';
+    docBtn.textContent = '📄 Make a Google Doc';
+    docBtn.onclick = ()=> makeGoogleDoc(root, fields, msg);
+    msg.after(docBtn);
+  }
   if(root.querySelector('[data-readaloud]')) addReadAloud(root);
   loadFeedbackData(key).then(fb=>attachFeedback(root, fb));
+}
+
+
+// ---- "Make a Google Doc" for writing activities ----
+// Fields marked data-doc-p="N" are gathered, in order, into paragraph N. data-doc-pre / data-doc-post
+// wrap what the student typed, data-doc-color (g/y/r) highlights it, and data-doc-blank shows ____ when empty.
+// We can't create the Doc for them without a Google sign-in, so we copy the essay (with its colors) and open
+// a new blank Google Doc to paste into. If copying isn't allowed, a .doc file downloads instead.
+function docItemsFromFields(fields){
+  return Array.from(fields).filter(f=>f.dataset.docP).map(f=>({ p:f.dataset.docP, color:f.dataset.docColor, pre:f.dataset.docPre, post:f.dataset.docPost, blank:f.dataset.docBlank !== undefined, value:f.value }));
+}
+function buildDocHtml(items, title){
+  const COLORS = { g:'#c3eac3', y:'#fce79a', r:'#fdc4bf' };
+  const paras = {};
+  items.forEach(f=>{
+    const v = (f.value || '').trim();
+    if(!v && !f.blank) return;
+    (paras[f.p] = paras[f.p] || []).push({ text:(f.pre || '') + (v || '____') + (f.post || ''), color: COLORS[f.color] });
+  });
+  const esc = s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  title = title || 'Essay draft';
+  const body = Object.keys(paras).sort().map(p=>'<p>' + paras[p].map(x=>`<span style="background-color:${x.color || 'transparent'}">${esc(x.text)}</span>`).join(' ') + '</p>').join('');
+  const plain = Object.keys(paras).sort().map(p=>paras[p].map(x=>x.text).join(' ')).join('\n\n');
+  return { html: `<h1>${esc(title)}</h1>${body}`, body, plain: title + '\n\n' + plain, any: Object.keys(paras).length > 0 };
+}
+async function makeGoogleDoc(root, fields, msg){
+  const d = buildDocHtml(docItemsFromFields(fields), (root.querySelector('h2') || {}).textContent);
+  if(!d.any){ msg.textContent = 'Write something in the boxes first, then try again.'; return; }
+  const w = window.open('about:blank', '_blank');
+  try{
+    await navigator.clipboard.write([new ClipboardItem({ 'text/html': new Blob([d.html], {type:'text/html'}), 'text/plain': new Blob([d.plain], {type:'text/plain'}) })]);
+    if(w) w.location.href = 'https://docs.google.com/document/create';
+    msg.textContent = 'Copied! ✅ In the new Google Doc, press Ctrl+V (or Cmd+V) to paste your essay.';
+  } catch(e){
+    if(w) w.close();
+    const blob = new Blob(['<html><head><meta charset="utf-8"></head><body>' + d.html + '</body></html>'], {type:'application/msword'});
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob); link.download = 'Esperanza Rising essay.doc';
+    document.body.appendChild(link); link.click(); link.remove();
+    msg.textContent = 'Downloaded a Word file. In Google Drive, choose New > File upload, then open it with Google Docs.';
+  }
 }
 
 // ---- Read-aloud for activities ----
@@ -1087,6 +1153,8 @@ function screenDaily(){
   Promise.all(DAILY_SUBJECTS.map(sub=>
     fetch('activities/' + dailyKeyFor(day, sub.id) + '.html')
       .then(r=>r.ok ? r.text() : null).catch(()=>null)
+      // The essay brainstorm is a standing activity (activities/essay-brainstorm.html) that shows every day until it's removed.
+      .then(h=>h || (sub.id === 'essay' ? fetch('activities/essay-brainstorm.html').then(r=>r.ok ? r.text() : null).catch(()=>null) : null))
       .then(html=>html ? { ...sub, html } : null)
   )).then(all=>{
     const list = all.filter(Boolean);
@@ -1939,6 +2007,9 @@ function screenTeacher(){
   const liveBtn = el(`<button class="btn secondary" style="width:auto;margin:0;padding:10px 18px;">👥 Live group</button>`);
   liveBtn.onclick = ()=>{ STATE.screen='teacherLive'; render(); };
   c.querySelector('#dailyBtn').after(liveBtn);
+  const essayBtn = el(`<button class="btn secondary" style="width:auto;margin:0;padding:10px 18px;">✍️ Essays</button>`);
+  essayBtn.onclick = ()=>{ STATE.screen='teacherEssays'; render(); };
+  liveBtn.after(essayBtn);
   c.querySelector('#filterSlot').replaceWith(classFilterSelect(rows));
   const groupsDiv = c.querySelector('#groups');
   if(groups.length===0){
@@ -1967,6 +2038,43 @@ function screenTeacher(){
       groupsDiv.appendChild(groupCard);
     });
   }
+  return c;
+}
+
+
+// ---- Teacher: essay brainstorm review ----
+// Shows each student's latest saved essay brainstorm (the standing activity activities/essay-brainstorm.html),
+// assembled into a color-coded essay draft so it's quick to read.
+function screenTeacherEssays(){
+  if(!STATE.teacherAuthed) return screenTeacherLogin();
+  const allRows = (STATE.teacherRows || []).filter(s=>DAILY_CLASSES.includes(s.classCode||'default'));
+  const students = filterRowsByClass(allRows, STATE.teacherClassFilter).sort((a,b)=>a.alias.localeCompare(b.alias));
+  const c = el(`<div><button class="backlink" id="back">&larr; Back to roster</button><div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;"><div><h2 style="margin-bottom:4px;">✍️ Essay brainstorms</h2><p class="muted" style="margin:0;">Each student's latest saved work, shown as a color-coded draft.</p></div><span id="filterSlot"></span></div><div id="body" style="margin-top:14px;"></div></div></div>`);
+  c.querySelector('#back').onclick = ()=>{ STATE.screen='teacher'; render(); };
+  c.querySelector('#filterSlot').replaceWith(classFilterSelect(allRows));
+  const body = c.querySelector('#body');
+  if(STATE.essayMeta === undefined){
+    body.innerHTML = '<div class="loading">Loading...</div>';
+    fetch('activities/essay-brainstorm.html').then(r=>r.ok ? r.text() : null).catch(()=>null).then(h=>{
+      STATE.essayMeta = h ? Array.from(new DOMParser().parseFromString(h, 'text/html').querySelectorAll('[data-response][data-doc-p]')).map(f=>({ key:f.getAttribute('data-response'), p:f.getAttribute('data-doc-p'), color:f.getAttribute('data-doc-color'), pre:f.getAttribute('data-doc-pre'), post:f.getAttribute('data-doc-post'), blank:f.hasAttribute('data-doc-blank') })) : null;
+      if(STATE.screen === 'teacherEssays') render();
+    });
+    return c;
+  }
+  if(!STATE.essayMeta){ body.innerHTML = '<div class="empty">The essay activity file (activities/essay-brainstorm.html) was not found.</div>'; return c; }
+  const latest = s=>{ const k = Object.keys(s.daily || {}).filter(k=>k.slice(10) === '-essay' && s.daily[k]._submittedAt).sort().pop(); return k ? { key:k, rec:s.daily[k] } : null; };
+  const started = [], notStarted = [];
+  students.forEach(s=>{ const l = latest(s); (l ? started : notStarted).push({ s, l }); });
+  const nameOf = s=>s.realName || s.alias;
+  body.appendChild(el(`<p><strong>${started.length}</strong> saved · <strong>${notStarted.length}</strong> not started</p>`));
+  started.forEach(({s,l})=>{
+    const items = STATE.essayMeta.map(m=>({ ...m, value:l.rec[m.key] || '' }));
+    const filled = items.filter(i=>(i.value||'').trim()).length;
+    const d = buildDocHtml(items, nameOf(s) + ' — Esperanza Rising essay');
+    const det = el(`<details style="border-top:1px solid var(--line);"><summary style="cursor:pointer;padding:10px 4px;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;"><strong>${escHtml(nameOf(s))}</strong><span class="muted">${filled}/${items.length} boxes filled · saved ${escHtml(l.key.slice(0,10))}</span></summary><div style="padding:6px 4px 14px;line-height:1.6;">${d.body || '<p class="muted">Nothing written yet.</p>'}</div></details>`);
+    body.appendChild(det);
+  });
+  if(notStarted.length) body.appendChild(el(`<p class="muted" style="margin-top:14px;"><strong>Not started:</strong> ${notStarted.map(x=>escHtml(nameOf(x.s))).join(', ')}</p>`));
   return c;
 }
 
