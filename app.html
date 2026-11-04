@@ -1121,6 +1121,11 @@ function screenLive(){
   return c;
 }
 
+// The host answers a missing file with the site's home page (200), so a real activity is only
+// accepted if it is a fragment, not a full HTML page.
+function fetchActivityFile(url){
+  return fetch(url).then(r=>r.ok ? r.text() : null).catch(()=>null).then(h=>(h && !/<!doctype|<html/i.test(h)) ? h : null);
+}
 function screenDaily(){
   const day = todayStr();
   const c = el(`<div><button class="backlink" id="back">&larr; Back</button><div class="card"><h2 style="margin-bottom:6px;">Today's activity</h2><div id="tabs" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;"></div><div id="activityHost"><div class="loading">Loading...</div></div></div></div>`);
@@ -1151,10 +1156,9 @@ function screenDaily(){
   const cached = STATE.dailyToday && STATE.dailyToday.day === day ? STATE.dailyToday.list : null;
   if(cached){ show(cached); return c; }
   Promise.all(DAILY_SUBJECTS.map(sub=>
-    fetch('activities/' + dailyKeyFor(day, sub.id) + '.html')
-      .then(r=>r.ok ? r.text() : null).catch(()=>null)
+    fetchActivityFile('activities/' + dailyKeyFor(day, sub.id) + '.html')
       // The essay brainstorm is a standing activity (activities/essay-brainstorm.html) that shows every day until it's removed.
-      .then(h=>h || (sub.id === 'essay' ? fetch('activities/essay-brainstorm.html').then(r=>r.ok ? r.text() : null).catch(()=>null) : null))
+      .then(h=>h || (sub.id === 'essay' ? fetchActivityFile('activities/essay-brainstorm.html') : null))
       .then(html=>html ? { ...sub, html } : null)
   )).then(all=>{
     const list = all.filter(Boolean);
@@ -2055,7 +2059,7 @@ function screenTeacherEssays(){
   const body = c.querySelector('#body');
   if(STATE.essayMeta === undefined){
     body.innerHTML = '<div class="loading">Loading...</div>';
-    fetch('activities/essay-brainstorm.html').then(r=>r.ok ? r.text() : null).catch(()=>null).then(h=>{
+    fetchActivityFile('activities/essay-brainstorm.html').then(h=>{
       STATE.essayMeta = h ? Array.from(new DOMParser().parseFromString(h, 'text/html').querySelectorAll('[data-response][data-doc-p]')).map(f=>({ key:f.getAttribute('data-response'), p:f.getAttribute('data-doc-p'), color:f.getAttribute('data-doc-color'), pre:f.getAttribute('data-doc-pre'), post:f.getAttribute('data-doc-post'), blank:f.hasAttribute('data-doc-blank') })) : null;
       if(STATE.screen === 'teacherEssays') render();
     });
