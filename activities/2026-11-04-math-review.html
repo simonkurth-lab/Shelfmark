@@ -1,0 +1,82 @@
+<style>
+.activity{max-width:720px;margin:0 auto;padding:16px;font-size:17px;line-height:1.6;color:#201e1d}
+h2{font-size:1.55em;line-height:1.2;margin:0 0 6px}
+h3{font-size:1.25em;margin:32px 0 10px}
+p{margin:0 0 12px}
+.pep{background:#fdf3e3;border:2px solid #d8c7ad;border-radius:16px;padding:12px 16px;font-weight:600}
+.panel{background:#fdf3e3;border:2px solid #d8c7ad;border-radius:16px;padding:14px 16px;margin:0 0 16px}
+.chart-wrap{overflow-x:auto;border-radius:16px;border:2px solid #d8c7ad}
+table{border-collapse:collapse;width:100%;min-width:640px;font-size:14px;text-align:center}
+th,td{border:1px solid #d8c7ad;padding:8px 4px}
+th{background:#fdf3e3;font-weight:700}
+th.dec,td.dec{background:#e6ecd9}
+th.pt,td.pt{background:#fff;font-size:22px;font-weight:800;width:18px}
+td{background:#fff;font-size:20px;font-weight:700}
+.legend{font-size:15px;margin:8px 0 0}
+.steps{margin:8px 0 0;padding-left:22px}
+.steps li{margin-bottom:6px}
+dl{margin:0}
+dt{font-weight:800;margin-top:8px}
+dd{margin:0 0 4px}
+.q{background:#fff;border:2px solid #d8c7ad;border-radius:16px;padding:14px 16px;margin:0 0 14px}
+label{display:block;font-weight:700;margin-bottom:10px}
+.big{display:block;font-size:24px;font-weight:800;letter-spacing:.5px;margin:4px 0}
+input,select{font:inherit;width:100%;box-sizing:border-box;min-height:52px;border:2px solid #d8c7ad;border-radius:12px;padding:10px 14px;background:#fff;color:#201e1d}
+input:focus,select:focus{outline:3px solid #c67139;outline-offset:2px;border-color:#c67139}
+details{margin-top:10px}
+summary{cursor:pointer;font-weight:700;color:#8a4520;padding:8px 0;min-height:44px;display:flex;align-items:center}
+details p{background:#fdf3e3;border-radius:12px;padding:10px 12px;margin:4px 0 0;font-size:16px}
+.work{background:#fdf3e3;border-radius:12px;padding:10px 12px;font-family:inherit;font-weight:700}
+.challenge{border-color:#c67139;border-style:dashed}
+.tag{display:inline-block;background:#c67139;color:#fff;border-radius:999px;padding:2px 12px;font-size:14px;font-weight:800;margin-bottom:8px}
+</style>
+<div class="activity">
+<h2>Number Lines: Fractions &amp; Decimals</h2>
+<p class="pep">Use the number line picture to help you on every question. Take your time! 💪</p>
+<div class="panel"><p><strong>Reading a number line:</strong></p><ul><li>Count the <strong>equal parts</strong> between 0 and 1. That is the bottom number (denominator).</li><li>Count the marks from 0 to the point. That is the top number (numerator).</li><li>10 parts = tenths (0.1 each). 100 parts = hundredths (0.01 each).</li></ul><p><strong>Farther right = greater.</strong></p></div>
+<img src="images/numberlines/tenths-labeled.svg" alt="Number line from 0 to 1 with every tenth labeled" style="display:block;width:100%;max-width:720px;margin:0 0 16px;">
+<div class="q"><label for="q1">1. A number line from 0 to 1 is cut into 10 equal parts. A point is on the 3rd mark after 0. What fraction is it?</label>
+<img src="images/numberlines/tenths-dot3.svg" alt="Number line for question 1" style="display:block;width:100%;max-width:720px;margin:0 0 12px;">
+<select id="q1" data-response="q1"><option value="">Choose...</option><option value="3/1">3/1</option><option value="3/10">3/10</option><option value="7/10">7/10</option><option value="1/3">1/3</option></select>
+</div>
+<div class="q"><label for="q2">2. Same number line (0 to 1, cut into 10 equal parts). The point is on the 3rd mark. What decimal is it?</label>
+<img src="images/numberlines/tenths-dot3.svg" alt="Number line for question 2" style="display:block;width:100%;max-width:720px;margin:0 0 12px;">
+<input id="q2" type="text" inputmode="decimal" data-response="q2" placeholder="Type a number">
+</div>
+<div class="q"><label for="q3">3. A number line from 0 to 1 is cut into 4 equal parts. A point is on the 3rd mark after 0. What fraction is it?</label>
+<img src="images/numberlines/fourths-dot3.svg" alt="Number line for question 3" style="display:block;width:100%;max-width:720px;margin:0 0 12px;">
+<select id="q3" data-response="q3"><option value="">Choose...</option><option value="3/3">3/3</option><option value="3/4">3/4</option><option value="1/4">1/4</option><option value="4/3">4/3</option></select>
+</div>
+<div class="q"><label for="q4">4. A number line from 0 to 1 is cut into 10 equal parts. A point is halfway between the 4th and 5th marks. Which hundredths decimal is it? (Hint: halfway between 0.4 and 0.5.)</label>
+<img src="images/numberlines/tenths-between.svg" alt="Number line for question 4" style="display:block;width:100%;max-width:720px;margin:0 0 12px;">
+<input id="q4" type="text" inputmode="decimal" data-response="q4" placeholder="Type a number">
+</div>
+<div class="q"><label for="q5">5. Which number is the same as 0.5 on a number line?</label>
+<img src="images/numberlines/half-dot.svg" alt="Number line for question 5" style="display:block;width:100%;max-width:720px;margin:0 0 12px;">
+<select id="q5" data-response="q5"><option value="">Choose...</option><option value="1/2">1/2</option><option value="5/100">5/100</option><option value="2/5">2/5</option><option value="1/5">1/5</option></select>
+</div>
+<div class="q"><label for="q6">6. A number line goes from 0 to 1 with marks at every 0.1. Which point is farther to the right?</label>
+<img src="images/numberlines/tenths-labeled.svg" alt="Number line for question 6" style="display:block;width:100%;max-width:720px;margin:0 0 12px;">
+<select id="q6" data-response="q6"><option value="">Choose...</option><option value="0.7">0.7</option><option value="0.6">0.6</option><option value="They are the same">They are the same</option><option value="Cannot tell">Cannot tell</option></select>
+</div>
+<div class="q"><label for="q7">7. Which list is in order from least to greatest (left to right on a number line)?</label>
+<img src="images/numberlines/tenths-labeled.svg" alt="Number line for question 7" style="display:block;width:100%;max-width:720px;margin:0 0 12px;">
+<select id="q7" data-response="q7"><option value="">Choose...</option><option value="0.25, 0.2, 0.3">0.25, 0.2, 0.3</option><option value="0.3, 0.25, 0.2">0.3, 0.25, 0.2</option><option value="0.3, 0.2, 0.25">0.3, 0.2, 0.25</option><option value="0.2, 0.25, 0.3">0.2, 0.25, 0.3</option></select>
+</div>
+<div class="q"><label for="q8">8. Which is greater: 0.6 or 0.58? Think about where each sits on a number line.</label>
+<img src="images/numberlines/hundredths-zoom.svg" alt="Number line for question 8" style="display:block;width:100%;max-width:720px;margin:0 0 12px;">
+<select id="q8" data-response="q8"><option value="">Choose...</option><option value="0.58">0.58</option><option value="Cannot tell">Cannot tell</option><option value="0.6">0.6</option><option value="They are equal">They are equal</option></select>
+</div>
+<div class="q"><label for="q9">9. Each whole on a number line is cut into 4 equal parts. A point is on the 6th mark after 0. Which mixed number is it?</label>
+<img src="images/numberlines/fourths-0-2.svg" alt="Number line for question 9" style="display:block;width:100%;max-width:720px;margin:0 0 12px;">
+<select id="q9" data-response="q9"><option value="">Choose...</option><option value="2 1/4">2 1/4</option><option value="1 4/6">1 4/6</option><option value="1 2/4">1 2/4</option><option value="6/10">6/10</option></select>
+</div>
+<div class="q"><label for="q10">10. Which fraction is closest to 0 on a number line?</label>
+<img src="images/numberlines/eighths.svg" alt="Number line for question 10" style="display:block;width:100%;max-width:720px;margin:0 0 12px;">
+<select id="q10" data-response="q10"><option value="">Choose...</option><option value="3/4">3/4</option><option value="1/8">1/8</option><option value="1/4">1/4</option><option value="1/2">1/2</option></select>
+</div>
+<div class="q"><label for="q11">11. A number line from 0 to 1 is cut into 100 equal parts. A point is on the 25th mark. Which decimal and fraction is it?</label>
+<img src="images/numberlines/hundredths-dot25.svg" alt="Number line for question 11" style="display:block;width:100%;max-width:720px;margin:0 0 12px;">
+<select id="q11" data-response="q11"><option value="">Choose...</option><option value="0.25 = 25/100">0.25 = 25/100</option><option value="2.5 = 25/10">2.5 = 25/10</option><option value="0.52 = 52/100">0.52 = 52/100</option><option value="0.025 = 25/1000">0.025 = 25/1000</option></select>
+</div>
+<p class="pep">Great work on the number line! 🌟</p></div>
