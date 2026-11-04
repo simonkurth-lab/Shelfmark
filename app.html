@@ -717,12 +717,47 @@ function mountActivity(host, key, html, plan){
   // host has a shadow root, so light-DOM children of it never render;
   // the button and message go right after it instead.
   host.after(btn, msg);
+  // Teacher feedback on a multi-day activity (data-carry): the latest note, if any, shows above the activity.
+  if(root.querySelector('[data-carry]')){
+    const sub = key.slice(10), marks = STATE.student.dailyMarks || {};
+    const nk = Object.keys(marks).filter(k=>k.slice(10) === sub && marks[k] && marks[k].feedback && marks[k].feedback.comment).sort().pop();
+    if(nk){
+      const note = document.createElement('div');
+      note.className = 'card';
+      note.style.cssText = 'background:#fdf3e3;border:2px solid #d8c7ad;margin-bottom:12px;';
+      note.innerHTML = '<strong>💬 Your teacher wrote:</strong><p style="margin:6px 0 0;"></p>';
+      note.querySelector('p').textContent = marks[nk].feedback.comment;
+      host.before(note);
+    }
+  }
   if(root.querySelector('[data-gdoc]')){
     const docBtn = document.createElement('button');
     docBtn.className = 'btn secondary';
     docBtn.textContent = '📄 Make a Google Doc';
     docBtn.onclick = ()=> makeGoogleDoc(root, fields, msg);
     msg.after(docBtn);
+  }
+  // data-need="message" (and optional data-minwords) on fields adds a "Check my work" checklist.
+  if(root.querySelector('[data-need]')){
+    const checkBtn = document.createElement('button');
+    checkBtn.className = 'btn secondary';
+    checkBtn.textContent = '✅ Check my work';
+    const out = document.createElement('div');
+    out.className = 'muted';
+    checkBtn.onclick = ()=>{
+      const groups = new Map();
+      root.querySelectorAll('[data-need]').forEach(f=>{
+        const words = f.value.trim().split(/\s+/).filter(Boolean).length;
+        const ok = words >= Number(f.dataset.minwords || 1);
+        f.style.outline = ok ? '' : '3px solid #d9534f';
+        const g = groups.get(f.dataset.need) || { ok:true };
+        g.ok = g.ok && ok; groups.set(f.dataset.need, g);
+      });
+      const items = Array.from(groups).map(([t,g])=>`<li style="list-style:none;margin:4px 0;">${g.ok ? '✅' : '⬜'} ${escHtml(t)}</li>`).join('');
+      const left = Array.from(groups.values()).filter(g=>!g.ok).length;
+      out.innerHTML = `<ul style="padding:0;margin:10px 0;">${items}</ul><p style="margin:0 0 10px;"><strong>${left ? 'Almost! Fix the boxes outlined in red.' : 'Everything is filled in. Great work! Now make your Google Doc.'}</strong></p>`;
+    };
+    msg.after(checkBtn, out);
   }
   if(root.querySelector('[data-readaloud]')) addReadAloud(root);
   loadFeedbackData(key).then(fb=>attachFeedback(root, fb));
@@ -2100,6 +2135,19 @@ function screenTeacherEssays(){
     const filled = items.filter(i=>(i.value||'').trim()).length;
     const d = buildDocHtml(items, nameOf(s) + ' — Esperanza Rising essay');
     const det = el(`<details style="border-top:1px solid var(--line);"><summary style="cursor:pointer;padding:10px 4px;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;"><strong>${escHtml(nameOf(s))}</strong><span class="muted">${filled}/${items.length} boxes filled · saved ${escHtml(l.key.slice(0,10))}</span></summary><div style="padding:6px 4px 14px;line-height:1.6;">${d.body || '<p class="muted">Nothing written yet.</p>'}</div></details>`);
+    const fb = ((s.dailyMarks || {})[l.key] || {}).feedback;
+    const fbBox = el(`<div style="padding:0 4px 14px;"><label class="muted" style="font-size:13px;">Feedback for ${escHtml(nameOf(s))} (they see it at the top of their Essay tab)</label><textarea style="width:100%;min-height:70px;margin-top:4px;" placeholder="e.g. Great thesis! Add a quote to challenge 2."></textarea><button class="btn secondary" style="width:auto;margin:6px 0 0;padding:8px 16px;">Send feedback</button> <span class="muted"></span></div>`);
+    const ta = fbBox.querySelector('textarea'), sendBtn = fbBox.querySelector('button'), st = fbBox.querySelector('span');
+    ta.value = (fb && fb.comment) || '';
+    sendBtn.onclick = async ()=>{
+      sendBtn.disabled = true; st.textContent = 'Sending...';
+      const resp = await postJSON('/api/teacher/save-marks', { passcode: STATE.teacherPasscode, alias: s.alias, classCode: s.classCode || 'default', date: l.key, marks: { feedback: { comment: ta.value } } });
+      sendBtn.disabled = false;
+      if(resp.error){ st.textContent = 'Could not send: ' + resp.error; return; }
+      replaceTeacherRow(resp);
+      st.textContent = 'Sent ✅';
+    };
+    det.appendChild(fbBox);
     body.appendChild(det);
   });
   if(notStarted.length) body.appendChild(el(`<p class="muted" style="margin-top:14px;"><strong>Not started:</strong> ${notStarted.map(x=>escHtml(nameOf(x.s))).join(', ')}</p>`));
