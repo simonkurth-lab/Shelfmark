@@ -787,7 +787,7 @@ function mountActivity(host, key, html, plan){
 // Fields marked data-doc-p="N" are gathered, in order, into paragraph N. data-doc-pre / data-doc-post
 // wrap what the student typed, data-doc-color (g/y/r) highlights it, and data-doc-blank shows ____ when empty.
 // We can't create the Doc for them without a Google sign-in, so we copy the essay (with its colors) and open
-// a new blank Google Doc to paste into. If copying isn't allowed, a .doc file downloads instead.
+// a new blank Google Doc to paste into. If copying isn't allowed, the essay is shown on screen to copy by hand.
 function docItemsFromFields(fields){
   return Array.from(fields).filter(f=>f.dataset.docP).map(f=>({ p:f.dataset.docP, color:f.dataset.docColor, pre:f.dataset.docPre, post:f.dataset.docPost, blank:f.dataset.docBlank !== undefined, value:f.value }));
 }
@@ -808,19 +808,43 @@ function buildDocHtml(items, title){
 async function makeGoogleDoc(root, fields, msg){
   const d = buildDocHtml(docItemsFromFields(fields), (root.querySelector('h2') || {}).textContent);
   if(!d.any){ msg.textContent = 'Write something in the boxes first, then try again.'; return; }
+  const DOC_URL = 'https://docs.google.com/document/create';
+  const link = '<a href="' + DOC_URL + '" target="_blank" rel="noopener" style="font-weight:700;">Open a new Google Doc</a>';
+  const old = root.querySelector('.doc-fallback'); if(old) old.remove();
   const w = window.open('about:blank', '_blank');
+  // 1) Modern clipboard (keeps the colors)
+  let copied = false;
   try{
     await navigator.clipboard.write([new ClipboardItem({ 'text/html': new Blob([d.html], {type:'text/html'}), 'text/plain': new Blob([d.plain], {type:'text/plain'}) })]);
-    if(w) w.location.href = 'https://docs.google.com/document/create';
-    msg.textContent = 'Copied! ✅ In the new Google Doc, press Ctrl+V (or Cmd+V) to paste your essay.';
-  } catch(e){
-    if(w) w.close();
-    const blob = new Blob(['<html><head><meta charset="utf-8"></head><body>' + d.html + '</body></html>'], {type:'application/msword'});
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob); link.download = 'Esperanza Rising essay.doc';
-    document.body.appendChild(link); link.click(); link.remove();
-    msg.textContent = 'Downloaded a Word file. In Google Drive, choose New > File upload, then open it with Google Docs.';
+    copied = true;
+  } catch(e){}
+  // 2) Older browsers / school Chromebooks: select a hidden copy of the essay and copy it
+  if(!copied){
+    try{
+      const tmp = document.createElement('div');
+      tmp.contentEditable = 'true'; tmp.style.cssText = 'position:fixed;left:-9999px;top:0;';
+      tmp.innerHTML = d.html; document.body.appendChild(tmp);
+      const range = document.createRange(); range.selectNodeContents(tmp);
+      const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
+      copied = document.execCommand('copy');
+      sel.removeAllRanges(); tmp.remove();
+    } catch(e){}
   }
+  if(copied){
+    if(w){ w.location.href = DOC_URL; msg.innerHTML = 'Copied! ✅ In the new Google Doc, press Ctrl+V (or Cmd+V) to paste your essay. ' + link; }
+    else { msg.innerHTML = 'Copied! ✅ Your browser blocked the new tab. ' + link + ', then press Ctrl+V (or Cmd+V) to paste.'; }
+    return;
+  }
+  // 3) Copy was blocked: show the essay here to select and copy by hand. (No file download:
+  //    a renamed HTML file is rejected by Google Docs and Word.)
+  if(w) w.close();
+  msg.innerHTML = 'Your browser would not copy it automatically. Select the essay below, copy it (Ctrl+C or Cmd+C), then ' + link + ' and paste.';
+  const box = document.createElement('div');
+  box.className = 'doc-fallback';
+  box.style.cssText = 'background:#fff;border:2px solid #d8c7ad;border-radius:12px;padding:12px 14px;margin:10px 0;user-select:all;-webkit-user-select:all;';
+  box.innerHTML = d.html;
+  msg.after(box);
+  try{ const range = document.createRange(); range.selectNodeContents(box); const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range); }catch(e){}
 }
 
 // ---- Read-aloud for activities ----
