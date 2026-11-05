@@ -752,8 +752,8 @@ function mountActivity(host, key, html, plan){
   if(root.querySelector('[data-gdoc]')){
     const docBtn = document.createElement('button');
     docBtn.className = 'btn secondary';
-    docBtn.textContent = '📄 Make a Google Doc';
-    docBtn.onclick = ()=> makeGoogleDoc(root, fields, msg);
+    docBtn.textContent = savedDocUrl() ? '📄 Update my Google Doc' : '📄 Make a Google Doc';
+    docBtn.onclick = ()=> makeGoogleDoc(root, fields, msg, docBtn);
     msg.after(docBtn);
   }
   // data-need="message" (and optional data-minwords) on fields adds a "Check my work" checklist.
@@ -805,11 +805,38 @@ function buildDocHtml(items, title){
   const plain = Object.keys(paras).sort().map(p=>paras[p].map(x=>x.text).join(' ')).join('\n\n');
   return { html: `<h1>${esc(title)}</h1>${body}`, body, plain: title + '\n\n' + plain, any: Object.keys(paras).length > 0 };
 }
-async function makeGoogleDoc(root, fields, msg){
+// Remember each student's Google Doc link (on this device) so the button reopens the same Doc.
+function docKey(){ return 'piki.essayDoc.' + ((STATE.student && STATE.student.alias) || ''); }
+function savedDocUrl(){ try { return localStorage.getItem(docKey()) || ''; } catch(e){ return ''; } }
+function setDocUrl(u){ try { u ? localStorage.setItem(docKey(), u) : localStorage.removeItem(docKey()); } catch(e){} }
+function addDocLinkPrompt(root, msg, docBtn){
+  const old = root.querySelector('.doc-link-box'); if(old) old.remove();
+  const url = savedDocUrl();
+  const box = document.createElement('div');
+  box.className = 'doc-link-box muted';
+  box.style.cssText = 'margin:8px 0;font-size:14px;';
+  if(url){
+    box.innerHTML = 'Using your saved Google Doc. <a href="#" class="doc-reset">Start a new Doc instead</a>';
+    box.querySelector('.doc-reset').onclick = e=>{ e.preventDefault(); setDocUrl(''); docBtn.textContent = '📄 Make a Google Doc'; addDocLinkPrompt(root, msg, docBtn); };
+  } else {
+    box.innerHTML = 'Want to keep using the same Doc? After you paste, copy your Doc link from the browser address bar and paste it here:<div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap;"><input type="text" class="doc-link-in" placeholder="https://docs.google.com/document/d/..." style="flex:1 1 220px;min-width:0;"><button type="button" class="btn secondary doc-link-save" style="width:auto;margin:0;padding:8px 14px;">Save link</button></div><span class="doc-link-msg"></span>';
+    box.querySelector('.doc-link-save').onclick = ()=>{
+      const v = box.querySelector('.doc-link-in').value.trim();
+      if(!/^https:\/\/docs\.google\.com\/document\/d\/[\w-]+/.test(v)){ box.querySelector('.doc-link-msg').textContent = 'That does not look like a Google Doc link. It should start with https://docs.google.com/document/d/'; return; }
+      setDocUrl(v.split('?')[0].replace(/\/(edit|view|preview).*$/, '/edit'));
+      docBtn.textContent = '📄 Update my Google Doc';
+      addDocLinkPrompt(root, msg, docBtn);
+    };
+  }
+  msg.after(box);
+}
+async function makeGoogleDoc(root, fields, msg, docBtn){
   const d = buildDocHtml(docItemsFromFields(fields), (root.querySelector('h2') || {}).textContent);
   if(!d.any){ msg.textContent = 'Write something in the boxes first, then try again.'; return; }
-  const DOC_URL = 'https://docs.google.com/document/create';
-  const link = '<a href="' + DOC_URL + '" target="_blank" rel="noopener" style="font-weight:700;">Open a new Google Doc</a>';
+  const saved = savedDocUrl();
+  const DOC_URL = saved || 'https://docs.google.com/document/create';
+  const link = '<a href="' + DOC_URL + '" target="_blank" rel="noopener" style="font-weight:700;">' + (saved ? 'Open your Google Doc' : 'Open a new Google Doc') + '</a>';
+  const pasteHow = saved ? 'In your Doc, press Ctrl+A (or Cmd+A) to select the old version, then Ctrl+V (or Cmd+V) to paste over it.' : 'In the new Google Doc, press Ctrl+V (or Cmd+V) to paste your essay.';
   const old = root.querySelector('.doc-fallback'); if(old) old.remove();
   const w = window.open('about:blank', '_blank');
   // 1) Modern clipboard (keeps the colors)
@@ -831,19 +858,21 @@ async function makeGoogleDoc(root, fields, msg){
     } catch(e){}
   }
   if(copied){
-    if(w){ w.location.href = DOC_URL; msg.innerHTML = 'Copied! ✅ In the new Google Doc, press Ctrl+V (or Cmd+V) to paste your essay. ' + link; }
-    else { msg.innerHTML = 'Copied! ✅ Your browser blocked the new tab. ' + link + ', then press Ctrl+V (or Cmd+V) to paste.'; }
+    if(w){ w.location.href = DOC_URL; msg.innerHTML = 'Copied! ✅ ' + pasteHow + ' ' + link; }
+    else { msg.innerHTML = 'Copied! ✅ Your browser blocked the new tab. ' + link + '. ' + pasteHow; }
+    addDocLinkPrompt(root, msg, docBtn);
     return;
   }
   // 3) Copy was blocked: show the essay here to select and copy by hand. (No file download:
   //    a renamed HTML file is rejected by Google Docs and Word.)
   if(w) w.close();
-  msg.innerHTML = 'Your browser would not copy it automatically. Select the essay below, copy it (Ctrl+C or Cmd+C), then ' + link + ' and paste.';
+  msg.innerHTML = 'Your browser would not copy it automatically. Select the essay below, copy it (Ctrl+C or Cmd+C), then ' + link + ' and paste' + (saved ? ' over the old version (Ctrl+A first).' : '.');
   const box = document.createElement('div');
   box.className = 'doc-fallback';
   box.style.cssText = 'background:#fff;border:2px solid #d8c7ad;border-radius:12px;padding:12px 14px;margin:10px 0;user-select:all;-webkit-user-select:all;';
   box.innerHTML = d.html;
   msg.after(box);
+  addDocLinkPrompt(root, msg, docBtn);
   try{ const range = document.createRange(); range.selectNodeContents(box); const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range); }catch(e){}
 }
 
