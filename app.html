@@ -1005,7 +1005,11 @@ function screenTeacherLive(){
   paint();
   STATE.liveTimer = setInterval(async ()=>{
     if(!L.loaded) return;
-    try { if(await liveTeacherRefresh()) paint(); } catch(e){}
+    try {
+      const had = !!L.session;
+      // Don't repaint the setup screen on every poll: it closes the open question-set dropdown.
+      if(await liveTeacherRefresh() && (had || L.session)) paint();
+    } catch(e){}
   }, LIVE_POLL_MS);
   return c;
 }
