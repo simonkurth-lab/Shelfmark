@@ -1,0 +1,107 @@
+{
+ "title": "Number lines: most-missed skills (easier to harder)",
+ "questions": [
+  {
+   "q": "A number line goes from 0 to 1 with marks at every 0.1. Which point is farther to the right: 0.4 or 0.9?",
+   "type": "choice",
+   "a": "0.9",
+   "why": "9 tenths is farther from 0 than 4 tenths, so 0.9 is farther right and greater.",
+   "options": [
+    "0.9",
+    "0.4",
+    "They are the same",
+    "Cannot tell"
+   ]
+  },
+  {
+   "q": "Which fraction is closest to 0 on a number line?",
+   "type": "choice",
+   "a": "1/10",
+   "why": "The bigger the bottom number, the smaller each piece. 1/10 has the smallest pieces, so it is closest to 0.",
+   "options": [
+    "1/10",
+    "1/5",
+    "1/2",
+    "3/4"
+   ]
+  },
+  {
+   "q": "Each whole on a number line is cut into 4 equal parts. A point is on the 5th mark after 0. Which mixed number is it?",
+   "type": "choice",
+   "a": "1 1/4",
+   "why": "4 fourths make 1 whole, so the 5th mark is 1 whole and 1 more fourth: 1 1/4.",
+   "options": [
+    "1 1/4",
+    "5/10",
+    "1 5/4",
+    "2 1/4"
+   ]
+  },
+  {
+   "q": "Which is greater: 0.7 or 0.65? Think about where each sits on a number line.",
+   "type": "choice",
+   "a": "0.7",
+   "why": "0.7 = 0.70 = 70 hundredths. 65 hundredths is less, so 0.7 is farther right. More digits does not mean bigger.",
+   "options": [
+    "0.7",
+    "0.65",
+    "They are equal",
+    "Cannot tell"
+   ]
+  },
+  {
+   "q": "Which list is in order from least to greatest (left to right on a number line)?",
+   "type": "choice",
+   "a": "0.35, 0.4, 0.5",
+   "why": "Write them with hundredths: 0.35, 0.40, 0.50. Those go up in order.",
+   "options": [
+    "0.35, 0.4, 0.5",
+    "0.4, 0.35, 0.5",
+    "0.5, 0.4, 0.35",
+    "0.5, 0.35, 0.4"
+   ]
+  },
+  {
+   "q": "A number line from 0 to 1 is cut into 10 equal parts. A point is halfway between the 6th and 7th marks. Which hundredths decimal is it? (Hint: halfway between 0.6 and 0.7.)",
+   "type": "text",
+   "a": "0.65",
+   "why": "Halfway between 0.60 and 0.70 is 0.65."
+  },
+  {
+   "q": "A number line from 0 to 1 is cut into 100 equal parts. A point is on the 37th mark. Which decimal and fraction is it?",
+   "type": "choice",
+   "a": "0.37 = 37/100",
+   "why": "100 equal parts means hundredths. 37 hundredths = 37/100 = 0.37. It must be less than 1, so not 3.7.",
+   "options": [
+    "0.37 = 37/100",
+    "3.7 = 37/10",
+    "0.73 = 73/100",
+    "0.037 = 37/1000"
+   ]
+  },
+  {
+   "q": "Which decimal is between 0.2 and 0.3 on a number line?",
+   "type": "choice",
+   "a": "0.25",
+   "why": "Write 0.2 and 0.3 as 0.20 and 0.30. 0.25 sits halfway between them.",
+   "options": [
+    "0.25",
+    "0.35",
+    "0.02",
+    "0.32"
+   ]
+  },
+  {
+   "q": "Which list is in order from least to greatest?",
+   "type": "choice",
+   "a": "0.57, 0.58, 0.6, 0.605",
+   "why": "Use thousandths: 0.570, 0.580, 0.600, 0.605. Those go up in order.",
+   "options": [
+    "0.57, 0.58, 0.6, 0.605",
+    "0.6, 0.605, 0.57, 0.58",
+    "0.605, 0.6, 0.58, 0.57",
+    "0.57, 0.6, 0.58, 0.605"
+   ]
+  }
+ ]
+}
