@@ -2405,7 +2405,7 @@ async function markAllDaily(students, date, act){
     STATE.dailyMarkMsg = 'Marking ' + (i+1) + ' of ' + todo.length + '...';
     render();
     try { await markStudentDaily(todo[i], date, act); }
-    catch(e){ STATE.dailyMarkMsg = 'Stopped on ' + todo[i].alias + ': ' + e.message; render(); return; }
+    catch(e){ STATE.dailyMarkMsg = 'Stopped on ' + (todo[i].realName || todo[i].alias) + ': ' + e.message; render(); return; }
   }
   STATE.dailyMarkMsg = todo.length ? 'Done! Review the suggested marks below and change anything you disagree with.' : 'Everything is already marked.';
   render();
