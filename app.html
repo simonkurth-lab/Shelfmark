@@ -396,6 +396,7 @@ function buildScreen(){
   else if(STATE.screen==='teacherDaily') body = screenTeacherDaily();
   else if(STATE.screen==='teacherTrends') body = screenTeacherTrends();
   else if(STATE.screen==='teacherLive') body = screenTeacherLive();
+  else if(STATE.screen==='teacherLiveReports') body = screenTeacherLiveReports();
   else if(STATE.screen==='teacherEssays') body = screenTeacherEssays();
   else if(!STATE.classConfirmed) body = screenClassPick();
   else if(STATE.screen==='login') body = screenLogin();
@@ -985,7 +986,25 @@ async function liveTeacherRefresh(){
   const r = await postJSON('/api/teacher/live/state', { passcode: STATE.teacherPasscode, classCode: liveClass() });
   if(seq !== L.seq) return false; // a local change happened while this was in flight
   L.session = r.session || null; L.responses = r.responses || {};
+  liveStoreReport();
   return true;
+}
+
+// ---- Live reports ----
+// The server forgets a live session when it ends, so each poll keeps a copy of the running
+// session in this browser (localStorage). The Live reports screen reads those copies.
+const LIVE_REPORT_KEY = 'piki.liveReports';
+function liveReportsLoad(){ try { return JSON.parse(localStorage.getItem(LIVE_REPORT_KEY) || '{}') || {}; } catch(e){ return {}; } }
+function liveReportsSave(all){ try { localStorage.setItem(LIVE_REPORT_KEY, JSON.stringify(all)); } catch(e){} }
+function liveStoreReport(){
+  const L = STATE.live;
+  if(!L || !L.session || !L.session.id) return;
+  const s = L.session, all = liveReportsLoad(), names = {};
+  (STATE.teacherRows || []).forEach(r=>{ if(r.realName) names[r.alias] = r.realName; });
+  all[s.id] = { id:s.id, title:s.title, startedAt:s.startedAt, group:s.group, names,
+    questions:s.questions.map(q=>({ q:liveQParts(q.q).text, a:[].concat(q.a)[0] })),
+    reached:s.current, responses:L.responses || {}, savedAt:new Date().toISOString() };
+  liveReportsSave(all);
 }
 async function liveTeacherSave(){
   const L = STATE.live;
@@ -998,6 +1017,9 @@ function screenTeacherLive(){
   const L = STATE.live = STATE.live || { sets:null, setId:'', picked:null, session:null, responses:{}, loaded:false, seq:0, msg:'' };
   const c = el(`<div><button class="backlink" id="back">&larr; Back</button><div class="card"><h2 style="margin-bottom:2px;">👥 Live group</h2><p class="muted" style="margin:0;">Send one question at a time to a small group and watch their answers arrive.</p></div><div id="body"></div></div>`);
   c.querySelector('#back').onclick = ()=>{ STATE.screen='teacher'; render(); };
+  const repLink = el(`<button class="btn secondary" style="width:auto;margin:10px 0 0;padding:8px 14px;">📈 Past live reports</button>`);
+  repLink.onclick = ()=>{ STATE.screen='teacherLiveReports'; render(); };
+  c.querySelector('.card').appendChild(repLink);
   const body = c.querySelector('#body');
   const paint = ()=>{ if(STATE.screen !== 'teacherLive') return; body.innerHTML = ''; body.appendChild(L.session ? liveRunView(paint) : liveSetupView(paint)); };
   if(!L.sets) fetch('activities/live/index.json').then(r=>r.ok ? r.json() : []).catch(()=>[]).then(s=>{ L.sets = s; if(!L.setId && s[0]) L.setId = s[0].id; paint(); });
@@ -1011,6 +1033,49 @@ function screenTeacherLive(){
       if(await liveTeacherRefresh() && (had || L.session)) paint();
     } catch(e){}
   }, LIVE_POLL_MS);
+  return c;
+}
+
+function screenTeacherLiveReports(){
+  if(!STATE.teacherAuthed) return screenTeacherLogin();
+  const all = liveReportsLoad();
+  const list = Object.values(all).filter(r=>Object.keys(r.responses||{}).length).sort((a,b)=>String(b.startedAt).localeCompare(String(a.startedAt)));
+  const c = el(`<div><button class="backlink" id="back">&larr; Back</button><div class="card"><div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center;"><div><h2 style="margin-bottom:2px;">📈 Live reports</h2><p class="muted" style="margin:0;">Results from your live group sessions. Saved in this browser.</p></div><button class="btn secondary" id="printBtn" style="width:auto;margin:0;padding:10px 18px;">🖨️ Print</button></div></div><div id="body"></div></div>`);
+  c.querySelector('#back').onclick = ()=>{ STATE.screen='teacher'; render(); };
+  c.querySelector('#printBtn').onclick = ()=>window.print();
+  const body = c.querySelector('#body');
+  if(!list.length){ body.appendChild(el(`<div class="card"><div class="empty">No live sessions saved yet. Run a Live group session and the results will appear here.</div></div>`)); return c; }
+  const open = all[STATE.liveReportId] && list.includes(all[STATE.liveReportId]) ? all[STATE.liveReportId] : list[0];
+  const sel = el(`<div class="card"><label style="font-weight:700;display:block;margin-bottom:6px;">Session</label><select id="pick">${list.map(r=>`<option value="${escHtml(r.id)}"${r.id===open.id?' selected':''}>${escHtml(new Date(r.startedAt).toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}))} · ${escHtml(r.title)} (${r.group.length} students)</option>`).join('')}</select></div>`);
+  sel.querySelector('#pick').onchange = e=>{ STATE.liveReportId = e.target.value; render(); };
+  body.appendChild(sel);
+  const r = open, resp = a=>r.responses[a] || {};
+  const nm = a=>escHtml(r.names && r.names[a] ? r.names[a] : a);
+  const qs = r.questions.map((q,i)=>{
+    const rows = r.group.map(a=>resp(a)[i]).filter(Boolean);
+    const right = rows.filter(m=>m.ok).length;
+    const wrong = {}; rows.filter(m=>!m.ok).forEach(m=>{ wrong[m.a] = (wrong[m.a]||0)+1; });
+    const top = Object.entries(wrong).sort((x,y)=>y[1]-x[1])[0];
+    return { i, q, n:rows.length, right, pct: rows.length ? Math.round(right/rows.length*100) : null, top,
+      missedBy: r.group.filter(a=>resp(a)[i] && !resp(a)[i].ok) };
+  }).filter(x=>x.n > 0);
+  const students = r.group.map(a=>{
+    const answered = qs.filter(x=>resp(a)[x.i]).length, score = qs.filter(x=>resp(a)[x.i] && resp(a)[x.i].ok).length;
+    return { a, answered, score, pct: answered ? Math.round(score/answered*100) : null };
+  }).sort((x,y)=>(x.pct==null)-(y.pct==null) || (x.pct||0)-(y.pct||0));
+  const withPct = students.filter(x=>x.pct!=null);
+  const avg = withPct.length ? Math.round(withPct.reduce((t,x)=>t+x.pct,0)/withPct.length) : null;
+  const bar = p=>`<div style="background:#e6dccb;border-radius:6px;height:12px;min-width:90px;"><div style="width:${p||0}%;height:12px;border-radius:6px;background:${p>=80?'#4a9d4a':p>=60?'#e0b92e':'#d9534f'};"></div></div>`;
+  body.appendChild(el(`<div class="card"><h3 style="margin-top:0;">${escHtml(r.title)}</h3><p style="margin:0;"><strong>${r.group.length}</strong> students · <strong>${qs.length}</strong> questions answered · class average <strong>${avg==null?'-':avg+'%'}</strong></p></div>`));
+  const hard = qs.filter(x=>x.pct < 60).sort((x,y)=>x.pct-y.pct);
+  body.appendChild(el(`<div class="card"><h3 style="margin-top:0;">Reteach these</h3>${hard.length ? '<ul style="margin:0;">' + hard.map(x=>`<li><strong>Q${x.i+1}</strong> (${x.pct}% correct): ${escHtml(x.q)} <span class="muted">Answer: ${escHtml(x.q && r.questions[x.i].a)}${x.top ? ' · common wrong answer: ' + escHtml(x.top[0]) + ' (' + x.top[1] + ')' : ''}</span></li>`).join('') + '</ul>' : '<p class="muted" style="margin:0;">No question was under 60%. Nice.</p>'}</div>`));
+  const qTable = el(`<div class="card"><h3 style="margin-top:0;">By question</h3><div style="overflow-x:auto;"><table class="roster-table"><thead><tr><th>Q</th><th>Question</th><th>Correct</th><th></th><th>Common wrong answer</th><th>Missed by</th></tr></thead><tbody>${qs.map(x=>`<tr><td><strong>${x.i+1}</strong></td><td style="min-width:220px;">${escHtml(x.q)}</td><td style="text-align:center;white-space:nowrap;">${x.right}/${x.n} (${x.pct}%)</td><td>${bar(x.pct)}</td><td>${x.top ? escHtml(x.top[0]) + ' (' + x.top[1] + ')' : '-'}</td><td style="min-width:160px;">${x.missedBy.map(nm).join(', ') || '-'}</td></tr>`).join('')}</tbody></table></div></div>`);
+  body.appendChild(qTable);
+  const grp = (label, color, arr)=>arr.length ? `<p style="margin:6px 0;"><strong style="color:${color};">${label}</strong> (${arr.length}): ${arr.map(x=>nm(x.a) + ' ' + x.pct + '%').join(', ')}</p>` : '';
+  body.appendChild(el(`<div class="card"><h3 style="margin-top:0;">By student</h3>${grp('🔴 Under 60% (reteach)', '#b03a2e', withPct.filter(x=>x.pct<60))}${grp('🟡 60-79% (practice)', '#9a7b00', withPct.filter(x=>x.pct>=60 && x.pct<80))}${grp('🟢 80%+ (extend)', '#2f7a2f', withPct.filter(x=>x.pct>=80))}${grp('No answers', '#666', students.filter(x=>x.pct==null))}</div>`));
+  const del = el(`<button class="btn secondary" style="width:auto;margin:8px 0 24px;padding:8px 14px;">🗑 Delete this report</button>`);
+  del.onclick = ()=>{ if(!confirm('Delete this saved report from this browser?')) return; const a = liveReportsLoad(); delete a[r.id]; liveReportsSave(a); STATE.liveReportId = null; render(); };
+  body.appendChild(del);
   return c;
 }
 
@@ -2092,9 +2157,12 @@ function screenTeacher(){
   const liveBtn = el(`<button class="btn secondary" style="width:auto;margin:0;padding:10px 18px;">👥 Live group</button>`);
   liveBtn.onclick = ()=>{ STATE.screen='teacherLive'; render(); };
   c.querySelector('#dailyBtn').after(liveBtn);
+  const liveRepBtn = el(`<button class="btn secondary" style="width:auto;margin:0;padding:10px 18px;">📈 Live reports</button>`);
+  liveRepBtn.onclick = ()=>{ STATE.screen='teacherLiveReports'; render(); };
+  liveBtn.after(liveRepBtn);
   const essayBtn = el(`<button class="btn secondary" style="width:auto;margin:0;padding:10px 18px;">✍️ Essays</button>`);
   essayBtn.onclick = ()=>{ STATE.screen='teacherEssays'; render(); };
-  liveBtn.after(essayBtn);
+  liveRepBtn.after(essayBtn);
   c.querySelector('#filterSlot').replaceWith(classFilterSelect(rows));
   const groupsDiv = c.querySelector('#groups');
   if(groups.length===0){
