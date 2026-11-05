@@ -1050,7 +1050,7 @@ function screenTeacherLiveReports(){
   sel.querySelector('#pick').onchange = e=>{ STATE.liveReportId = e.target.value; render(); };
   body.appendChild(sel);
   const r = open, resp = a=>r.responses[a] || {};
-  const nm = a=>escHtml(r.names && r.names[a] ? r.names[a] : a);
+  const nm = a=>escHtml(teacherName(a, liveClass()) !== a ? teacherName(a, liveClass()) : (r.names && r.names[a]) || a);
   const qs = r.questions.map((q,i)=>{
     const rows = r.group.map(a=>resp(a)[i]).filter(Boolean);
     const right = rows.filter(m=>m.ok).length;
@@ -2266,7 +2266,7 @@ function screenTeacherSummary(){
   const topReaders = [...rows].sort((a,b)=>(b.points||0)-(a.points||0)).slice(0,5);
   const topReadersHtml = topReaders.map((s,i)=>{
     const stats = studentStats(s);
-    return `<li><span class="sl-rank">${i+1}.</span><span class="sl-main">${s.alias}<div class="sl-sub">${classLabel(s.classCode)} · ${stats.books} book${stats.books===1?'':'s'}</div></span><span>${s.points||0} pts</span></li>`;
+    return `<li><span class="sl-rank">${i+1}.</span><span class="sl-main">${escHtml(s.realName || s.alias)}${s.realName ? ` <span class="muted" style="font-size:12px;">(${escHtml(s.alias)})</span>` : ''}<div class="sl-sub">${classLabel(s.classCode)} · ${stats.books} book${stats.books===1?'':'s'}</div></span><span>${s.points||0} pts</span></li>`;
   }).join('');
   const topReadersSection = topReaders.length===0 ? `<div class="empty">No quizzes yet.</div>` : `<ul class="summary-list">${topReadersHtml}</ul>`;
 
@@ -2277,14 +2277,14 @@ function screenTeacherSummary(){
   const topBooksSection = topBooks.length===0 ? `<div class="empty">No quizzes yet.</div>` : `<ul class="summary-list">${topBooksHtml}</ul>`;
 
   const recent = [...attempts].sort((a,b)=> (b.date||'').localeCompare(a.date||'')).slice(0,12);
-  const recentRowsHtml = recent.map(a=>`<tr><td>${a.date}</td><td>${a.alias}</td><td>${classLabel(a.classCode)}</td><td>${a.title}</td><td>${a.score}%</td></tr>`).join('');
+  const recentRowsHtml = recent.map(a=>`<tr><td>${a.date}</td><td>${escHtml(teacherName(a.alias, a.classCode))}</td><td>${classLabel(a.classCode)}</td><td>${a.title}</td><td>${a.score}%</td></tr>`).join('');
   const recentSection = recent.length===0 ? `<div class="empty">No quizzes yet.</div>` : `<div style="overflow-x:auto;"><table class="roster-table"><thead><tr><th>Date</th><th>Student</th><th>Class</th><th>Book</th><th>Score</th></tr></thead><tbody>${recentRowsHtml}</tbody></table></div>`;
 
   // Full, uncapped log of every book taken (vs. "Recent activity" above,
   // which is capped to a quick glance) - collapsed by default since it can
   // get long, but expand it before printing to include the whole list.
   const allBooks = [...attempts].sort((a,b)=> (b.date||'').localeCompare(a.date||''));
-  const allBooksRowsHtml = allBooks.map(a=>`<tr><td>${a.date}</td><td>${a.alias}</td><td>${classLabel(a.classCode)}</td><td>${a.title}</td><td>${a.score}%</td><td>${a.points!=null ? '+'+a.points : '—'}</td></tr>`).join('');
+  const allBooksRowsHtml = allBooks.map(a=>`<tr><td>${a.date}</td><td>${escHtml(teacherName(a.alias, a.classCode))}</td><td>${classLabel(a.classCode)}</td><td>${a.title}</td><td>${a.score}%</td><td>${a.points!=null ? '+'+a.points : '—'}</td></tr>`).join('');
   const allBooksTable = allBooks.length===0 ? `<div class="empty">No quizzes yet.</div>` : `<div style="overflow-x:auto;"><table class="roster-table"><thead><tr><th>Date</th><th>Student</th><th>Class</th><th>Book</th><th>Score</th><th>Points</th></tr></thead><tbody>${allBooksRowsHtml}</tbody></table></div>`;
   const bookListToggleLabel = STATE.showFullBookList ? 'Hide full list' : `Show full list (${allBooks.length})`;
 
@@ -2302,13 +2302,13 @@ function screenTeacherStudent(){
   if(!s){ STATE.screen='teacher'; return screenTeacher(); }
   const hist = s.history || [];
   const rowsHtml = hist.map(h=>`<tr><td>${h.title}</td><td>${h.score}%</td><td>${h.points!=null ? '+'+h.points : '—'}</td><td>${h.date}</td><td class="no-print"><button type="button" class="del-btn">🗑️ Delete</button></td></tr>`).join('');
-  const c = el(`<div><button class="backlink" id="back">&larr; Back to roster</button><div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;"><div><h2 style="margin-bottom:2px;">${s.alias}${s.realName ? ` <span class="muted" style="font-weight:600;font-size:14px;">(${s.realName})</span>` : ''}</h2><p class="muted" style="margin:0;">${classLabel(s.classCode)} · PIN ${s.pin} · ${s.points||0} pts</p></div><button class="btn secondary no-print" id="printBtn" style="width:auto;margin:0;padding:10px 18px;">🖨️ Print</button></div>${hist.length===0 ? `<div class="empty">No quizzes taken yet.</div>` : `<div style="overflow-x:auto;margin-top:14px;"><table class="roster-table"><thead><tr><th>Book</th><th>Score</th><th>Points</th><th>Date</th><th class="no-print"></th></tr></thead><tbody>${rowsHtml}</tbody></table></div>`}</div><div class="card no-print"><h3 style="margin-bottom:2px;">Suggested reading range</h3><p class="muted" style="margin:0 0 12px;">Optional. Shows ${s.alias} a friendly note on how a book compares — it never blocks them from reading or quizzing on anything. Leave both blank to skip this.</p><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;"><label style="font-size:13px;color:var(--muted);">Min <input type="number" id="lexileMin" placeholder="e.g. 600" value="${s.lexileMin!=null?s.lexileMin:''}" style="width:100px;display:inline-block;margin-left:4px;"></label><label style="font-size:13px;color:var(--muted);">Max <input type="number" id="lexileMax" placeholder="e.g. 800" value="${s.lexileMax!=null?s.lexileMax:''}" style="width:100px;display:inline-block;margin-left:4px;"></label><span style="font-size:13px;color:var(--muted);">Lexile (L)</span></div><div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap;"><button type="button" class="btn secondary" id="saveRangeBtn" style="width:auto;margin:0;padding:10px 18px;">Save range</button><button type="button" class="backlink" id="clearRangeBtn" style="margin:0;">Skip / clear range</button></div><div id="rangeMsg"></div></div></div>`);
+  const c = el(`<div><button class="backlink" id="back">&larr; Back to roster</button><div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;"><div><h2 style="margin-bottom:2px;">${escHtml(s.realName || s.alias)}${s.realName ? ` <span class="muted" style="font-weight:600;font-size:14px;">(${escHtml(s.alias)})</span>` : ''}</h2><p class="muted" style="margin:0;">${classLabel(s.classCode)} · PIN ${s.pin} · ${s.points||0} pts</p></div><button class="btn secondary no-print" id="printBtn" style="width:auto;margin:0;padding:10px 18px;">🖨️ Print</button></div>${hist.length===0 ? `<div class="empty">No quizzes taken yet.</div>` : `<div style="overflow-x:auto;margin-top:14px;"><table class="roster-table"><thead><tr><th>Book</th><th>Score</th><th>Points</th><th>Date</th><th class="no-print"></th></tr></thead><tbody>${rowsHtml}</tbody></table></div>`}</div><div class="card no-print"><h3 style="margin-bottom:2px;">Suggested reading range</h3><p class="muted" style="margin:0 0 12px;">Optional. Shows ${s.realName || s.alias} a friendly note on how a book compares — it never blocks them from reading or quizzing on anything. Leave both blank to skip this.</p><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;"><label style="font-size:13px;color:var(--muted);">Min <input type="number" id="lexileMin" placeholder="e.g. 600" value="${s.lexileMin!=null?s.lexileMin:''}" style="width:100px;display:inline-block;margin-left:4px;"></label><label style="font-size:13px;color:var(--muted);">Max <input type="number" id="lexileMax" placeholder="e.g. 800" value="${s.lexileMax!=null?s.lexileMax:''}" style="width:100px;display:inline-block;margin-left:4px;"></label><span style="font-size:13px;color:var(--muted);">Lexile (L)</span></div><div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap;"><button type="button" class="btn secondary" id="saveRangeBtn" style="width:auto;margin:0;padding:10px 18px;">Save range</button><button type="button" class="backlink" id="clearRangeBtn" style="margin:0;">Skip / clear range</button></div><div id="rangeMsg"></div></div></div>`);
   c.querySelector('#back').onclick = ()=>{ STATE.screen='teacher'; STATE.rangeSaveMsg=''; render(); };
   c.querySelector('#printBtn').onclick = ()=> window.print();
   c.querySelectorAll('.del-btn').forEach((btn,i)=>{
     btn.onclick = ()=>{
       const h = hist[i];
-      if(!confirm(`Delete "${h.title}" (${h.score}%) from ${s.alias}'s history? This can't be undone.`)) return;
+      if(!confirm(`Delete "${h.title}" (${h.score}%) from ${s.realName || s.alias}'s history? This can't be undone.`)) return;
       deleteAttempt(s.alias, s.classCode || 'default', i);
     };
   });
@@ -2343,6 +2343,11 @@ const MARK_CRITERIA = [
   { id:'conventions', label:'Conventions' },
 ];
 
+// First name for teacher views: the roster's realName, falling back to the alias.
+function teacherName(alias, classCode){
+  const r = (STATE.teacherRows || []).find(x=>x.alias === alias && (classCode == null || (x.classCode||'default') === (classCode||'default')));
+  return (r && r.realName) || alias;
+}
 function escHtml(t){ return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 // Pulls each answer field's question text (and the reading passage) out of the
@@ -2603,7 +2608,7 @@ function studentDailyRow(s, date, act, answerKey, result, name){
   if(act.fields.some(f=>f.written && String(ans[f.key]||'').trim())){
     const mark = el(`<button class="btn secondary" style="width:auto;margin:0;padding:8px 16px;">${hasMarks?'Re-mark with AI':'Mark with AI'}</button>`);
     mark.onclick = async ()=>{
-      if(hasMarks && !confirm('Re-marking replaces the current marks (including your edits) for ' + s.alias + '. Continue?')) return;
+      if(hasMarks && !confirm('Re-marking replaces the current marks (including your edits) for ' + (s.realName || s.alias) + '. Continue?')) return;
       mark.disabled = true; mark.textContent = 'Marking...';
       try { await markStudentDaily(s, date, act); } catch(e){ alert('Could not mark: ' + e.message); }
       render();
