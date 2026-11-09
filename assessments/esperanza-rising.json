@@ -1,6 +1,8 @@
 {
  "id": "esperanza-rising",
  "published": true,
+ "bookTitle": "Esperanza Rising",
+ "bookAuthor": "Pam Muñoz Ryan",
  "titleMatch": "^esperanza rising",
  "title": "Esperanza Rising: End-of-Book Quiz",
  "note": "Set \"published\" to true after teacher review. Teachers can test first at app.html?previewUnitQuiz=1",

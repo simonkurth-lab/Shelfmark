@@ -1329,6 +1329,19 @@ function screenDaily(){
   const c = el(`<div><button class="backlink" id="back">&larr; Back</button><div class="card"><h2 style="margin-bottom:6px;">Today's activity</h2><div id="tabs" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;"></div><div id="activityHost"><div class="loading">Loading...</div></div></div></div>`);
   c.querySelector('#back').onclick = ()=>{ STATE.screen='home'; render(); };
   const host = c.querySelector('#activityHost');
+  const unitSlot = el(`<div></div>`);
+  c.querySelector('.card').appendChild(unitSlot);
+  listUnitQuizzes().then(list=>{
+    if(!document.body.contains(unitSlot)) return;
+    list.forEach(qz=>{
+      const book = { title: qz.bookTitle || qz.title, author: qz.bookAuthor || '', olid: null };
+      const prior = findPriorAttempt(STATE.student.history, book);
+      const card = el(`<div class="panel" style="margin-top:16px;background:#FBF6E8;border:1.5px solid var(--line);border-radius:12px;padding:14px 16px;"><h3 style="margin:0 0 4px;">📘 Unit quiz: ${escHtml(qz.bookTitle || qz.title)}</h3><p class="muted" style="margin:0 0 10px;">${escHtml(qz.title)} · 20 questions · English + Español · read-aloud</p>${prior ? `<div class="already-done"><div class="already-done-title">✅ Already completed</div><p class="muted" style="margin:4px 0 0;">You scored ${prior.score}%.</p></div>` : `<button class="btn coral" type="button" style="margin:0;">Start the quiz</button>`}</div>`);
+      const btn = card.querySelector('button');
+      if(btn) btn.onclick = ()=>{ STATE.currentBook = book; STATE.unitFrom = 'daily'; STATE.screen = 'quizGate'; render(); };
+      unitSlot.appendChild(card);
+    });
+  });
   const tabs = c.querySelector('#tabs');
 
   const show = list=>{
@@ -1653,7 +1666,7 @@ function screenQuizGate(){
   const checking = STATE.loading;
   const goBtnInner = checking ? `<span class="btn-spinner"></span> Checking...` : 'Unlock';
   const c = el(`<div><button class="backlink" id="back">&larr; Back</button><div class="card"><h2 style="margin-bottom:6px;">Ask your teacher 🔑</h2><p class="muted" style="margin:0 0 14px;">A teacher needs to enter the passcode before every quiz.</p><input type="password" id="pc" placeholder="Teacher passcode" ${checking?'disabled':''} /><button class="btn coral" id="goBtn" ${checking?'disabled':''}>${goBtnInner}</button><div id="err"></div></div></div>`);
-  c.querySelector('#back').onclick = ()=>{ STATE.screen='book'; STATE.quizGateError=''; render(); };
+  c.querySelector('#back').onclick = ()=>{ STATE.screen = STATE.unitFrom==='daily' ? 'daily' : 'book'; STATE.unitFrom=null; STATE.quizGateError=''; render(); };
   const pcInput = c.querySelector('#pc');
   if(!checking){
     const tryUnlock = ()=> verifyQuizGate(pcInput.value);
@@ -1672,7 +1685,7 @@ async function verifyQuizGate(passcode){
   STATE.loading = false;
   if(!resp.ok){ STATE.quizGateError='Wrong passcode.'; render(); return; }
   STATE.quizGateError = '';
-  // A teacher-written end-of-book quiz (quizzes/*.json) replaces the AI quiz
+  // A teacher-written end-of-book quiz (assessments/*.json) replaces the AI quiz
   // for its book once the teacher has published it.
   const unit = await findUnitQuiz(STATE.currentBook);
   if(unit){ startUnitQuiz(unit); return; }
@@ -1917,11 +1930,25 @@ function screenQuiz(){
 
 
 // ---------- End-of-book unit quiz (teacher-written, bilingual) ----------
-// Quizzes live in quizzes/<book>.json. A quiz only replaces the AI-written
+// Assessments live in assessments/<book>.json. A quiz only replaces the AI-written
 // quiz once its "published" flag is true; teachers can try it first with
 // app.html?previewUnitQuiz=1. Answer order is shuffled per student (seeded,
 // so it stays the same if the page reloads) so neighbours cannot copy.
-const UNIT_QUIZ_FILES = ['quizzes/esperanza-rising.json'];
+const UNIT_QUIZ_FILES = ['assessments/esperanza-rising.json'];
+
+async function listUnitQuizzes(){
+  const preview = new URLSearchParams(location.search).get('previewUnitQuiz') === '1';
+  const out = [];
+  for(const f of UNIT_QUIZ_FILES){
+    try{
+      const r = await fetch(f, { cache:'no-store' });
+      if(!r.ok) continue;
+      const qz = await r.json();
+      if(qz.published || preview) out.push(qz);
+    }catch(e){}
+  }
+  return out;
+}
 
 async function findUnitQuiz(book){
   const preview = new URLSearchParams(location.search).get('previewUnitQuiz') === '1';
@@ -2024,7 +2051,7 @@ function screenUnitQuiz(){
     <div class="u-nav"><button class="btn secondary" id="prevBtn" type="button">&larr; Back / Atrás</button><button class="btn" id="nextBtn" type="button"></button></div>
     <div id="submitMsg"></div>
   </div></div>`);
-  c.querySelector('#back').onclick = ()=>{ unitSave(); STATE.screen='book'; render(); };
+  c.querySelector('#back').onclick = ()=>{ unitSave(); STATE.screen = STATE.unitFrom==='daily' ? 'daily' : 'book'; STATE.unitFrom=null; render(); };
 
   const dots = c.querySelector('#dots');
   qs.forEach((qq,i)=>{
