@@ -1,0 +1,85 @@
+<style>
+.activity{max-width:720px;margin:0 auto;padding:16px;font-size:17px;line-height:1.6;color:#201e1d}
+h2{font-size:1.55em;line-height:1.2;margin:0 0 6px}
+h3{font-size:1.25em;margin:32px 0 10px}
+p{margin:0 0 12px}
+.pep{background:#fdf3e3;border:2px solid #d8c7ad;border-radius:16px;padding:12px 16px;font-weight:600}
+.panel{background:#fdf3e3;border:2px solid #d8c7ad;border-radius:16px;padding:14px 16px;margin:0 0 16px}
+.chart-wrap{overflow-x:auto;border-radius:16px;border:2px solid #d8c7ad}
+table{border-collapse:collapse;width:100%;min-width:640px;font-size:14px;text-align:center}
+th,td{border:1px solid #d8c7ad;padding:8px 4px}
+th{background:#fdf3e3;font-weight:700}
+th.dec,td.dec{background:#e6ecd9}
+th.pt,td.pt{background:#fff;font-size:22px;font-weight:800;width:18px}
+td{background:#fff;font-size:20px;font-weight:700}
+.legend{font-size:15px;margin:8px 0 0}
+.steps{margin:8px 0 0;padding-left:22px}
+.steps li{margin-bottom:6px}
+dl{margin:0}
+dt{font-weight:800;margin-top:8px}
+dd{margin:0 0 4px}
+.q{background:#fff;border:2px solid #d8c7ad;border-radius:16px;padding:14px 16px;margin:0 0 14px}
+label{display:block;font-weight:700;margin-bottom:10px}
+.big{display:block;font-size:24px;font-weight:800;letter-spacing:.5px;margin:4px 0}
+input,select{font:inherit;width:100%;box-sizing:border-box;min-height:52px;border:2px solid #d8c7ad;border-radius:12px;padding:10px 14px;background:#fff;color:#201e1d}
+input:focus,select:focus{outline:3px solid #c67139;outline-offset:2px;border-color:#c67139}
+details{margin-top:10px}
+summary{cursor:pointer;font-weight:700;color:#8a4520;padding:8px 0;min-height:44px;display:flex;align-items:center}
+details p{background:#fdf3e3;border-radius:12px;padding:10px 12px;margin:4px 0 0;font-size:16px}
+.work{background:#fdf3e3;border-radius:12px;padding:10px 12px;font-family:inherit;font-weight:700}
+.challenge{border-color:#c67139;border-style:dashed}
+.tag{display:inline-block;background:#c67139;color:#fff;border-radius:999px;padding:2px 12px;font-size:14px;font-weight:800;margin-bottom:8px}
+</style>
+<div class="activity">
+<h2>Daily Math: 1/10 of a Number, Now with Decimals</h2>
+<p class="pep">Ten questions. Last time 1/10 of a number made it smaller. Today the answer can land <em>between</em> whole numbers! 💪</p>
+<h3>📌 Part A: 1/10 of a number (whole numbers and decimals)</h3>
+<div class="panel"><p><strong>1/10 of</strong> a number still means <strong>divide by 10</strong>. Every digit moves <strong>one place to the right</strong>. When a digit moves past the ones place, it lands in the <strong>tenths</strong> place after the decimal point.</p>
+<p><strong>Examples:</strong> 1/10 of 80 = <strong>8</strong> · 1/10 of 8 = <strong>0.8</strong> · 1/10 of 0.8 = <strong>0.08</strong></p>
+<p><strong>Check yourself:</strong> Picture it on a number line. Is your answer closer to 0 than the number you started with?</p></div>
+<div class="q"><label for="q1">1. What is 1/10 of 900?</label>
+<input id="q1" type="text" inputmode="decimal" data-response="q1" placeholder="Type a number">
+<details><summary>💡 Need a hint?</summary><p>900 ÷ 10 = ?</p></details>
+</div>
+<div class="q"><label for="q2">2. What is 1/10 of 6?</label>
+<input id="q2" type="text" inputmode="decimal" data-response="q2" placeholder="Type a number">
+<details><summary>💡 Need a hint?</summary><p>6 is the same as 6.0. Move the 6 one place to the right. It lands in the tenths place.</p></details>
+</div>
+<div class="q"><label for="q3">3. What is 1/10 of 34?</label>
+<input id="q3" type="text" inputmode="decimal" data-response="q3" placeholder="Type a number">
+<details><summary>💡 Need a hint?</summary><p>34 ÷ 10 = 3 and 4 tenths.</p></details>
+</div>
+<div class="q"><label for="q4">4. What is 1/10 of 0.5?</label>
+<input id="q4" type="text" inputmode="decimal" data-response="q4" placeholder="Type a number">
+<details><summary>💡 Need a hint?</summary><p>0.5 is 5 tenths. 1/10 of a tenth is a hundredth.</p></details>
+</div>
+<div class="q"><label for="q5">5. What is 1/10 of 2,700?</label>
+<input id="q5" type="text" inputmode="decimal" data-response="q5" placeholder="Type a number">
+</div>
+<div class="q"><label for="q6">6. 🕵️ <strong>Find the mistake.</strong> Leo says 1/10 of 7 is 0.07. Is Leo correct?</label>
+<select id="q6" data-response="q6"><option value="">Choose...</option><option value="yes">Yes</option><option value="no">No</option></select>
+<details><summary>💡 Need a hint?</summary><p>The 7 moves just <strong>one</strong> place to the right. Where does it land?</p></details>
+</div>
+<div class="q"><label for="q7">7. What is the right answer for 1/10 of 7?</label>
+<input id="q7" type="text" inputmode="decimal" data-response="q7" placeholder="Type a number">
+</div>
+<h3>📌 Part B: Expanded form with decimals</h3>
+<div class="panel"><p>Decimal places have values too: tenths (0.1), hundredths (0.01).</p>
+<p><strong>Example:</strong> 5.28 = 5 + 0.2 + 0.08</p>
+<p><strong>Example:</strong> 3.04 = 3 + 0.04 (no tenths, so skip it)</p></div>
+<div class="q"><label for="q8">8. 6 + 0.4 + 0.07 = ___</label>
+<input id="q8" type="text" inputmode="decimal" data-response="q8" placeholder="Type a number">
+<details><summary>💡 Need a hint?</summary><p>Put each digit in its place: 6 ones, 4 tenths, 7 hundredths.</p></details>
+</div>
+<div class="q"><label for="q9">9. 2 + ___ + 0.09 = 2.59</label>
+<input id="q9" type="text" inputmode="decimal" data-response="q9" placeholder="Type a number">
+<details><summary>💡 Need a hint?</summary><p>Which digit is in the tenths place? What is it worth?</p></details>
+</div>
+<div class="q"><label for="q10">10. Write 4.35 in expanded form.</label>
+<input id="q10" type="text" data-response="q10" placeholder="Example: 1 + 0.2 + 0.03">
+<details><summary>💡 Need a hint?</summary><p>4 ones, 3 tenths, 5 hundredths. What is each worth?</p></details>
+</div>
+<div class="q challenge"><span class="tag">🌟 Bonus</span><label for="bonus">1/10 of 1/10 of 400 is what number? Explain how you know.</label>
+<textarea id="bonus" data-response="bonus" placeholder="Explain..." style="font:inherit;width:100%;box-sizing:border-box;min-height:90px;border:2px solid #d8c7ad;border-radius:12px;padding:10px 14px"></textarea>
+</div>
+<p class="pep">Nice work today! 🌟</p></div>
