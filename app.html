@@ -1335,7 +1335,8 @@ function screenDaily(){
     if(!document.body.contains(unitSlot)) return;
     list.forEach(qz=>{
       const book = { title: qz.bookTitle || qz.title, author: qz.bookAuthor || '', olid: null };
-      const prior = findPriorAttempt(STATE.student.history, book);
+      // Only an earlier attempt at THIS unit quiz counts, not a regular Piki quiz on the same book.
+      const prior = (STATE.student.history || []).find(h=>h.unit === qz.id);
       const card = el(`<div class="panel" style="margin-top:16px;background:#FBF6E8;border:1.5px solid var(--line);border-radius:12px;padding:14px 16px;"><h3 style="margin:0 0 4px;">📘 Unit quiz: ${escHtml(qz.bookTitle || qz.title)}</h3><p class="muted" style="margin:0 0 10px;">${escHtml(qz.title)} · 20 questions · English + Español · read-aloud</p>${prior ? `<div class="already-done"><div class="already-done-title">✅ Already completed</div><p class="muted" style="margin:4px 0 0;">You scored ${prior.score}%.</p></div>` : `<button class="btn coral" type="button" style="margin:0;">Start the quiz</button>`}</div>`);
       const btn = card.querySelector('button');
       if(btn) btn.onclick = ()=>{ STATE.currentBook = book; STATE.unitFrom = 'daily'; STATE.screen = 'quizGate'; render(); };
