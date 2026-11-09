@@ -61,6 +61,28 @@
   .summary-list .sl-sub{color:var(--muted);font-size:12px;}
   .stat .num{font-family:'Baloo 2';font-size:20px;color:var(--forest-dark);}
   .stat .lbl{font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.03em;}
+
+  /* End-of-book unit quiz */
+  .u-progress{display:flex;justify-content:space-between;align-items:center;font-weight:800;font-size:14px;margin-bottom:6px;}
+  .u-bar{height:8px;border-radius:6px;background:var(--line);overflow:hidden;margin-bottom:10px;}
+  .u-bar > div{height:100%;background:var(--forest);}
+  .u-dots{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;}
+  .u-dot{min-width:34px;height:34px;border-radius:50%;border:1.5px solid var(--line);background:#fff;font-family:'Nunito';font-weight:800;font-size:13px;color:var(--ink);cursor:pointer;}
+  .u-dot.answered{background:#EEF4F1;border-color:var(--forest);}
+  .u-dot.current{background:var(--forest);border-color:var(--forest);color:#fff;}
+  .u-passage{background:#FBF6E8;border:1.5px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:14px;}
+  .u-line.es{color:var(--muted);font-style:italic;font-weight:600;margin-top:2px;}
+  .u-line.reading{background:#FDF2ED;border-radius:6px;box-shadow:0 0 0 3px #FDF2ED;}
+  .u-qtext{font-weight:800;font-size:17px;margin-bottom:12px;}
+  .u-read{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;}
+  .u-read .speed-btn{min-height:40px;}
+  .u-hint{font-size:13px;color:var(--muted);font-weight:700;margin:-4px 0 10px;}
+  .u-opts .opt{min-height:52px;font-size:16px;}
+  .u-opts .opt .u-line.es{font-size:14px;}
+  .u-ref{background:#EEF4F1;border-radius:10px;padding:10px 12px;margin-top:14px;font-size:14px;}
+  .u-ref input{width:120px;margin-top:6px;}
+  .u-nav{display:flex;justify-content:space-between;gap:10px;margin-top:18px;}
+  .u-nav .btn{width:auto;margin:0;min-width:130px;}
   .quiz-q{margin-bottom:18px;}
   .quiz-q .qtext{font-weight:800;font-size:15.5px;}
   .qtext-row{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:10px;}
@@ -212,7 +234,7 @@ const STATE = {
   searchResults: [], searchQuery: '', currentBook: null, bookMode: 'quiz',
   rangeSaveMsg: '',
   dailyDate: null, dailyActivities: {}, dailyMarkMsg: '', dailySort: 'name', trendSubject: 'all', trendCount: 10, dailyOpen: {}, dailySubject: null, dailyTab: null, dailyToday: null,
-  quiz: null, quizAnswers: {}, loading: false, loadingMsg: '',
+  quiz: null, quizAnswers: {}, unit: null, loading: false, loadingMsg: '',
   quizSetup: { count: 7, confidence: 'medium', challenge: 'onlevel', bilingual: 0 },
   speechRate: 0.95,
   resultAnimated: false,
@@ -410,6 +432,7 @@ function buildScreen(){
   else if(STATE.screen==='quizGate') body = screenQuizGate();
   else if(STATE.screen==='quizSetup') body = screenQuizSetup();
   else if(STATE.screen==='quiz') body = screenQuiz();
+  else if(STATE.screen==='unitQuiz') body = screenUnitQuiz();
   else if(STATE.screen==='result') body = screenResult();
   else if(STATE.screen==='dashboard') body = screenDashboard();
   wrap.appendChild(body);
@@ -1649,6 +1672,10 @@ async function verifyQuizGate(passcode){
   STATE.loading = false;
   if(!resp.ok){ STATE.quizGateError='Wrong passcode.'; render(); return; }
   STATE.quizGateError = '';
+  // A teacher-written end-of-book quiz (quizzes/*.json) replaces the AI quiz
+  // for its book once the teacher has published it.
+  const unit = await findUnitQuiz(STATE.currentBook);
+  if(unit){ startUnitQuiz(unit); return; }
   STATE.screen = 'quizSetup';
   render();
 }
@@ -1758,7 +1785,7 @@ function stopQuizSpeech(){
   speechToken++;
   window.speechSynthesis.cancel();
   document.querySelectorAll('.speak-btn.speaking').forEach(b=>b.classList.remove('speaking'));
-  document.querySelectorAll('.opt.reading, .qtext.reading').forEach(o=>o.classList.remove('reading'));
+  document.querySelectorAll('.reading').forEach(o=>o.classList.remove('reading'));
   document.querySelectorAll('.word-reading').forEach(w=>w.classList.remove('word-reading'));
 }
 
@@ -1886,6 +1913,248 @@ function screenQuiz(){
   if(!allAnswered) submitBtn.setAttribute('disabled','true');
   submitBtn.onclick = submitQuiz;
   return c;
+}
+
+
+// ---------- End-of-book unit quiz (teacher-written, bilingual) ----------
+// Quizzes live in quizzes/<book>.json. A quiz only replaces the AI-written
+// quiz once its "published" flag is true; teachers can try it first with
+// app.html?previewUnitQuiz=1. Answer order is shuffled per student (seeded,
+// so it stays the same if the page reloads) so neighbours cannot copy.
+const UNIT_QUIZ_FILES = ['quizzes/esperanza-rising.json'];
+
+async function findUnitQuiz(book){
+  const preview = new URLSearchParams(location.search).get('previewUnitQuiz') === '1';
+  for(const f of UNIT_QUIZ_FILES){
+    try{
+      const r = await fetch(f, { cache:'no-store' });
+      if(!r.ok) continue;
+      const qz = await r.json();
+      if(!new RegExp(qz.titleMatch, 'i').test((book.title||'').trim())) continue;
+      if(qz.published || preview) return qz;
+    }catch(e){}
+  }
+  return null;
+}
+
+function seededShuffle(arr, seedStr){
+  let h = 1779033703 ^ seedStr.length;
+  for(let i=0;i<seedStr.length;i++){ h = Math.imul(h ^ seedStr.charCodeAt(i), 3432918353); h = (h<<13) | (h>>>19); }
+  let a = h >>> 0;
+  const rnd = ()=>{ a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a>>>15), 1|a); t = (t + Math.imul(t ^ (t>>>7), 61|t)) ^ t; return ((t ^ (t>>>14)) >>> 0) / 4294967296; };
+  const out = arr.slice();
+  for(let i=out.length-1;i>0;i--){ const j = Math.floor(rnd()*(i+1)); [out[i], out[j]] = [out[j], out[i]]; }
+  return out;
+}
+
+function unitStoreKey(){ return 'piki-unit:' + STATE.classCode + ':' + STATE.student.alias + ':' + STATE.unit.quiz.id; }
+function unitSave(){
+  try{ sessionStorage.setItem(unitStoreKey(), JSON.stringify({ answers: STATE.unit.answers, pages: STATE.unit.pages, idx: STATE.unit.idx })); }catch(e){}
+}
+
+function startUnitQuiz(qz){
+  const alias = STATE.student.alias;
+  const order = {};
+  qz.questions.forEach(q=>{ order[q.n] = seededShuffle(q.options, alias + '|' + qz.id + '|' + q.n); });
+  STATE.unit = { quiz: qz, order, answers:{}, pages:{}, idx:0, submitting:false };
+  try{
+    const saved = JSON.parse(sessionStorage.getItem(unitStoreKey()) || 'null');
+    if(saved){ STATE.unit.answers = saved.answers || {}; STATE.unit.pages = saved.pages || {}; STATE.unit.idx = saved.idx || 0; }
+  }catch(e){}
+  STATE.screen = 'unitQuiz';
+  render();
+}
+
+function unitAnswered(q){
+  const a = STATE.unit.answers[q.n] || [];
+  return q.type === 'select2' ? a.length === 2 : a.length === 1;
+}
+
+function unitIsCorrect(q){
+  const a = (STATE.unit.answers[q.n] || []).slice().sort().join(',');
+  return a === q.correct.slice().sort().join(',');
+}
+
+function unitSpeak(btn, plan, lang){
+  const wasSpeaking = btn.classList.contains('speaking');
+  stopQuizSpeech();
+  if(wasSpeaking) return;
+  const myToken = speechToken;
+  btn.classList.add('speaking');
+  let i = 0;
+  const say = (text, onDone)=>{
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = lang === 'es' ? 'es-MX' : 'en-US';
+    u.rate = STATE.speechRate;
+    u.onend = u.onerror = onDone;
+    window.speechSynthesis.speak(u);
+  };
+  const next = ()=>{
+    if(myToken !== speechToken) return;
+    if(i >= plan.length){ btn.classList.remove('speaking'); return; }
+    const item = plan[i++];
+    const el = item[lang] || item.en;
+    const lead = lang === 'es' ? item.leadEs : item.leadEn;
+    say(lead, ()=>{
+      if(myToken !== speechToken) return;
+      el.classList.add('reading');
+      say(el.textContent, ()=>{ el.classList.remove('reading'); next(); });
+    });
+  };
+  next();
+}
+
+function screenUnitQuiz(){
+  const U = STATE.unit;
+  const qs = U.quiz.questions;
+  const q = qs[U.idx];
+  const total = qs.length;
+  const sel = U.answers[q.n] || [];
+  const canSpeak = 'speechSynthesis' in window;
+  const esc = escHtml;
+  const lines = (en, es, extra)=> `<div class="u-line" data-lang="en">${esc(en)}</div>${es ? `<div class="u-line es" data-lang="es">${esc(es)}</div>` : ''}`;
+
+  const c = el(`<div><button class="backlink" id="back">&larr; Back</button><div class="card">
+    <h2 style="margin-bottom:10px;">${esc(U.quiz.title)}</h2>
+    <div class="u-progress"><span>Question ${U.idx+1} of ${total} · Pregunta ${U.idx+1} de ${total}</span><span>${qs.filter(unitAnswered).length}/${total} ✔</span></div>
+    <div class="u-bar"><div style="width:${((U.idx+1)/total)*100}%"></div></div>
+    <div class="u-dots" id="dots"></div>
+    <div class="speed-row" id="speedRow"><span class="speed-label">🔊 Narrator speed:</span><div class="speed-btns" id="speedBtns"></div></div>
+    <div id="qbox"></div>
+    <div class="u-nav"><button class="btn secondary" id="prevBtn" type="button">&larr; Back / Atrás</button><button class="btn" id="nextBtn" type="button"></button></div>
+    <div id="submitMsg"></div>
+  </div></div>`);
+  c.querySelector('#back').onclick = ()=>{ unitSave(); STATE.screen='book'; render(); };
+
+  const dots = c.querySelector('#dots');
+  qs.forEach((qq,i)=>{
+    const d = el(`<button type="button" class="u-dot ${unitAnswered(qq)?'answered':''} ${i===U.idx?'current':''}" aria-label="Question ${i+1}">${i+1}</button>`);
+    d.onclick = ()=>{ U.idx = i; unitSave(); render(); };
+    dots.appendChild(d);
+  });
+
+  if(canSpeak){
+    const sb = c.querySelector('#speedBtns');
+    SPEECH_RATES.forEach(sr=>{
+      const b = el(`<button type="button" class="speed-btn ${STATE.speechRate===sr.rate?'selected':''}">${sr.label}</button>`);
+      b.onclick = ()=>{ STATE.speechRate = sr.rate; render(); };
+      sb.appendChild(b);
+    });
+  } else c.querySelector('#speedRow').style.display = 'none';
+
+  const box = c.querySelector('#qbox');
+  const plan = [];
+  if(q.passage_en){
+    const pb = el(`<div class="u-passage">${lines(q.passage_en, q.passage_es)}</div>`);
+    box.appendChild(pb);
+    plan.push({ en: pb.querySelector('[data-lang="en"]'), es: pb.querySelector('[data-lang="es"]'), leadEn:'Reading passage.', leadEs:'Lectura.' });
+  }
+  const qt = el(`<div class="u-qtext">${lines(q.q_en, q.q_es)}</div>`);
+  plan.push({ en: qt.querySelector('[data-lang="en"]'), es: qt.querySelector('[data-lang="es"]'), leadEn:`Question ${q.n}.`, leadEs:`Pregunta ${q.n}.` });
+  if(canSpeak){
+    const row = el(`<div class="u-read"><button type="button" class="speed-btn speak-btn-en">🔊 Read in English</button><button type="button" class="speed-btn speak-btn-es">🔊 Leer en español</button></div>`);
+    row.querySelector('.speak-btn-en').onclick = e=> unitSpeak(e.currentTarget, plan, 'en');
+    row.querySelector('.speak-btn-es').onclick = e=> unitSpeak(e.currentTarget, plan, 'es');
+    box.appendChild(row);
+  }
+  box.appendChild(qt);
+  if(q.type === 'select2') box.appendChild(el(`<div class="u-hint">Choose 2 answers · Elige 2 respuestas (${sel.length}/2)</div>`));
+
+  const optsWrap = el(`<div class="u-opts"></div>`);
+  const letters = ['A','B','C','D'];
+  U.order[q.n].forEach((opt,oi)=>{
+    const on = sel.includes(opt.id);
+    const ob = el(`<button type="button" class="opt ${on?'selected':''}" aria-pressed="${on}"><div class="u-line" data-lang="en">${letters[oi]}. ${esc(opt.en)}</div>${opt.es ? `<div class="u-line es" data-lang="es">${esc(opt.es)}</div>` : ''}</button>`);
+    ob.onclick = ()=>{
+      let a = (U.answers[q.n] || []).slice();
+      if(q.type === 'select2'){
+        if(a.includes(opt.id)) a = a.filter(x=>x!==opt.id);
+        else { a.push(opt.id); if(a.length > 2) a.shift(); }
+      } else a = [opt.id];
+      U.answers[q.n] = a;
+      unitSave();
+      render();
+    };
+    optsWrap.appendChild(ob);
+    plan.push({ en: ob.querySelector('[data-lang="en"]'), es: ob.querySelector('[data-lang="es"]'), leadEn:'', leadEs:'' });
+    plan[plan.length-1].leadEn = letters[oi] + '.'; plan[plan.length-1].leadEs = letters[oi] + '.';
+  });
+  box.appendChild(optsWrap);
+
+  if(q.pageBox){
+    const ref = el(`<div class="u-ref"><div>📖 <strong>Look back in the book · Busca en el libro:</strong> ${esc(q.chapter)}</div><label for="pg" style="font-weight:700;margin:6px 0 0;">Page Number / Número de página <span class="muted" style="font-weight:600;">(optional / opcional)</span></label><input id="pg" type="text" inputmode="numeric" maxlength="4" value="${esc(U.pages[q.n]||'')}"></div>`);
+    ref.querySelector('#pg').oninput = e=>{ U.pages[q.n] = e.target.value.replace(/[^0-9]/g,'').slice(0,4); e.target.value = U.pages[q.n]; unitSave(); };
+    box.appendChild(ref);
+  }
+
+  const prev = c.querySelector('#prevBtn');
+  if(U.idx === 0) prev.style.visibility = 'hidden';
+  prev.onclick = ()=>{ U.idx--; unitSave(); render(); };
+  const nextBtn = c.querySelector('#nextBtn');
+  const last = U.idx === total-1;
+  nextBtn.textContent = last ? 'Submit / Enviar' : 'Next / Siguiente →';
+  nextBtn.onclick = ()=>{
+    if(!last){ U.idx++; unitSave(); render(); return; }
+    const missing = qs.filter(qq=>!unitAnswered(qq)).map(qq=>qq.n);
+    if(missing.length){
+      c.querySelector('#submitMsg').innerHTML = `<p class="error-text">Please answer question${missing.length>1?'s':''} ${missing.join(', ')} first. · Responde ${missing.length>1?'las preguntas':'la pregunta'} ${missing.join(', ')} primero.</p>`;
+      return;
+    }
+    submitUnitQuiz();
+  };
+  return c;
+}
+
+async function submitUnitQuiz(){
+  const U = STATE.unit;
+  if(U.submitting) return;
+  U.submitting = true;
+  const qs = U.quiz.questions;
+  let correct = 0;
+  const split = { regular:{correct:0,total:0}, deeper:{correct:0,total:0} };
+  const responses = [];
+  const review = qs.map(q=>{
+    const ok = unitIsCorrect(q);
+    const bucket = q.level === 'deeper' ? split.deeper : split.regular;
+    bucket.total++; if(ok){ bucket.correct++; correct++; }
+    const chosen = U.answers[q.n] || [];
+    const text = ids => ids.map(id=>{ const o = q.options.find(x=>x.id===id); return o ? o.en : id; }).join(' + ');
+    responses.push({ n:q.n, lv:q.level === 'deeper' ? 'D' : 'R', a:chosen.join(''), t:text(chosen), ok:ok?1:0, pg:U.pages[q.n]||'' });
+    return { q:q.q_en, chosenText:text(chosen) || '(no answer)', correctText:text(q.correct), isCorrect:ok };
+  });
+  const pct = Math.round((correct/qs.length)*100);
+
+  const b = STATE.currentBook, s = STATE.student;
+  const confidence = 'medium';
+  const earnedPoints = computeQuizPoints(correct, qs.length, confidence, qs.length);
+  const prevPoints = s.points||0, prevWords = s.wordsRead||0;
+  const prevRankIdx = getRankInfo(prevPoints, prevWords).rankIdx;
+
+  s.history.unshift({ title:b.title, olid:b.olid, cover_i:b.cover_i||null, coverUrl:b.coverUrl||null, score:pct, date:new Date().toISOString().slice(0,10), points:earnedPoints, count:qs.length, confidence, words:b.wordEstimate||0,
+    unit:U.quiz.id, regular:split.regular, deeper:split.deeper, responses });
+  s.points = prevPoints + earnedPoints;
+  s.wordsRead = prevWords + (b.wordEstimate||0);
+  await saveStudent(s.alias, s);
+  try{ sessionStorage.removeItem(unitStoreKey()); }catch(e){}
+
+  const result = { correct, total: qs.length, pct, earnedPoints, totalPoints: s.points, confidence, review, regular:split.regular, deeper:split.deeper };
+  result.badges = computeBadges(s, result, prevPoints, prevWords, prevRankIdx);
+  STATE.quizResult = result;
+  STATE.resultAnimated = false;
+  STATE.showReview = false;
+  STATE.unit = null;
+  STATE.screen = 'result';
+  render();
+}
+
+// Teacher reporting helpers for unit-quiz attempts.
+function unitScoreSplit(h){
+  return h.regular && h.deeper ? `<div style="font-size:12px;color:var(--muted);">Regular ${h.regular.correct}/${h.regular.total} · Deeper ${h.deeper.correct}/${h.deeper.total}</div>` : '';
+}
+function unitScoreDetail(h){
+  if(!h.regular || !h.deeper) return '';
+  const rows = (h.responses||[]).map(r=>`<div>${r.ok?'✅':'❌'} Q${r.n}${r.lv==='D'?' (deeper)':''}: ${escHtml(r.t||'(none)')}${r.pg ? ` · p.${escHtml(r.pg)}` : ''}</div>`).join('');
+  return unitScoreSplit(h) + (rows ? `<details class="no-print"><summary style="font-size:12px;">Responses</summary><div style="font-size:12px;">${rows}</div></details>` : '');
 }
 
 function computeBadges(s, r, prevPoints, prevWords, prevRankIdx){
@@ -2067,8 +2336,8 @@ function fireHuskies(){
 
 function renderReviewList(review){
   return review.map((r,i)=>{
-    const chosenText = r.chosenIndex!=null ? r.options[r.chosenIndex] : '(no answer)';
-    const correctText = r.options[r.correctIndex];
+    const chosenText = r.chosenText != null ? r.chosenText : (r.chosenIndex!=null ? r.options[r.chosenIndex] : '(no answer)');
+    const correctText = r.correctText != null ? r.correctText : r.options[r.correctIndex];
     return `<div class="review-q ${r.isCorrect?'correct':'incorrect'}"><div class="review-q-head">${r.isCorrect?'✅':'❌'} ${i+1}. ${r.q}</div><div class="review-answer">Your answer: ${chosenText}</div>${!r.isCorrect ? `<div class="review-correct">Correct answer: ${correctText}</div>` : ''}</div>`;
   }).join('');
 }
@@ -2081,6 +2350,10 @@ function screenResult(){
   const masteryNote = !good ? `<p class="muted" style="margin:0 0 14px;">Quizzes need 80% or higher to earn points — this one still counts as finished, just no points this time.</p>` : '';
   const reviewSection = r.review ? `<button type="button" class="btn secondary" id="reviewToggle">${STATE.showReview ? 'Hide' : 'Review'} your answers</button>${STATE.showReview ? `<div class="review-list">${renderReviewList(r.review)}</div>` : ''}` : '';
   const c = el(`<div class="card" style="text-align:center;"><h2>${headline}</h2><p class="muted" style="margin:6px 0 16px;">${r.correct} of ${r.total} correct</p>${masteryNote}${r.badges.length ? `<div class="badge-row">${r.badges.map(b=>`<span class="badge-chip">${b.emoji} ${b.label}</span>`).join('')}</div>` : ''}<div class="points-banner"><div class="pb-num">+0</div><div class="pb-lbl">Points earned · ${mult}x confidence</div></div><div class="stat-row"><div class="stat"><div class="num">${r.pct}%</div><div class="lbl">Score</div></div><div class="stat"><div class="num">${r.totalPoints}</div><div class="lbl">Total Points</div></div></div>${reviewSection}<button class="btn" id="nextBtn">Find another book</button><button class="btn secondary" id="dashBtn">See my progress</button></div>`);
+  if(r.regular){
+    const lead = c.querySelector('p.muted');
+    if(lead) lead.insertAdjacentHTML('afterend', `<p class="muted" style="margin:0 0 14px;">Regular questions: ${r.regular.correct} of ${r.regular.total} · Deeper-thinking questions: ${r.deeper.correct} of ${r.deeper.total}</p>`);
+  }
   c.querySelector('#nextBtn').onclick = ()=>{ STATE.screen='search'; STATE.searchResults=[]; STATE.searchQuery=''; render(); };
   c.querySelector('#dashBtn').onclick = ()=>{ STATE.screen='dashboard'; render(); };
   const reviewBtn = c.querySelector('#reviewToggle');
@@ -2330,14 +2603,14 @@ function screenTeacherSummary(){
   const topBooksSection = topBooks.length===0 ? `<div class="empty">No quizzes yet.</div>` : `<ul class="summary-list">${topBooksHtml}</ul>`;
 
   const recent = [...attempts].sort((a,b)=> (b.date||'').localeCompare(a.date||'')).slice(0,12);
-  const recentRowsHtml = recent.map(a=>`<tr><td>${a.date}</td><td>${escHtml(teacherName(a.alias, a.classCode))}</td><td>${classLabel(a.classCode)}</td><td>${a.title}</td><td>${a.score}%</td></tr>`).join('');
+  const recentRowsHtml = recent.map(a=>`<tr><td>${a.date}</td><td>${escHtml(teacherName(a.alias, a.classCode))}</td><td>${classLabel(a.classCode)}</td><td>${a.title}</td><td>${a.score}%${unitScoreSplit(a)}</td></tr>`).join('');
   const recentSection = recent.length===0 ? `<div class="empty">No quizzes yet.</div>` : `<div style="overflow-x:auto;"><table class="roster-table"><thead><tr><th>Date</th><th>Student</th><th>Class</th><th>Book</th><th>Score</th></tr></thead><tbody>${recentRowsHtml}</tbody></table></div>`;
 
   // Full, uncapped log of every book taken (vs. "Recent activity" above,
   // which is capped to a quick glance) - collapsed by default since it can
   // get long, but expand it before printing to include the whole list.
   const allBooks = [...attempts].sort((a,b)=> (b.date||'').localeCompare(a.date||''));
-  const allBooksRowsHtml = allBooks.map(a=>`<tr><td>${a.date}</td><td>${escHtml(teacherName(a.alias, a.classCode))}</td><td>${classLabel(a.classCode)}</td><td>${a.title}</td><td>${a.score}%</td><td>${a.points!=null ? '+'+a.points : '—'}</td></tr>`).join('');
+  const allBooksRowsHtml = allBooks.map(a=>`<tr><td>${a.date}</td><td>${escHtml(teacherName(a.alias, a.classCode))}</td><td>${classLabel(a.classCode)}</td><td>${a.title}</td><td>${a.score}%${unitScoreSplit(a)}</td><td>${a.points!=null ? '+'+a.points : '—'}</td></tr>`).join('');
   const allBooksTable = allBooks.length===0 ? `<div class="empty">No quizzes yet.</div>` : `<div style="overflow-x:auto;"><table class="roster-table"><thead><tr><th>Date</th><th>Student</th><th>Class</th><th>Book</th><th>Score</th><th>Points</th></tr></thead><tbody>${allBooksRowsHtml}</tbody></table></div>`;
   const bookListToggleLabel = STATE.showFullBookList ? 'Hide full list' : `Show full list (${allBooks.length})`;
 
@@ -2354,7 +2627,7 @@ function screenTeacherStudent(){
   const s = (STATE.teacherRows || []).find(r=>r.alias===STATE.teacherManagingAlias && (r.classCode||'default')===STATE.teacherManagingClass);
   if(!s){ STATE.screen='teacher'; return screenTeacher(); }
   const hist = s.history || [];
-  const rowsHtml = hist.map(h=>`<tr><td>${h.title}</td><td>${h.score}%</td><td>${h.points!=null ? '+'+h.points : '—'}</td><td>${h.date}</td><td class="no-print"><button type="button" class="del-btn">🗑️ Delete</button></td></tr>`).join('');
+  const rowsHtml = hist.map(h=>`<tr><td>${h.title}</td><td>${h.score}%${unitScoreDetail(h)}</td><td>${h.points!=null ? '+'+h.points : '—'}</td><td>${h.date}</td><td class="no-print"><button type="button" class="del-btn">🗑️ Delete</button></td></tr>`).join('');
   const c = el(`<div><button class="backlink" id="back">&larr; Back to roster</button><div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;"><div><h2 style="margin-bottom:2px;">${escHtml(s.realName || s.alias)}${s.realName ? ` <span class="muted" style="font-weight:600;font-size:14px;">(${escHtml(s.alias)})</span>` : ''}</h2><p class="muted" style="margin:0;">${classLabel(s.classCode)} · PIN ${s.pin} · ${s.points||0} pts</p></div><button class="btn secondary no-print" id="printBtn" style="width:auto;margin:0;padding:10px 18px;">🖨️ Print</button></div>${hist.length===0 ? `<div class="empty">No quizzes taken yet.</div>` : `<div style="overflow-x:auto;margin-top:14px;"><table class="roster-table"><thead><tr><th>Book</th><th>Score</th><th>Points</th><th>Date</th><th class="no-print"></th></tr></thead><tbody>${rowsHtml}</tbody></table></div>`}</div><div class="card no-print"><h3 style="margin-bottom:2px;">Suggested reading range</h3><p class="muted" style="margin:0 0 12px;">Optional. Shows ${s.realName || s.alias} a friendly note on how a book compares — it never blocks them from reading or quizzing on anything. Leave both blank to skip this.</p><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;"><label style="font-size:13px;color:var(--muted);">Min <input type="number" id="lexileMin" placeholder="e.g. 600" value="${s.lexileMin!=null?s.lexileMin:''}" style="width:100px;display:inline-block;margin-left:4px;"></label><label style="font-size:13px;color:var(--muted);">Max <input type="number" id="lexileMax" placeholder="e.g. 800" value="${s.lexileMax!=null?s.lexileMax:''}" style="width:100px;display:inline-block;margin-left:4px;"></label><span style="font-size:13px;color:var(--muted);">Lexile (L)</span></div><div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap;"><button type="button" class="btn secondary" id="saveRangeBtn" style="width:auto;margin:0;padding:10px 18px;">Save range</button><button type="button" class="backlink" id="clearRangeBtn" style="margin:0;">Skip / clear range</button></div><div id="rangeMsg"></div></div></div>`);
   c.querySelector('#back').onclick = ()=>{ STATE.screen='teacher'; STATE.rangeSaveMsg=''; render(); };
   c.querySelector('#printBtn').onclick = ()=> window.print();

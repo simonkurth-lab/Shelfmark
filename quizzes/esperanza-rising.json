@@ -1,0 +1,673 @@
+{
+ "id": "esperanza-rising",
+ "published": false,
+ "titleMatch": "^esperanza rising",
+ "title": "Esperanza Rising: End-of-Book Quiz",
+ "note": "Set \"published\" to true after teacher review. Teachers can test first at app.html?previewUnitQuiz=1",
+ "questions": [
+  {
+   "n": 1,
+   "type": "mc",
+   "level": "regular",
+   "chapter": "Las Uvas",
+   "pageBox": false,
+   "q_en": "Where does Esperanza live at the beginning of the story?",
+   "q_es": "¿Dónde vive Esperanza al comienzo de la historia?",
+   "options": [
+    {
+     "id": "A",
+     "en": "On a ranch in Mexico",
+     "es": "En un rancho en México"
+    },
+    {
+     "id": "B",
+     "en": "In a camp in California",
+     "es": "En un campamento en California"
+    },
+    {
+     "id": "C",
+     "en": "In a city in Texas",
+     "es": "En una ciudad en Texas"
+    },
+    {
+     "id": "D",
+     "en": "On a farm in Oklahoma",
+     "es": "En una granja en Oklahoma"
+    }
+   ],
+   "correct": [
+    "A"
+   ]
+  },
+  {
+   "n": 2,
+   "type": "mc",
+   "level": "regular",
+   "chapter": "Las Papayas / Los Higos",
+   "pageBox": true,
+   "q_en": "What event changes Esperanza's life and causes her family to leave their home?",
+   "q_es": "¿Qué suceso cambia la vida de Esperanza y hace que su familia deje su hogar?",
+   "options": [
+    {
+     "id": "A",
+     "en": "Her family sells the ranch.",
+     "es": "Su familia vende el rancho."
+    },
+    {
+     "id": "B",
+     "en": "Her father is killed.",
+     "es": "Su padre muere asesinado."
+    },
+    {
+     "id": "C",
+     "en": "She decides to attend school.",
+     "es": "Ella decide ir a la escuela."
+    },
+    {
+     "id": "D",
+     "en": "Her mother finds a new job.",
+     "es": "Su madre encuentra otro trabajo."
+    }
+   ],
+   "correct": [
+    "B"
+   ]
+  },
+  {
+   "n": 3,
+   "type": "mc",
+   "level": "regular",
+   "chapter": "Los Higos / Las Guayabas",
+   "pageBox": false,
+   "q_en": "Why do Esperanza and her mother travel to California?",
+   "q_es": "¿Por qué viajan Esperanza y su madre a California?",
+   "options": [
+    {
+     "id": "A",
+     "en": "To visit family for a holiday.",
+     "es": "Para visitar a la familia de vacaciones."
+    },
+    {
+     "id": "B",
+     "en": "To buy another large ranch.",
+     "es": "Para comprar otro rancho grande."
+    },
+    {
+     "id": "C",
+     "en": "To begin a safer life and find work.",
+     "es": "Para empezar una vida más segura y encontrar trabajo."
+    },
+    {
+     "id": "D",
+     "en": "To attend a special school.",
+     "es": "Para asistir a una escuela especial."
+    }
+   ],
+   "correct": [
+    "C"
+   ]
+  },
+  {
+   "n": 4,
+   "type": "mc",
+   "level": "deeper",
+   "chapter": "Las Cebollas / Las Ciruelas",
+   "pageBox": true,
+   "q_en": "What does this show about Esperanza?",
+   "q_es": "¿Qué nos muestra esto sobre Esperanza?",
+   "options": [
+    {
+     "id": "A",
+     "en": "She wants to be rich again.",
+     "es": "Quiere volver a ser rica."
+    },
+    {
+     "id": "B",
+     "en": "She does not care about others.",
+     "es": "No le importan los demás."
+    },
+    {
+     "id": "C",
+     "en": "She does not want to work.",
+     "es": "No quiere trabajar."
+    },
+    {
+     "id": "D",
+     "en": "She is learning to care for others.",
+     "es": "Está aprendiendo a ayudar a los demás."
+    }
+   ],
+   "correct": [
+    "D"
+   ],
+   "passage_en": "At first, Esperanza does not like sharing a small home or doing chores. Later, she learns to work hard and help others.",
+   "passage_es": "Al principio, a Esperanza no le gusta compartir una casa pequeña ni hacer tareas. Después, aprende a trabajar y ayudar a otros."
+  },
+  {
+   "n": 5,
+   "type": "tf",
+   "level": "regular",
+   "chapter": "Las Cebollas",
+   "pageBox": true,
+   "q_en": "Esperanza already knows how to sweep and do household chores when she first arrives at the camp.",
+   "q_es": "Esperanza ya sabe barrer y hacer tareas de la casa cuando llega al campamento.",
+   "options": [
+    {
+     "id": "T",
+     "en": "True",
+     "es": "Verdadero"
+    },
+    {
+     "id": "F",
+     "en": "False",
+     "es": "Falso"
+    }
+   ],
+   "correct": [
+    "F"
+   ]
+  },
+  {
+   "n": 6,
+   "type": "mc",
+   "level": "regular",
+   "chapter": "Las Cebollas",
+   "pageBox": true,
+   "q_en": "Who helps Esperanza learn how to sweep?",
+   "q_es": "¿Quién ayuda a Esperanza a aprender a barrer?",
+   "options": [
+    {
+     "id": "A",
+     "en": "Marta"
+    },
+    {
+     "id": "B",
+     "en": "Isabel"
+    },
+    {
+     "id": "C",
+     "en": "Abuelita"
+    },
+    {
+     "id": "D",
+     "en": "Alfonso"
+    }
+   ],
+   "correct": [
+    "B"
+   ]
+  },
+  {
+   "n": 7,
+   "type": "mc",
+   "level": "regular",
+   "chapter": "Las Papas / Los Aguacates",
+   "pageBox": false,
+   "q_en": "Why does Esperanza work so hard?",
+   "q_es": "¿Por qué trabaja tanto Esperanza?",
+   "options": [
+    {
+     "id": "A",
+     "en": "She wants to be famous.",
+     "es": "Quiere ser famosa."
+    },
+    {
+     "id": "B",
+     "en": "She wants expensive clothes.",
+     "es": "Quiere ropa cara."
+    },
+    {
+     "id": "C",
+     "en": "She needs to help her family.",
+     "es": "Necesita ayudar a su familia."
+    },
+    {
+     "id": "D",
+     "en": "She wants to leave the camp alone.",
+     "es": "Quiere irse sola del campamento."
+    }
+   ],
+   "correct": [
+    "C"
+   ],
+   "passage_en": "Esperanza's mother becomes very sick. Esperanza must keep working and helping her family while her mother gets better.",
+   "passage_es": "La madre de Esperanza se enferma mucho. Esperanza debe seguir trabajando y ayudando a su familia mientras su madre mejora."
+  },
+  {
+   "n": 8,
+   "type": "mc",
+   "level": "deeper",
+   "chapter": "Las Uvas / Los Espárragos",
+   "pageBox": true,
+   "q_en": "Why is Abuelita's blanket special to Esperanza?",
+   "q_es": "¿Por qué es especial para Esperanza la manta de Abuelita?",
+   "options": [
+    {
+     "id": "A",
+     "en": "It reminds her of family, love, and hope.",
+     "es": "Le recuerda a su familia, el amor y la esperanza."
+    },
+    {
+     "id": "B",
+     "en": "It will make her rich.",
+     "es": "La hará rica."
+    },
+    {
+     "id": "C",
+     "en": "It means her life will never change.",
+     "es": "Significa que su vida nunca cambiará."
+    },
+    {
+     "id": "D",
+     "en": "It reminds her that she does not like working.",
+     "es": "Le recuerda que no le gusta trabajar."
+    }
+   ],
+   "correct": [
+    "A"
+   ]
+  },
+  {
+   "n": 9,
+   "type": "select2",
+   "level": "regular",
+   "chapter": "Las Cebollas / Las Ciruelas",
+   "pageBox": false,
+   "q_en": "Which TWO problems does Esperanza face in California?",
+   "q_es": "¿Cuáles DOS problemas enfrenta Esperanza en California?",
+   "options": [
+    {
+     "id": "A",
+     "en": "Learning new chores.",
+     "es": "Aprender nuevas tareas."
+    },
+    {
+     "id": "B",
+     "en": "Running a large family ranch.",
+     "es": "Administrar un rancho grande."
+    },
+    {
+     "id": "C",
+     "en": "Sharing a small home.",
+     "es": "Compartir una casa pequeña."
+    },
+    {
+     "id": "D",
+     "en": "Choosing servants.",
+     "es": "Elegir sirvientes."
+    }
+   ],
+   "correct": [
+    "A",
+    "C"
+   ]
+  },
+  {
+   "n": 10,
+   "type": "mc",
+   "level": "regular",
+   "chapter": "Los Espárragos",
+   "pageBox": true,
+   "q_en": "Why does Marta want workers to go on strike?",
+   "q_es": "¿Por qué quiere Marta que los trabajadores hagan una huelga?",
+   "options": [
+    {
+     "id": "A",
+     "en": "She wants more vacation days.",
+     "es": "Quiere más días de vacaciones."
+    },
+    {
+     "id": "B",
+     "en": "She wants to close every farm.",
+     "es": "Quiere cerrar todas las granjas."
+    },
+    {
+     "id": "C",
+     "en": "She wants to return to Mexico right away.",
+     "es": "Quiere regresar a México de inmediato."
+    },
+    {
+     "id": "D",
+     "en": "She wants better pay and safer working conditions.",
+     "es": "Quiere mejores salarios y condiciones de trabajo más seguras."
+    }
+   ],
+   "correct": [
+    "D"
+   ]
+  },
+  {
+   "n": 11,
+   "type": "mc",
+   "level": "regular",
+   "chapter": "Los Espárragos",
+   "pageBox": false,
+   "q_en": "What does this show about the workers?",
+   "q_es": "¿Qué muestra esto sobre los trabajadores?",
+   "options": [
+    {
+     "id": "A",
+     "en": "Everyone agrees.",
+     "es": "Todos están de acuerdo."
+    },
+    {
+     "id": "B",
+     "en": "They must make hard choices.",
+     "es": "Deben tomar decisiones difíciles."
+    },
+    {
+     "id": "C",
+     "en": "They do not care about family.",
+     "es": "No les importa la familia."
+    },
+    {
+     "id": "D",
+     "en": "Their jobs are perfect.",
+     "es": "Sus trabajos son perfectos."
+    }
+   ],
+   "correct": [
+    "B"
+   ],
+   "passage_en": "Some workers stop working because they want better treatment. Others keep working because they need money to feed their families.",
+   "passage_es": "Algunos trabajadores dejan de trabajar porque quieren un mejor trato. Otros siguen trabajando porque necesitan dinero para alimentar a sus familias."
+  },
+  {
+   "n": 12,
+   "type": "mc",
+   "level": "deeper",
+   "chapter": "Los Espárragos",
+   "pageBox": true,
+   "q_en": "Why does Esperanza help Marta, even though they have not always gotten along?",
+   "q_es": "¿Por qué ayuda Esperanza a Marta, aunque no siempre se han llevado bien?",
+   "options": [
+    {
+     "id": "A",
+     "en": "She wants Marta to work for her.",
+     "es": "Quiere que Marta trabaje para ella."
+    },
+    {
+     "id": "B",
+     "en": "She agrees with everything Marta says.",
+     "es": "Está de acuerdo con todo lo que dice Marta."
+    },
+    {
+     "id": "C",
+     "en": "She knows Marta needs help and wants to keep her safe.",
+     "es": "Sabe que Marta necesita ayuda y quiere protegerla."
+    },
+    {
+     "id": "D",
+     "en": "She wants to lead the workers.",
+     "es": "Quiere ser la líder de los trabajadores."
+    }
+   ],
+   "correct": [
+    "C"
+   ]
+  },
+  {
+   "n": 13,
+   "type": "tf",
+   "level": "regular",
+   "chapter": "Las Guayabas / Los Aguacates",
+   "pageBox": false,
+   "q_en": "Miguel is interested in trains and fixing machines.",
+   "q_es": "A Miguel le interesan los trenes y arreglar máquinas.",
+   "options": [
+    {
+     "id": "T",
+     "en": "True",
+     "es": "Verdadero"
+    },
+    {
+     "id": "F",
+     "en": "False",
+     "es": "Falso"
+    }
+   ],
+   "correct": [
+    "T"
+   ]
+  },
+  {
+   "n": 14,
+   "type": "mc",
+   "level": "regular",
+   "chapter": "Los Aguacates / Los Duraznos",
+   "pageBox": true,
+   "q_en": "Why does Esperanza save much of her money?",
+   "q_es": "¿Por qué ahorra Esperanza gran parte de su dinero?",
+   "options": [
+    {
+     "id": "A",
+     "en": "To help bring Abuelita to California.",
+     "es": "Para ayudar a traer a Abuelita a California."
+    },
+    {
+     "id": "B",
+     "en": "To buy a new ranch.",
+     "es": "Para comprar un rancho nuevo."
+    },
+    {
+     "id": "C",
+     "en": "To travel around the country.",
+     "es": "Para viajar por el país."
+    },
+    {
+     "id": "D",
+     "en": "To buy gifts for every worker.",
+     "es": "Para comprar regalos para todos los trabajadores."
+    }
+   ],
+   "correct": [
+    "A"
+   ]
+  },
+  {
+   "n": 15,
+   "type": "mc",
+   "level": "regular",
+   "chapter": "Los Duraznos / Las Uvas",
+   "pageBox": false,
+   "q_en": "What does Esperanza think when her saved money goes missing?",
+   "q_es": "¿Qué piensa Esperanza cuando desaparece el dinero que ahorró?",
+   "options": [
+    {
+     "id": "A",
+     "en": "She should stop working.",
+     "es": "Debe dejar de trabajar."
+    },
+    {
+     "id": "B",
+     "en": "She should return to Mexico.",
+     "es": "Debe regresar a México."
+    },
+    {
+     "id": "C",
+     "en": "She has already spent it.",
+     "es": "Ya lo ha gastado."
+    },
+    {
+     "id": "D",
+     "en": "Miguel has taken it.",
+     "es": "Miguel se lo ha llevado."
+    }
+   ],
+   "correct": [
+    "D"
+   ]
+  },
+  {
+   "n": 16,
+   "type": "mc",
+   "level": "deeper",
+   "chapter": "Las Uvas (beginning and ending / principio y final)",
+   "pageBox": true,
+   "q_en": "What is an important lesson Esperanza learns?",
+   "q_es": "¿Qué lección importante aprende Esperanza?",
+   "options": [
+    {
+     "id": "A",
+     "en": "Having money makes everyone happy.",
+     "es": "Tener dinero hace felices a todos."
+    },
+    {
+     "id": "B",
+     "en": "Family and love are more important than money.",
+     "es": "La familia y el amor son más importantes que el dinero."
+    },
+    {
+     "id": "C",
+     "en": "People should never change.",
+     "es": "Las personas nunca deben cambiar."
+    },
+    {
+     "id": "D",
+     "en": "Working hard always makes you rich.",
+     "es": "Trabajar mucho siempre te hace rico."
+    }
+   ],
+   "correct": [
+    "B"
+   ],
+   "passage_en": "Esperanza once had a big house and many nice things. In California, she learns to work, share, and care for others.",
+   "passage_es": "Antes, Esperanza tenía una casa grande y muchas cosas bonitas. En California, aprende a trabajar, compartir y ayudar a otros."
+  },
+  {
+   "n": 17,
+   "type": "mc",
+   "level": "regular",
+   "chapter": "Las Uvas (ending / final)",
+   "pageBox": false,
+   "q_en": "Who returns with Abuelita near the end of the story?",
+   "q_es": "¿Quién regresa con Abuelita cerca del final de la historia?",
+   "options": [
+    {
+     "id": "A",
+     "en": "Alfonso"
+    },
+    {
+     "id": "B",
+     "en": "Marta"
+    },
+    {
+     "id": "C",
+     "en": "Miguel"
+    },
+    {
+     "id": "D",
+     "en": "Isabel"
+    }
+   ],
+   "correct": [
+    "C"
+   ]
+  },
+  {
+   "n": 18,
+   "type": "select2",
+   "level": "regular",
+   "chapter": "Las Papas / Los Aguacates",
+   "pageBox": false,
+   "q_en": "Which TWO actions show Esperanza has learned to care for others?",
+   "q_es": "¿Cuáles DOS acciones muestran que Esperanza ha aprendido a cuidar a otros?",
+   "options": [
+    {
+     "id": "A",
+     "en": "She works to help her family.",
+     "es": "Trabaja para ayudar a su familia."
+    },
+    {
+     "id": "B",
+     "en": "She refuses to learn new things.",
+     "es": "Se niega a aprender cosas nuevas."
+    },
+    {
+     "id": "C",
+     "en": "She expects others to do all the work.",
+     "es": "Espera que otros hagan todo el trabajo."
+    },
+    {
+     "id": "D",
+     "en": "She helps people when they need her.",
+     "es": "Ayuda a las personas cuando la necesitan."
+    }
+   ],
+   "correct": [
+    "A",
+    "D"
+   ]
+  },
+  {
+   "n": 19,
+   "type": "mc",
+   "level": "regular",
+   "chapter": "Las Uvas (beginning and ending / principio y final)",
+   "pageBox": true,
+   "q_en": "Why is the last chapter called Las Uvas (Grapes), just like the first chapter?",
+   "q_es": "¿Por qué el último capítulo se llama Las Uvas, igual que el primero?",
+   "options": [
+    {
+     "id": "A",
+     "en": "The grape harvest connects the beginning and end of Esperanza's story.",
+     "es": "La cosecha de uvas conecta el principio y el final de la historia de Esperanza."
+    },
+    {
+     "id": "B",
+     "en": "Esperanza returns to her old ranch.",
+     "es": "Esperanza regresa a su antiguo rancho."
+    },
+    {
+     "id": "C",
+     "en": "Her family stops working.",
+     "es": "Su familia deja de trabajar."
+    },
+    {
+     "id": "D",
+     "en": "All her problems disappear.",
+     "es": "Todos sus problemas desaparecen."
+    }
+   ],
+   "correct": [
+    "A"
+   ]
+  },
+  {
+   "n": 20,
+   "type": "mc",
+   "level": "deeper",
+   "chapter": "Las Uvas (ending / final)",
+   "pageBox": false,
+   "q_en": "Why is Esperanza Rising a good title for the book?",
+   "q_es": "¿Por qué es Esperanza Rising un buen título para el libro?",
+   "options": [
+    {
+     "id": "A",
+     "en": "Esperanza moves into a taller house.",
+     "es": "Esperanza se muda a una casa más alta."
+    },
+    {
+     "id": "B",
+     "en": "Esperanza never has problems again.",
+     "es": "Esperanza nunca vuelve a tener problemas."
+    },
+    {
+     "id": "C",
+     "en": "Esperanza becomes rich again.",
+     "es": "Esperanza vuelve a ser rica."
+    },
+    {
+     "id": "D",
+     "en": "Esperanza learns to be strong and keeps trying.",
+     "es": "Esperanza aprende a ser fuerte y sigue adelante."
+    }
+   ],
+   "correct": [
+    "D"
+   ],
+   "passage_en": "Esperanza loses her old home and the life she knew. She faces many problems, but she learns to be strong and have hope.",
+   "passage_es": "Esperanza pierde su antiguo hogar y la vida que conocía. Tiene muchos problemas, pero aprende a ser fuerte y tener esperanza."
+  }
+ ]
+}
