@@ -1330,7 +1330,7 @@ function screenDaily(){
   c.querySelector('#back').onclick = ()=>{ STATE.screen='home'; render(); };
   const host = c.querySelector('#activityHost');
   const unitSlot = el(`<div></div>`);
-  c.querySelector('.card').appendChild(unitSlot);
+  c.querySelector('.card').insertBefore(unitSlot, c.querySelector('#tabs'));
   listUnitQuizzes().then(list=>{
     if(!document.body.contains(unitSlot)) return;
     list.forEach(qz=>{
