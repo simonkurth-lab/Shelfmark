@@ -173,36 +173,6 @@
    "n": 6,
    "type": "mc",
    "level": "regular",
-   "chapter": "Las Cebollas",
-   "pageBox": true,
-   "q_en": "Who helps Esperanza learn how to sweep?",
-   "q_es": "¿Quién ayuda a Esperanza a aprender a barrer?",
-   "options": [
-    {
-     "id": "A",
-     "en": "Marta"
-    },
-    {
-     "id": "B",
-     "en": "Isabel"
-    },
-    {
-     "id": "C",
-     "en": "Abuelita"
-    },
-    {
-     "id": "D",
-     "en": "Alfonso"
-    }
-   ],
-   "correct": [
-    "B"
-   ]
-  },
-  {
-   "n": 7,
-   "type": "mc",
-   "level": "regular",
    "chapter": "Las Papas / Los Aguacates",
    "pageBox": false,
    "q_en": "Why does Esperanza work so hard?",
@@ -236,7 +206,7 @@
    "passage_es": "La madre de Esperanza se enferma mucho. Esperanza debe seguir trabajando y ayudando a su familia mientras su madre mejora."
   },
   {
-   "n": 8,
+   "n": 7,
    "type": "mc",
    "level": "deeper",
    "chapter": "Las Uvas / Los Espárragos",
@@ -270,7 +240,7 @@
    ]
   },
   {
-   "n": 9,
+   "n": 8,
    "type": "select2",
    "level": "regular",
    "chapter": "Las Cebollas / Las Ciruelas",
@@ -305,7 +275,7 @@
    ]
   },
   {
-   "n": 10,
+   "n": 9,
    "type": "mc",
    "level": "regular",
    "chapter": "Los Espárragos",
@@ -339,7 +309,7 @@
    ]
   },
   {
-   "n": 11,
+   "n": 10,
    "type": "mc",
    "level": "regular",
    "chapter": "Los Espárragos",
@@ -375,7 +345,7 @@
    "passage_es": "Algunos trabajadores dejan de trabajar porque quieren un mejor trato. Otros siguen trabajando porque necesitan dinero para alimentar a sus familias."
   },
   {
-   "n": 12,
+   "n": 11,
    "type": "mc",
    "level": "deeper",
    "chapter": "Los Espárragos",
@@ -409,7 +379,7 @@
    ]
   },
   {
-   "n": 13,
+   "n": 12,
    "type": "tf",
    "level": "regular",
    "chapter": "Las Guayabas / Los Aguacates",
@@ -433,7 +403,7 @@
    ]
   },
   {
-   "n": 14,
+   "n": 13,
    "type": "mc",
    "level": "regular",
    "chapter": "Los Aguacates / Los Duraznos",
@@ -467,7 +437,7 @@
    ]
   },
   {
-   "n": 15,
+   "n": 14,
    "type": "mc",
    "level": "regular",
    "chapter": "Los Duraznos / Las Uvas",
@@ -501,7 +471,7 @@
    ]
   },
   {
-   "n": 16,
+   "n": 15,
    "type": "mc",
    "level": "deeper",
    "chapter": "Las Uvas (beginning and ending / principio y final)",
@@ -537,7 +507,7 @@
    "passage_es": "Antes, Esperanza tenía una casa grande y muchas cosas bonitas. En California, aprende a trabajar, compartir y ayudar a otros."
   },
   {
-   "n": 17,
+   "n": 16,
    "type": "mc",
    "level": "regular",
    "chapter": "Las Uvas (ending / final)",
@@ -567,7 +537,7 @@
    ]
   },
   {
-   "n": 18,
+   "n": 17,
    "type": "select2",
    "level": "regular",
    "chapter": "Las Papas / Los Aguacates",
@@ -602,7 +572,7 @@
    ]
   },
   {
-   "n": 19,
+   "n": 18,
    "type": "mc",
    "level": "regular",
    "chapter": "Las Uvas (beginning and ending / principio y final)",
@@ -636,7 +606,7 @@
    ]
   },
   {
-   "n": 20,
+   "n": 19,
    "type": "mc",
    "level": "deeper",
    "chapter": "Las Uvas (ending / final)",
@@ -671,5 +641,6 @@
    "passage_en": "Esperanza loses her old home and the life she knew. She faces many problems, but she learns to be strong and have hope.",
    "passage_es": "Esperanza pierde su antiguo hogar y la vida que conocía. Tiene muchos problemas, pero aprende a ser fuerte y tener esperanza."
   }
- ]
+ ],
+ "removed": "Original Q6 (who taught Esperanza to sweep) removed: no answer choice was correct. Quiz is 19 questions."
 }

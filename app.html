@@ -1337,7 +1337,7 @@ function screenDaily(){
       const book = { title: qz.bookTitle || qz.title, author: qz.bookAuthor || '', olid: null };
       // Only an earlier attempt at THIS unit quiz counts, not a regular Piki quiz on the same book.
       const prior = (STATE.student.history || []).find(h=>h.unit === qz.id);
-      const card = el(`<div class="panel" style="margin-top:16px;background:#FBF6E8;border:1.5px solid var(--line);border-radius:12px;padding:14px 16px;"><h3 style="margin:0 0 4px;">📘 Unit quiz: ${escHtml(qz.bookTitle || qz.title)}</h3><p class="muted" style="margin:0 0 10px;">${escHtml(qz.title)} · 20 questions · English + Español · read-aloud</p>${prior ? `<div class="already-done"><div class="already-done-title">✅ Already completed</div><p class="muted" style="margin:4px 0 0;">You scored ${prior.score}%.</p></div>` : `<button class="btn coral" type="button" style="margin:0;">Start the quiz</button>`}</div>`);
+      const card = el(`<div class="panel" style="margin-top:16px;background:#FBF6E8;border:1.5px solid var(--line);border-radius:12px;padding:14px 16px;"><h3 style="margin:0 0 4px;">📘 Unit quiz: ${escHtml(qz.bookTitle || qz.title)}</h3><p class="muted" style="margin:0 0 10px;">${escHtml(qz.title)} · ${qz.questions.length} questions · English + Español · read-aloud</p>${prior ? `<div class="already-done"><div class="already-done-title">✅ Already completed</div><p class="muted" style="margin:4px 0 0;">You scored ${prior.score}%.</p></div>` : `<button class="btn coral" type="button" style="margin:0;">Start the quiz</button>`}</div>`);
       const btn = card.querySelector('button');
       if(btn) btn.onclick = ()=>{ STATE.currentBook = book; STATE.unitFrom = 'daily'; STATE.screen = 'quizGate'; render(); };
       unitSlot.appendChild(card);
@@ -1638,6 +1638,10 @@ function screenBook(){
   const rangeNote = rangeFitNote(b, STATE.student);
   const c = el(`<div><button class="backlink" id="back">&larr; Back to search</button><div class="card"><h2>${b.title}</h2><p class="muted" style="margin:2px 0 10px;">${b.author}</p>${tag ? `<span class="pill">${tag}</span>` : ''}<span class="pill gold">${b.genre||'Fiction'}</span>${levelPills}<div class="stat-row"><div class="stat"><div class="num">${b.wordEstimate ? b.wordEstimate.toLocaleString() : '—'}</div><div class="lbl">Est. Words</div></div><div class="stat"><div class="num">${b.pages || '—'}</div><div class="lbl">Pages</div></div></div>${!b.lexileLabel && b.arLevel==null ? `<p class="muted" style="margin:6px 0 0;font-size:12px;">Lexile/AR level not available for this book.</p>` : `<p class="muted" style="margin:6px 0 0;font-size:12px;">Lexile/AR levels are estimates, not official measures.</p>`}${rangeNote}${b.confident===false || !b.summary ? `<div class="already-done"><div class="already-done-title">📚 We don't know this book well enough</div><p class="muted" style="margin:4px 0 8px;">We couldn't find a description, and we don't want to write a quiz about the wrong story. In 2-3 sentences, what is the book about? Who is the main character, and where does it happen?</p><textarea id="blurb" rows="4" maxlength="600" placeholder="Example: A squirrel named ... who ..." style="width:100%;box-sizing:border-box;font:inherit;padding:10px;border-radius:10px;border:1px solid var(--line);"></textarea><button class="btn coral" id="blurbBtn" style="margin-top:10px;">Use this to make my quiz</button></div>` : `<p style="line-height:1.5;margin-top:10px;">${b.summary}</p>${actionHtml}`}</div></div>`);
   c.querySelector('#back').onclick = ()=>{ STATE.screen='search'; render(); };
+  if(STATE.quizShortMsg){
+    c.querySelector('.card').insertAdjacentHTML('afterbegin', `<p class="error-text" style="margin:0 0 12px;">${STATE.quizShortMsg}</p>`);
+    STATE.quizShortMsg = '';
+  }
   const blurbBtn = c.querySelector('#blurbBtn');
   if(blurbBtn) blurbBtn.onclick = async ()=>{
     const text = cleanDescription(c.querySelector('#blurb').value);
@@ -1767,17 +1771,24 @@ async function startQuiz(){
   const grade = STATE.student.grade || '35';
   const challenge = STATE.quizSetup.challenge;
   const bilingual = !!STATE.quizSetup.bilingual;
-  const [quiz] = await Promise.all([
-    api('/api/quiz', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ olid: b.olid, title: b.title, author: b.author, summary: b.summary, confident: b.confident, count, grade, challenge, bilingual })
-    }),
-    minWait
-  ]);
+  const fetchQuiz = ()=> api('/api/quiz', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ olid: b.olid, title: b.title, author: b.author, summary: b.summary, confident: b.confident, count, grade, challenge, bilingual })
+  }).catch(()=>null);
+  let [quiz] = await Promise.all([fetchQuiz(), minWait]);
+  // The AI sometimes returns far fewer questions than asked for (even just one),
+  // which would hand out a free 100%. Ask again, up to twice, before giving up.
+  const isShort = z => z && !z.error && (!Array.isArray(z.questions) || z.questions.length < count);
+  for(let tries = 0; tries < 2 && (isShort(quiz) || !quiz); tries++) quiz = await fetchQuiz();
   clearInterval(slideTimer);
   if(quiz && quiz.error === 'insufficient_book_info'){
     STATE.loading = false; STATE.screen = 'book';
     STATE.currentBook.noInfo = true;
+    render(); return;
+  }
+  if(!quiz || quiz.error || isShort(quiz)){
+    STATE.loading = false; STATE.screen = 'book';
+    STATE.quizShortMsg = 'Piki could not write a full quiz for this book this time. Please try again. If it keeps happening, tell your teacher.';
     render(); return;
   }
   STATE.quiz = quiz;
@@ -2141,20 +2152,27 @@ async function submitUnitQuiz(){
   let correct = 0;
   const split = { regular:{correct:0,total:0}, deeper:{correct:0,total:0} };
   const responses = [];
-  const review = qs.map(q=>{
+  const review = [];
+  const graded = qs.filter(q=>!q.ungraded);
+  qs.forEach(q=>{
+    const chosen = U.answers[q.n] || [];
+    const text = ids => ids.map(id=>{ const o = q.options.find(x=>x.id===id); return o ? o.en : id; }).join(' + ');
+    if(q.ungraded){
+      // Answered and recorded, but not scored (e.g. a question with no correct choice).
+      responses.push({ n:q.n, lv:q.level === 'deeper' ? 'D' : 'R', a:chosen.join(''), t:text(chosen), ok:null, pg:U.pages[q.n]||'' });
+      return;
+    }
     const ok = unitIsCorrect(q);
     const bucket = q.level === 'deeper' ? split.deeper : split.regular;
     bucket.total++; if(ok){ bucket.correct++; correct++; }
-    const chosen = U.answers[q.n] || [];
-    const text = ids => ids.map(id=>{ const o = q.options.find(x=>x.id===id); return o ? o.en : id; }).join(' + ');
     responses.push({ n:q.n, lv:q.level === 'deeper' ? 'D' : 'R', a:chosen.join(''), t:text(chosen), ok:ok?1:0, pg:U.pages[q.n]||'' });
-    return { q:q.q_en, chosenText:text(chosen) || '(no answer)', correctText:text(q.correct), isCorrect:ok };
+    review.push({ q:q.q_en, chosenText:text(chosen) || '(no answer)', correctText:text(q.correct), isCorrect:ok });
   });
-  const pct = Math.round((correct/qs.length)*100);
+  const pct = Math.round((correct/graded.length)*100);
 
   const b = STATE.currentBook, s = STATE.student;
   const confidence = 'medium';
-  const earnedPoints = computeQuizPoints(correct, qs.length, confidence, qs.length);
+  const earnedPoints = computeQuizPoints(correct, graded.length, confidence, qs.length);
   const prevPoints = s.points||0, prevWords = s.wordsRead||0;
   const prevRankIdx = getRankInfo(prevPoints, prevWords).rankIdx;
 
@@ -2165,7 +2183,7 @@ async function submitUnitQuiz(){
   await saveStudent(s.alias, s);
   try{ sessionStorage.removeItem(unitStoreKey()); }catch(e){}
 
-  const result = { correct, total: qs.length, pct, earnedPoints, totalPoints: s.points, confidence, review, regular:split.regular, deeper:split.deeper };
+  const result = { correct, total: graded.length, pct, earnedPoints, totalPoints: s.points, confidence, review, regular:split.regular, deeper:split.deeper };
   result.badges = computeBadges(s, result, prevPoints, prevWords, prevRankIdx);
   STATE.quizResult = result;
   STATE.resultAnimated = false;
@@ -2181,7 +2199,7 @@ function unitScoreSplit(h){
 }
 function unitScoreDetail(h){
   if(!h.regular || !h.deeper) return '';
-  const rows = (h.responses||[]).map(r=>`<div>${r.ok?'✅':'❌'} Q${r.n}${r.lv==='D'?' (deeper)':''}: ${escHtml(r.t||'(none)')}${r.pg ? ` · p.${escHtml(r.pg)}` : ''}</div>`).join('');
+  const rows = (h.responses||[]).map(r=>`<div>${r.ok===null?'➖':r.ok?'✅':'❌'} Q${r.n}${r.lv==='D'?' (deeper)':''}: ${escHtml(r.t||'(none)')}${r.ok===null?' (not scored)':''}${r.pg ? ` · p.${escHtml(r.pg)}` : ''}</div>`).join('');
   return unitScoreSplit(h) + (rows ? `<details class="no-print"><summary style="font-size:12px;">Responses</summary><div style="font-size:12px;">${rows}</div></details>` : '');
 }
 
