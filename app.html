@@ -447,7 +447,7 @@ function classLabel(code){
 
 const STATE = {
   classCode: getSavedClass(), classConfirmed: false,
-  screen: 'login', alias: null, student: null,
+  screen: new URLSearchParams(location.search).has('sounds') ? 'sounds' : 'login', alias: null, student: null,
   roster: [], rosterLoaded: false,
   loginMode: 'pick', pendingAlias: null, loginError: '',
   signupAlias: '', signupPin: '', signupGrade: '35',
