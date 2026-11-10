@@ -2879,10 +2879,16 @@ function screenTeacherDaily(){
   const students = filterRowsByClass(allRows, STATE.teacherClassFilter).sort((a,b)=>a.alias.localeCompare(b.alias));
   const dateOptions = dailyAnswerDates(allRows).map(d=>`<option value="${d}"${d===day?' selected':''}>${d}${d===todayStr()?' (today)':''}</option>`).join('');
   const subjectOptions = DAILY_SUBJECTS.map(x=>`<option value="${x.id}"${x.id===subject?' selected':''}>${x.emoji} ${x.label}${hasData(x.id)?' ✓':''}</option>`).join('');
-  const c = el(`<div><button class="backlink" id="back">&larr; Back to roster</button><div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;"><div><h2 style="margin-bottom:2px;">Daily answers</h2><p class="muted" style="margin:0;">Scores, common problems and support groups for today's activity.</p></div><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;"><span id="filterSlot"></span><button class="btn secondary no-print" id="trendBtn" style="width:auto;margin:0;padding:9px 16px;">📈 Trends</button><select id="dateSel" class="class-filter">${dateOptions}</select><select id="subjectSel" class="class-filter">${subjectOptions}</select></div></div><div id="summary"></div></div><div id="cards"></div></div>`);
+  const c = el(`<div><button class="backlink" id="back">&larr; Back to roster</button><div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;"><div><h2 style="margin-bottom:2px;">Daily answers</h2><p class="muted" style="margin:0;">Scores, common problems and support groups for today's activity.</p></div><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;"><span id="filterSlot"></span><button class="btn secondary no-print" id="refreshBtn" style="width:auto;margin:0;padding:9px 16px;">🔄 Refresh</button><button class="btn secondary no-print" id="trendBtn" style="width:auto;margin:0;padding:9px 16px;">📈 Trends</button><select id="dateSel" class="class-filter">${dateOptions}</select><select id="subjectSel" class="class-filter">${subjectOptions}</select></div></div><div id="summary"></div></div><div id="cards"></div></div>`);
   c.querySelector('#back').onclick = ()=>{ STATE.screen='teacher'; STATE.dailyMarkMsg=''; render(); };
   c.querySelector('#filterSlot').replaceWith(classFilterSelect(allRows));
   c.querySelector('#trendBtn').onclick = ()=>{ STATE.screen='teacherTrends'; render(); };
+  c.querySelector('#refreshBtn').onclick = async ()=>{
+    const btn = c.querySelector('#refreshBtn'); btn.disabled = true; btn.textContent = 'Refreshing...';
+    const resp = await postJSON('/api/teacher/roster', { passcode: STATE.teacherPasscode }).catch(()=>null);
+    if(Array.isArray(resp)) STATE.teacherRows = resp;
+    if(STATE.screen==='teacherDaily') render();
+  };
   c.querySelector('#dateSel').onchange = e=>{ STATE.dailyDate = e.target.value; STATE.dailySubject = null; STATE.dailyMarkMsg=''; render(); };
   c.querySelector('#subjectSel').onchange = e=>{ STATE.dailySubject = e.target.value; STATE.dailyMarkMsg=''; render(); };
 
