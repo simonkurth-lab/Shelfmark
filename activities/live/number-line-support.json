@@ -1,0 +1,75 @@
+{
+ "title": "Number lines: extra support (counting in tenths)",
+ "questions": [
+  {
+   "q": "A number line goes from 2 to 3 and is cut into 10 equal jumps. What is each jump worth?",
+   "type": "choice",
+   "a": "1 tenth (0.1)",
+   "why": "Between two whole numbers we have 10 equal jumps, so each is 1 tenth, or 0.1.",
+   "options": [
+    "1 tenth (0.1)",
+    "1 hundredth (0.01)",
+    "1 half (0.5)",
+    "1 whole"
+   ]
+  },
+  {
+   "q": "Count in tenths: 2.7, 2.8, 2.9, ___",
+   "type": "text",
+   "a": "3",
+   "why": "After 2.9 comes the next whole number. 9 tenths + 1 tenth = 10 tenths = 1 whole, so 2.9 + 0.1 = 3.0 (3). It is not 2.10."
+  },
+  {
+   "q": "Count in tenths: 3.8, 3.9, ___, 4.1",
+   "type": "text",
+   "a": "4",
+   "why": "3.9 + 0.1 = 4.0, which we write as 4. Then 4.1 comes next."
+  },
+  {
+   "q": "Khalid counted in tenths and wrote 2.8, 2.9, 2.10, 2.11. What is his mistake?",
+   "type": "choice",
+   "a": "2.10 should be 3.0",
+   "why": "After 9 tenths you have a whole. 2.10 is not a tenths number. The line goes 2.9, 3.0, 3.1.",
+   "options": [
+    "2.10 should be 3.0",
+    "2.8 should be 2.7",
+    "He should count in hundredths",
+    "There is no mistake"
+   ]
+  },
+  {
+   "q": "A line goes 4, 4.2, 4.4, ___. What number comes next?",
+   "type": "text",
+   "a": "4.6",
+   "why": "The jumps are 0.2 each. 4.4 + 0.2 = 4.6."
+  },
+  {
+   "q": "A line starts at 3 and jumps by 0.3: 3, 3.3, 3.6, ___",
+   "type": "text",
+   "a": "3.9",
+   "why": "Add 0.3 each time: 3.6 + 0.3 = 3.9."
+  },
+  {
+   "q": "Keep jumping by 0.3 from 3.9. What is the next number?",
+   "type": "text",
+   "a": "4.2",
+   "why": "3.9 + 0.3 passes 4. 3.9 + 0.1 = 4.0, then 0.2 more is 4.2."
+  },
+  {
+   "q": "Sophie starts at 3 and jumps 3 tenths each time. She says she will say 4.1. Is she correct?",
+   "type": "choice",
+   "a": "No",
+   "why": "Her numbers go 3.3, 3.6, 3.9, 4.2. She skips right over 4.1, so she will not say it.",
+   "options": [
+    "Yes",
+    "No"
+   ]
+  },
+  {
+   "q": "A piece of wood sits on a 1 meter line cut into tenths. It starts at the 0.1 tick and ends at the 0.7 tick. How long is it, in meters?",
+   "type": "text",
+   "a": "0.6",
+   "why": "The wood does not start at 0, so do not just read the end tick. Count the jumps from 0.1 to 0.7: that is 6 tenths = 0.6 m."
+  }
+ ]
+}
