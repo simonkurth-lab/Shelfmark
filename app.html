@@ -195,6 +195,228 @@
 <body>
 <div id="app"></div>
 
+<script type="text/plain" id="soundFriendsSrc"><!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>Sound Friends</title>
+<style>
+:root{--ink:#2b2350;--sun:#ffd23f;--pink:#ff6fa5;--teal:#22c7b8;--blue:#4d8dff;--bg1:#fff3c4;--bg2:#ffd9ec}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%}
+body{font-family:"Trebuchet MS","Avenir Next",system-ui,sans-serif;color:var(--ink);background:linear-gradient(160deg,var(--bg1),var(--bg2) 60%,#d7f3ff);overflow-x:hidden;user-select:none;-webkit-user-select:none}
+#app{min-height:100%;display:flex;flex-direction:column;align-items:center;padding:14px 16px 28px;max-width:760px;margin:0 auto}
+.top{width:100%;display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px}
+.title{font-size:26px;font-weight:900;letter-spacing:.5px}
+.stars{background:#fff;border-radius:999px;padding:8px 18px;font-size:24px;font-weight:900;box-shadow:0 4px 0 rgba(43,35,80,.15)}
+.bar{width:100%;height:18px;background:#fff;border-radius:99px;overflow:hidden;box-shadow:inset 0 2px 0 rgba(43,35,80,.12);margin-bottom:14px}
+.bar>i{display:block;height:100%;background:linear-gradient(90deg,var(--teal),var(--sun),var(--pink));border-radius:99px;transition:width .5s}
+.big{font:inherit;font-weight:900;font-size:30px;border:0;border-radius:28px;padding:20px 38px;color:#fff;background:var(--pink);box-shadow:0 8px 0 #c73d78;cursor:pointer}
+.big:active{transform:translateY(6px);box-shadow:0 2px 0 #c73d78}
+.big.teal{background:var(--teal);box-shadow:0 8px 0 #12907f}
+.big.teal:active{box-shadow:0 2px 0 #12907f}
+.speaker{font-size:54px;width:110px;height:110px;border-radius:50%;border:0;background:var(--blue);color:#fff;box-shadow:0 8px 0 #2a63c9;cursor:pointer;animation:pulse 1.6s infinite}
+.speaker:active{transform:translateY(6px);box-shadow:0 2px 0 #2a63c9}
+.prompt{display:flex;align-items:center;gap:18px;margin:6px 0 18px}
+.letter{font-size:110px;font-weight:900;line-height:1;background:#fff;border-radius:28px;padding:6px 28px;box-shadow:0 8px 0 rgba(43,35,80,.15);color:var(--pink)}
+.cards{display:grid;gap:16px;width:100%;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.card{background:#fff;border:0;border-radius:28px;padding:18px 10px;font-size:92px;line-height:1.1;box-shadow:0 8px 0 rgba(43,35,80,.18);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;font-family:inherit;color:var(--ink)}
+.card:active{transform:translateY(6px);box-shadow:0 2px 0 rgba(43,35,80,.18)}
+.card small{font-size:22px;font-weight:900;color:var(--ink);visibility:hidden}
+.card.show small{visibility:visible}
+.card.bad{animation:shake .4s;opacity:.35;pointer-events:none}
+.card.good{background:#d8ffe9;animation:pop .6s}
+.card.hint{animation:pulse .8s infinite;outline:6px solid var(--sun)}
+.msg{min-height:46px;font-size:28px;font-weight:900;margin:14px 0;text-align:center}
+.dots{display:flex;gap:10px;margin:6px 0 4px}
+.dots i{width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:inset 0 2px 0 rgba(43,35,80,.15)}
+.dots i.on{background:var(--sun);box-shadow:0 2px 0 #d9a900}
+.sticker{font-size:140px;animation:pop .8s}
+.shelf{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;font-size:38px;margin-top:14px;max-width:520px}
+.center{display:flex;flex-direction:column;align-items:center;text-align:center;gap:14px;margin-top:10px}
+.say{font-size:22px;font-weight:700;opacity:.8}
+.admin{position:fixed;right:8px;bottom:8px;opacity:.15;font-size:14px;background:none;border:0;color:var(--ink)}
+.panel{background:#fff;border-radius:20px;padding:16px;margin-top:12px;font-size:16px;width:100%}
+.panel select,.panel button{font:inherit;padding:8px 12px;margin:4px;border-radius:10px;border:2px solid #ccc;background:#fff}
+@keyframes pulse{50%{transform:scale(1.07)}}
+@keyframes shake{25%{transform:translateX(-12px)}75%{transform:translateX(12px)}}
+@keyframes pop{0%{transform:scale(.7)}60%{transform:scale(1.18)}100%{transform:scale(1)}}
+.confetti{position:fixed;top:-20px;font-size:30px;pointer-events:none;animation:fall linear forwards;z-index:9}
+@keyframes fall{to{transform:translateY(110vh) rotate(540deg)}}
+.flystar{position:fixed;font-size:40px;z-index:10;pointer-events:none;transition:all .8s cubic-bezier(.5,-.3,.7,1)}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<button class="admin" id="admin">grown-ups</button>
+<script>
+// ===== Sound Friends: gentle, voice-led phonemic awareness =====
+// Letters come in pairs. Each new pair is taught by tapping, then practiced with
+// pictures. Every round mixes in sounds from earlier pairs so they spiral back.
+// Voice: if sounds/<letter>.mp3 or sounds/<word>.mp3 exists it is played (record your own
+// voice for the best result). Otherwise the browser's voice reads it.
+const L = {
+  s:{pic:'☀️',word:'sun',say:'sss'}, m:{pic:'🌙',word:'moon',say:'mmm'},
+  a:{pic:'🍎',word:'apple',say:'aah'}, t:{pic:'🐯',word:'tiger',say:'tuh'},
+  p:{pic:'🐷',word:'pig',say:'puh'}, n:{pic:'🪺',word:'nest',say:'nnn'},
+  i:{pic:'🐛',word:'insect',say:'ih'}, f:{pic:'🐟',word:'fish',say:'fff'},
+  o:{pic:'🐙',word:'octopus',say:'ah'}, b:{pic:'🐻',word:'bear',say:'buh'},
+  c:{pic:'🐱',word:'cat',say:'kuh'}, d:{pic:'🐶',word:'dog',say:'duh'},
+  h:{pic:'🎩',word:'hat',say:'huh'}, r:{pic:'🐰',word:'rabbit',say:'rrr'},
+  l:{pic:'🦁',word:'lion',say:'lll'}, u:{pic:'☂️',word:'umbrella',say:'uh'},
+  g:{pic:'🐐',word:'goat',say:'guh'}, w:{pic:'🍉',word:'watermelon',say:'wuh'},
+};
+const PAIRS = [['s','m'],['a','t'],['p','n'],['i','f'],['o','b'],['c','d'],['h','r'],['l','u'],['g','w']];
+const STICKERS = ['🦄','🐬','🦋','🐼','🦊','🐢','🌈','🚀','🐘','🦉','🐞','🎈','🐸','🦜','🍭','👑'];
+const ROUND = 6;
+const CHEERS = ['Yes! Great job!','You got it!','Wow! Super!','Amazing!','Yes! Yes! Yes!','Fantastic!'];
+
+let save = {stars:0, level:0, stickers:0};
+try{ Object.assign(save, JSON.parse(localStorage.getItem('soundFriends')||'{}')); }catch(e){}
+const store = ()=>{ try{ localStorage.setItem('soundFriends', JSON.stringify(save)); }catch(e){} };
+
+const app = document.getElementById('app');
+const $ = (h)=>{ const d=document.createElement('div'); d.innerHTML=h.trim(); return d.firstChild; };
+const pick = a=>a[Math.floor(Math.random()*a.length)];
+const shuffle = a=>a.map(x=>[Math.random(),x]).sort((p,q)=>p[0]-q[0]).map(p=>p[1]);
+
+// ---- audio ----
+let actx; function beep(freqs){ try{ actx = actx || new (window.AudioContext||window.webkitAudioContext)();
+  freqs.forEach((f,i)=>{ const o=actx.createOscillator(), g=actx.createGain(); o.type='triangle'; o.frequency.value=f;
+    g.gain.setValueAtTime(.0001,actx.currentTime+i*.12); g.gain.exponentialRampToValueAtTime(.25,actx.currentTime+i*.12+.03); g.gain.exponentialRampToValueAtTime(.0001,actx.currentTime+i*.12+.35);
+    o.connect(g); g.connect(actx.destination); o.start(actx.currentTime+i*.12); o.stop(actx.currentTime+i*.12+.4); }); }catch(e){} }
+const DING=[660,880,1320], OOPS=[300];
+function speak(text, rate){ return new Promise(res=>{
+  try{ speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(text); u.lang='en-US'; u.rate=rate||.7; u.pitch=1.1;
+    const v=speechSynthesis.getVoices().find(v=>/en[-_]US/.test(v.lang)&&/samantha|ava|allison|karen|female|google us/i.test(v.name)); if(v)u.voice=v;
+    u.onend=res; u.onerror=res; speechSynthesis.speak(u); }catch(e){ res(); } }); }
+// say a recorded file if there is one, else the text
+function voice(key, text, rate){ return new Promise(res=>{
+  const a = new Audio('sounds/'+key+'.mp3'); let used=false;
+  a.onerror = ()=>{ if(!used){ used=true; speak(text,rate).then(res); } };
+  a.onended = res; a.play().catch(()=>{ if(!used){ used=true; speak(text,rate).then(res); } }); }); }
+const sayLetter = l=>voice('letter-'+l, L[l].say, .5);
+const sayWord = l=>voice('word-'+l, L[l].word, .7);
+const sayPrompt = async l=>{ await voice('which','Which one starts with',.8); await sayLetter(l); };
+const sayCheer = ()=>speak(pick(CHEERS),.9);
+
+// ---- effects ----
+function confetti(n){ const E=['⭐','🎉','✨','💖','🌟','🎈']; for(let i=0;i<(n||26);i++){ const c=document.createElement('div'); c.className='confetti'; c.textContent=pick(E);
+  c.style.left=Math.random()*100+'vw'; c.style.animationDuration=(1.6+Math.random()*1.6)+'s'; c.style.fontSize=(22+Math.random()*26)+'px'; document.body.appendChild(c); setTimeout(()=>c.remove(),3500); } }
+function flyStar(fromEl){ const to=document.querySelector('.stars'); if(!fromEl||!to) return; const a=fromEl.getBoundingClientRect(), b=to.getBoundingClientRect();
+  const s=document.createElement('div'); s.className='flystar'; s.textContent='⭐'; s.style.left=(a.left+a.width/2-20)+'px'; s.style.top=(a.top+a.height/2-20)+'px'; document.body.appendChild(s);
+  requestAnimationFrame(()=>{ s.style.left=(b.left+10)+'px'; s.style.top=(b.top)+'px'; s.style.transform='scale(.6)'; }); setTimeout(()=>s.remove(),900); }
+
+// ---- layout ----
+function frame(inner){
+  app.innerHTML='';
+  const levelPct = Math.round(save.level/PAIRS.length*100);
+  app.appendChild($(`<div class="top"><div class="title">🔊 Sound Friends</div><div class="stars">⭐ ${save.stars}</div></div>`));
+  app.appendChild($(`<div class="bar"><i style="width:${levelPct}%"></i></div>`));
+  app.appendChild(inner);
+}
+
+// ---- screens ----
+function home(){
+  const shelf = Array.from({length:save.stickers},(_,i)=>`<span>${STICKERS[i%STICKERS.length]}</span>`).join('');
+  const done = save.level>=PAIRS.length;
+  const el = $(`<div class="center"><div class="sticker">${done?'🏆':'👋'}</div>
+    <button class="big" id="go">${done?'Play again!':'Play!'}</button>
+    ${save.stickers?`<div class="say">My stickers</div><div class="shelf">${shelf}</div>`:''}</div>`);
+  frame(el);
+  el.querySelector('#go').onclick = ()=>{ beep(DING); done ? practice(PAIRS.length-1, true) : learn(save.level); };
+  if(!save.stars) speak('Hello! Tap the pink button!',.8);
+}
+
+// teach a new pair: tap each friend to hear it
+function learn(lv){
+  const pair = PAIRS[lv]; const heard = new Set();
+  const cards = pair.map(l=>`<button class="card show" data-l="${l}"><span>${L[l].pic}</span><span style="font-size:70px;color:var(--pink);font-weight:900">${l}</span><small>${L[l].word}</small></button>`).join('');
+  const el = $(`<div class="center"><div class="say">Tap each one. Listen!</div><div class="cards">${cards}</div><div class="msg" id="msg"></div><button class="big teal" id="next" style="display:none">Let's play!</button></div>`);
+  frame(el);
+  speak('Tap each one. Listen!',.8);
+  el.querySelectorAll('.card').forEach(c=>c.onclick = async ()=>{
+    const l=c.dataset.l; heard.add(l); beep([880]); await sayLetter(l); await sayWord(l); await sayLetter(l);
+    if(heard.size===pair.length){ el.querySelector('#msg').textContent='⭐ Great listening! ⭐'; el.querySelector('#next').style.display=''; flyStar(c); save.stars++; store(); document.querySelector('.stars').textContent='⭐ '+save.stars; }
+  });
+  el.querySelector('#next').onclick = ()=>practice(lv);
+}
+
+// practice with spiral review of earlier pairs
+function practice(lv, review){
+  const newL = PAIRS[lv].slice(), old = PAIRS.slice(0,lv).flat();
+  let q=0, wrong=0, locked=false;
+  const el = $(`<div class="center"><div class="dots" id="dots"></div><div class="prompt"><div class="letter" id="letter"></div><button class="speaker" id="spk">🔊</button></div><div class="cards" id="cards"></div><div class="msg" id="msg"></div></div>`);
+  frame(el);
+  const dots = el.querySelector('#dots'); dots.innerHTML = Array.from({length:ROUND},()=>'<i></i>').join('');
+  let last=null;
+  function ask(){
+    locked=false; wrong=0; el.querySelector('#msg').textContent='';
+    // spiral: about half new sounds, half review once earlier sounds exist
+    const pool = (!old.length || (!review && Math.random()<.55)) ? newL : (old.length? old : newL);
+    let target; do{ target = pick(review?PAIRS.flat().slice(0,(lv+1)*2):pool); }while(target===last && (review?lv>0:pool.length>1)); last=target;
+    const n = save.level>=3 ? 3 : 2;
+    const all = PAIRS.flat().slice(0,(lv+1)*2).filter(x=>x!==target);
+    const choices = shuffle([target, ...shuffle(all).slice(0,n-1)]);
+    el.querySelector('#letter').textContent = target;
+    const cards = el.querySelector('#cards'); cards.innerHTML='';
+    choices.forEach(l=>{
+      const c=$(`<button class="card"><span>${L[l].pic}</span><small>${L[l].word}</small></button>`);
+      c.onclick = async ()=>{
+        if(locked) return;
+        if(l===target){
+          locked=true; c.classList.add('good','show'); beep(DING); confetti(18); flyStar(c); save.stars++; store(); document.querySelector('.stars').textContent='⭐ '+save.stars;
+          dots.children[q].classList.add('on'); el.querySelector('#msg').textContent='⭐ '+pick(CHEERS)+' ⭐';
+          await sayWord(l); await sayLetter(l); await sayCheer();
+          if(save.stars%5===0){ await sticker(); }
+          q++; if(q>=ROUND) done(); else ask();
+        } else {
+          wrong++; c.classList.add('bad'); beep(OOPS); await speak('Try again!',.8);
+          if(wrong>=2) [...cards.children].forEach((x,i)=>{ if(choices[i]===target) x.classList.add('hint'); });
+          sayPrompt(target);
+        }
+      };
+      cards.appendChild(c);
+    });
+    setTimeout(()=>sayPrompt(target),350);
+  }
+  el.querySelector('#spk').onclick = ()=>sayPrompt(last);
+  async function done(){
+    if(!review && save.level===lv){ save.level=lv+1; store(); }
+    confetti(60); beep([523,659,784,1047]);
+    const nextExists = lv+1<PAIRS.length;
+    const end = $(`<div class="center"><div class="sticker">🎉</div><div class="msg">You did it!</div><div class="say">${nextExists&&!review?'New sound friends are waiting!':''}</div><button class="big" id="more">${nextExists&&!review?'Meet new friends!':'Play again'}</button><button class="big teal" id="homeBtn" style="font-size:22px;padding:14px 26px">Home</button></div>`);
+    frame(end); speak('You did it! Amazing!',.9);
+    end.querySelector('#more').onclick = ()=> (nextExists&&!review) ? learn(lv+1) : practice(lv,review);
+    end.querySelector('#homeBtn').onclick = home;
+  }
+  ask();
+}
+
+// a sticker every 5 stars
+function sticker(){ return new Promise(res=>{
+  const s = STICKERS[save.stickers%STICKERS.length]; save.stickers++; store();
+  const o=$(`<div style="position:fixed;inset:0;background:rgba(255,243,196,.96);z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px"><div class="sticker">${s}</div><div class="msg">A new sticker!</div><button class="big teal">Yay!</button></div>`);
+  document.body.appendChild(o); confetti(70); beep([523,659,784,1047,1319]); speak('A new sticker! Yay!',.9);
+  o.querySelector('button').onclick=()=>{ o.remove(); res(); }; }); }
+
+// grown-ups panel: jump to a level or reset
+document.getElementById('admin').onclick = ()=>{
+  const opts = PAIRS.map((p,i)=>`<option value="${i}">${p.join(' + ')}</option>`).join('');
+  const p = $(`<div class="panel"><b>Grown-ups</b><br>Start at sounds: <select id="lv">${opts}</select> <button id="setLv">Go</button><br><button id="rst">Reset progress</button> <button id="close">Close</button><div class="say" style="font-size:14px">Tip: record your own voice as sounds/letter-s.mp3, sounds/word-s.mp3 etc. and it plays instead of the computer voice.</div></div>`);
+  app.appendChild(p); p.querySelector('#lv').value = Math.min(save.level,PAIRS.length-1);
+  p.querySelector('#setLv').onclick=()=>{ save.level=+p.querySelector('#lv').value; store(); learn(save.level); };
+  p.querySelector('#rst').onclick=()=>{ save={stars:0,level:0,stickers:0}; store(); home(); };
+  p.querySelector('#close').onclick=()=>p.remove();
+};
+try{ speechSynthesis.getVoices(); }catch(e){}
+home();
+<\/script>
+</body>
+</html>
+</script>
 <script>
 // Point this at your Cloudflare Worker
 const WORKER_URL = 'https://api.readpiki.com';
@@ -408,11 +630,22 @@ async function saveStudent(alias, data){
 
 // ---------- Screens ----------
 
+// Sound Friends (phonemic awareness practice) lives inside Piki so no separate address is needed.
+// Open it with app.html?sounds, or from the Sound Friends button on the home screen.
+function screenSounds(){
+  const c = el(`<div><a href="app.html" class="backlink" style="text-decoration:none;display:inline-block;">&larr; Back</a><iframe id="sfFrame" style="width:100%;height:calc(100vh - 110px);min-height:560px;border:0;border-radius:16px;background:#fff3c4" allow="autoplay"></iframe></div>`);
+  const t = document.getElementById('soundFriendsSrc');
+  c.querySelector('#sfFrame').srcdoc = t ? t.textContent.replace(/<\\\/script/g, '</script') : '';
+  c.querySelector('.backlink').onclick = e=>{ e.preventDefault(); STATE.screen = STATE.student ? 'home' : 'login'; render(); };
+  return c;
+}
+
 function buildScreen(){
   const wrap = el(`<div></div>`);
   wrap.appendChild(topbar());
   let body;
-  if(STATE.screen==='teacher') body = screenTeacher();
+  if(STATE.screen==='sounds') body = screenSounds();
+  else if(STATE.screen==='teacher') body = screenTeacher();
   else if(STATE.screen==='teacherStudent') body = screenTeacherStudent();
   else if(STATE.screen==='teacherSummary') body = screenTeacherSummary();
   else if(STATE.screen==='teacherDaily') body = screenTeacherDaily();
@@ -615,6 +848,9 @@ function screenHome(){
   c.querySelector('#searchBtn').onclick = ()=>{ STATE.bookMode='quiz'; STATE.screen='search'; render(); };
   c.querySelector('#levelBtn').onclick = ()=>{ STATE.bookMode='lookup'; STATE.searchResults=[]; STATE.searchQuery=''; STATE.screen='search'; render(); };
   c.querySelector('#dashBtn').onclick = ()=>{ STATE.screen='dashboard'; render(); };
+  const sfBtn = el(`<button class="btn secondary">🔊 Sound Friends</button>`);
+  sfBtn.onclick = ()=>{ STATE.screen='sounds'; render(); };
+  c.querySelector('#dashBtn').after(sfBtn);
   if(DAILY_CLASSES.includes(STATE.classCode)){
     const todayBtn = el(`<button class="btn coral" style="margin:12px 0 4px;">📝 Today's activity</button>`);
     todayBtn.onclick = ()=>{ STATE.screen='daily'; STATE.dailyToday=null; STATE.dailyTab=null; STATE.dailyDay=null; render(); };
