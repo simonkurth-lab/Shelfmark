@@ -1,0 +1,99 @@
+<style>
+.activity{max-width:720px;margin:0 auto;padding:16px;font-size:17px;line-height:1.6;color:#201e1d}
+h2{font-size:1.55em;line-height:1.2;margin:0 0 6px}
+h3{font-size:1.25em;margin:32px 0 10px}
+p{margin:0 0 12px}
+.pep{background:#fdf3e3;border:2px solid #d8c7ad;border-radius:16px;padding:12px 16px;font-weight:600}
+.panel{background:#fdf3e3;border:2px solid #d8c7ad;border-radius:16px;padding:14px 16px;margin:0 0 16px}
+.chart-wrap{overflow-x:auto;border-radius:16px;border:2px solid #d8c7ad}
+table{border-collapse:collapse;width:100%;min-width:640px;font-size:14px;text-align:center}
+th,td{border:1px solid #d8c7ad;padding:8px 4px}
+th{background:#fdf3e3;font-weight:700}
+th.dec,td.dec{background:#e6ecd9}
+th.pt,td.pt{background:#fff;font-size:22px;font-weight:800;width:18px}
+td{background:#fff;font-size:20px;font-weight:700}
+.legend{font-size:15px;margin:8px 0 0}
+.steps{margin:8px 0 0;padding-left:22px}
+.steps li{margin-bottom:6px}
+dl{margin:0}
+dt{font-weight:800;margin-top:8px}
+dd{margin:0 0 4px}
+.q{background:#fff;border:2px solid #d8c7ad;border-radius:16px;padding:14px 16px;margin:0 0 14px}
+label{display:block;font-weight:700;margin-bottom:10px}
+.big{display:block;font-size:24px;font-weight:800;letter-spacing:.5px;margin:4px 0}
+input,select{font:inherit;width:100%;box-sizing:border-box;min-height:52px;border:2px solid #d8c7ad;border-radius:12px;padding:10px 14px;background:#fff;color:#201e1d}
+input:focus,select:focus{outline:3px solid #c67139;outline-offset:2px;border-color:#c67139}
+details{margin-top:10px}
+summary{cursor:pointer;font-weight:700;color:#8a4520;padding:8px 0;min-height:44px;display:flex;align-items:center}
+details p{background:#fdf3e3;border-radius:12px;padding:10px 12px;margin:4px 0 0;font-size:16px}
+.work{background:#fdf3e3;border-radius:12px;padding:10px 12px;font-family:inherit;font-weight:700}
+.challenge{border-color:#c67139;border-style:dashed}
+.tag{display:inline-block;background:#c67139;color:#fff;border-radius:999px;padding:2px 12px;font-size:14px;font-weight:800;margin-bottom:8px}
+</style>
+<div class="activity">
+<h2>Daily Math: Decimals on a Number Line</h2>
+<p class="pep">Fourteen questions. Number lines are just rulers for decimals. Count the jumps carefully! 💪</p>
+<h3>📌 Part A: Counting in tenths</h3>
+<div class="panel"><p>Between two whole numbers there are <strong>10 tenths</strong>. Counting in tenths from 2.1 goes: 2.1, 2.2, 2.3 … 2.8, 2.9, and then <strong>3.0</strong>.</p></div>
+<div class="panel"><p><strong>Khalid</strong> started a number line at 2.1 and counted in tenths. He labeled it:</p><p class="work">2.1 · 2.2 · 2.3 · 2.4 · 2.5 · 2.6 · 2.7 · 2.8 · 2.9 · <strong>2.10</strong> · <strong>2.11</strong></p></div>
+<div class="q"><label for="q1">1. Khalid made a mistake after 2.9. What should the next label be?</label>
+<input id="q1" type="text" inputmode="decimal" data-response="q1" placeholder="Type a number">
+<details><summary>💡 Need a hint?</summary><p>Count in tenths: 2.8, 2.9, then you reach the next whole number.</p></details>
+</div>
+<div class="q"><label for="q2">2. Explain Khalid's mistake.</label>
+<textarea id="q2" data-response="q2" placeholder="Explain..." style="font:inherit;width:100%;box-sizing:border-box;min-height:90px;border:2px solid #d8c7ad;border-radius:12px;padding:10px 14px"></textarea>
+</div>
+<div class="q"><label for="q3">3. What should the <em>last</em> label on Khalid's line (the one he wrote as 2.11) be?</label>
+<input id="q3" type="text" inputmode="decimal" data-response="q3" placeholder="Type a number">
+<details><summary>💡 Need a hint?</summary><p>It is one more tenth after the whole number.</p></details>
+</div>
+<div class="panel"><p><strong>Sophie</strong> says: "If I start counting at 3 and count along in jumps of 3 tenths, I will say the number 4.1."</p></div>
+<div class="q"><label for="q4">4. Is Sophie correct?</label>
+<select id="q4" data-response="q4"><option value="">Choose...</option><option value="yes">Yes</option><option value="no">No</option></select>
+</div>
+<div class="q"><label for="q5">5. Start at 3. Jump 3 tenths <strong>three</strong> times. What number do you land on?</label>
+<input id="q5" type="text" inputmode="decimal" data-response="q5" placeholder="Type a number">
+<details><summary>💡 Need a hint?</summary><p>3 → 3.3 → 3.6 → ?</p></details>
+</div>
+<div class="q"><label for="q6">6. Keep going. What number do you land on after the <strong>fourth</strong> jump?</label>
+<input id="q6" type="text" inputmode="decimal" data-response="q6" placeholder="Type a number">
+<details><summary>💡 Need a hint?</summary><p>Add 0.3 once more. Remember 3.9 + 0.3 passes 4.</p></details>
+</div>
+<div class="q"><label for="q7">7. Explain how you know Sophie is right or wrong. You can write the numbers you say.</label>
+<textarea id="q7" data-response="q7" placeholder="Write the numbers you say..." style="font:inherit;width:100%;box-sizing:border-box;min-height:90px;border:2px solid #d8c7ad;border-radius:12px;padding:10px 14px"></textarea>
+</div>
+<h3>📌 Part B: Missing labels</h3>
+<div class="panel"><p>Look at how far apart the first two labels are. That is the size of every jump on the line.</p></div>
+<div class="q"><label for="q8">8. A number line goes from 0 to 1 in tenths. What decimal is the tick for <strong>3/10</strong>?</label>
+<input id="q8" type="text" inputmode="decimal" data-response="q8" placeholder="Type a number">
+<details><summary>💡 Need a hint?</summary><p>Three tenths as a decimal.</p></details>
+</div>
+<div class="q"><label for="q9">9. Write the decimal <strong>0.7</strong> as a fraction (like 1/2).</label>
+<input id="q9" type="text" inputmode="decimal" data-response="q9" placeholder="Example: 1/10">
+<details><summary>💡 Need a hint?</summary><p>0.7 is 7 tenths.</p></details>
+</div>
+<div class="q"><label for="q10">10. A line starts at 2 and ends at 3, with ticks in tenths. 2.4 is labeled. What is the <strong>next</strong> tick after 2.4?</label>
+<input id="q10" type="text" inputmode="decimal" data-response="q10" placeholder="Type a number">
+<details><summary>💡 Need a hint?</summary><p>One tenth more than 2.4.</p></details>
+</div>
+<div class="q"><label for="q11">11. A line from 4 to 6 has 4.2 on the first tick. The jumps are the same size each time. What is the <strong>second</strong> tick label?</label>
+<input id="q11" type="text" inputmode="decimal" data-response="q11" placeholder="Type a number">
+<details><summary>💡 Need a hint?</summary><p>4 → 4.2, so each jump is 0.2.</p></details>
+</div>
+<div class="q"><label for="q12">12. A line from 3 to 6 has 3.3 on the first tick. What is the <strong>second</strong> tick label?</label>
+<input id="q12" type="text" inputmode="decimal" data-response="q12" placeholder="Type a number">
+<details><summary>💡 Need a hint?</summary><p>3 → 3.3, so each jump is 0.3.</p></details>
+</div>
+<div class="q"><label for="q13">13. On that same line (3, 3.3, 3.6 … 4.5), what is the tick right after <strong>4.5</strong>?</label>
+<input id="q13" type="text" inputmode="decimal" data-response="q13" placeholder="Type a number">
+<details><summary>💡 Need a hint?</summary><p>Add 0.3.</p></details>
+</div>
+<div class="panel"><p>A piece of wood sits on a 1 meter number line split into tenths. The <strong>left end</strong> of the wood is at the <strong>0.1</strong> tick, and the <strong>right end</strong> is at the <strong>0.7</strong> tick.</p></div>
+<div class="q"><label for="q14">14. How long is the wood, in meters?</label>
+<input id="q14" type="text" inputmode="decimal" data-response="q14" placeholder="Type a number">
+<details><summary>💡 Need a hint?</summary><p>The wood does not start at 0! Count the jumps from 0.1 to 0.7.</p></details>
+</div>
+<div class="q challenge"><span class="tag">🌟 Bonus</span><label for="bonus">Explain how you know how long the wood is.</label>
+<textarea id="bonus" data-response="bonus" placeholder="Explain..." style="font:inherit;width:100%;box-sizing:border-box;min-height:90px;border:2px solid #d8c7ad;border-radius:12px;padding:10px 14px"></textarea>
+</div>
+<p class="pep">Nice work today! 🌟</p></div>
