@@ -617,7 +617,7 @@ function screenHome(){
   c.querySelector('#dashBtn').onclick = ()=>{ STATE.screen='dashboard'; render(); };
   if(DAILY_CLASSES.includes(STATE.classCode)){
     const todayBtn = el(`<button class="btn coral" style="margin:12px 0 4px;">📝 Today's activity</button>`);
-    todayBtn.onclick = ()=>{ STATE.screen='daily'; STATE.dailyToday=null; STATE.dailyTab=null; render(); };
+    todayBtn.onclick = ()=>{ STATE.screen='daily'; STATE.dailyToday=null; STATE.dailyTab=null; STATE.dailyDay=null; render(); };
     c.querySelector('.card').insertBefore(todayBtn, c.querySelector('.stat-row'));
     // A teacher-led group question is live for this student: show a join button.
     let banner = null;
@@ -1324,9 +1324,24 @@ function screenLive(){
 function fetchActivityFile(url){
   return fetch(url).then(r=>r.ok ? r.text() : null).catch(()=>null).then(h=>(h && !/<!doctype|<html/i.test(h)) ? h : null);
 }
+// Monday-Friday of the current school week (on a weekend, the week just ended), as YYYY-MM-DD.
+function weekDays(){
+  const d = new Date(); d.setHours(12);
+  const dow = d.getDay(); // 0 Sun .. 6 Sat
+  d.setDate(d.getDate() - (dow === 0 ? 6 : dow - 1));
+  const out = [];
+  for(let i=0;i<5;i++){ const x = new Date(d); x.setDate(d.getDate()+i); out.push(x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0')); }
+  return out;
+}
+function dayBefore(day){
+  const d = new Date(day + 'T12:00:00'); d.setDate(d.getDate()-1);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+
 function screenDaily(){
-  const day = todayStr();
-  const c = el(`<div><button class="backlink" id="back">&larr; Back</button><div class="card"><h2 style="margin-bottom:6px;">Today's activity</h2><div id="tabs" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;"></div><div id="activityHost"><div class="loading">Loading...</div></div></div></div>`);
+  const today = todayStr();
+  const day = STATE.dailyDay || today;
+  const c = el(`<div><button class="backlink" id="back">&larr; Back</button><div class="card"><h2 style="margin-bottom:6px;">Today's activity</h2><div id="daySlot"></div><div id="tabs" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;"></div><div id="activityHost"><div class="loading">Loading...</div></div></div></div>`);
   c.querySelector('#back').onclick = ()=>{ STATE.screen='home'; render(); };
   const host = c.querySelector('#activityHost');
   const unitSlot = el(`<div></div>`);
@@ -1344,6 +1359,11 @@ function screenDaily(){
     });
   });
   const tabs = c.querySelector('#tabs');
+  const names = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const days = weekDays(); if(!days.includes(day)) days.push(day);
+  const daySel = el(`<select style="margin-bottom:12px;">${days.map(d=>`<option value="${d}"${d===day?' selected':''}>${names[new Date(d+'T12:00:00').getDay()]} ${d.slice(5).replace('-','/')}${d===today?' (today)':''}</option>`).join('')}</select>`);
+  daySel.onchange = ()=>{ STATE.dailyDay = daySel.value; STATE.dailyTab = null; STATE.dailyToday = null; render(); };
+  c.querySelector('#daySlot').appendChild(daySel);
 
   const show = list=>{
     if(!list.length){
@@ -1353,15 +1373,15 @@ function screenDaily(){
     const cur = list.find(x=>x.id===STATE.dailyTab) || list[0];
     if(list.length > 1){
       list.forEach(x=>{
-        const done = STATE.student.daily && STATE.student.daily[dailyKeyFor(day, x.id)] && STATE.student.daily[dailyKeyFor(day, x.id)]._submittedAt;
+        const kd = dailyKeyFor(x.keyDay || day, x.id), done = STATE.student.daily && STATE.student.daily[kd] && STATE.student.daily[kd]._submittedAt;
         const t = el(`<button class="btn ${x===cur?'':'secondary'}" style="width:auto;margin:0;padding:10px 16px;">${x.emoji} ${x.label}${done?' ✅':''}</button>`);
         t.onclick = ()=>{ STATE.dailyTab = x.id; render(); };
         tabs.appendChild(t);
       });
     }
-    const k = dailyKeyFor(day, cur.id);
+    const kday = cur.keyDay || day, k = dailyKeyFor(kday, cur.id);
     host.innerHTML = '<div class="loading">Loading...</div>';
-    planActivity(day, k, cur.html).then(plan=>{ if(document.body.contains(host)) mountActivity(host, k, cur.html, plan); });
+    planActivity(kday, k, cur.html).then(plan=>{ if(document.body.contains(host)) mountActivity(host, k, cur.html, plan); });
   };
 
   // Which subjects exist today? No directory listing on a static site, so try each.
@@ -1371,7 +1391,14 @@ function screenDaily(){
     fetchActivityFile('activities/' + dailyKeyFor(day, sub.id) + '.html')
       // The essay brainstorm is a standing activity (activities/essay-brainstorm.html) that shows every day until it's removed.
       .then(h=>h || (sub.id === 'essay' ? fetchActivityFile('activities/essay-brainstorm.html') : null))
-      .then(html=>html ? { ...sub, html } : null)
+      // Math carries over: if today's isn't posted yet, show the most recent one from the past few days.
+      .then(async h=>{
+        if(h || sub.id !== 'math' || day !== today) return h ? { h, keyDay: day } : null;
+        let d = day;
+        for(let i=0;i<5;i++){ d = dayBefore(d); const o = await fetchActivityFile('activities/' + dailyKeyFor(d, 'math') + '.html'); if(o) return { h:o, keyDay:d }; }
+        return null;
+      })
+      .then(r=>r ? { ...sub, html: r.h || r, keyDay: r.keyDay } : null)
   )).then(all=>{
     const list = all.filter(Boolean);
     STATE.dailyToday = { day, list };
