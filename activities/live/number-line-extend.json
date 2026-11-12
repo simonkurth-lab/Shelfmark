@@ -1,0 +1,77 @@
+{
+ "title": "Number lines: extension challenge",
+ "questions": [
+  {
+   "q": "This number line goes from 0 to 2 and is cut into 8 equal parts. What decimal is point A? [img:ext-q1]",
+   "type": "text",
+   "a": "0.75",
+   "why": "Each part is 2 \u00f7 8 = 0.25. A is on the 3rd mark: 3 \u00d7 0.25 = 0.75."
+  },
+  {
+   "q": "Point B is halfway between two tenths marks on this line from 3 to 4. What is B? [img:ext-q2]",
+   "type": "text",
+   "a": "3.75",
+   "why": "B is halfway between 3.7 and 3.8, so it is 3.75."
+  },
+  {
+   "q": "Point C is exactly halfway on a 0 to 1 line cut into fourths. Which is NOT another name for C? [img:ext-q3]",
+   "type": "choice",
+   "a": "1/4",
+   "why": "C is on the 2nd fourth: 2/4 = 1/2 = 0.5. 1/4 is a different point.",
+   "options": [
+    "2/4",
+    "1/2",
+    "0.5",
+    "1/4"
+   ]
+  },
+  {
+   "q": "Which is closest to 1 on a number line?",
+   "type": "choice",
+   "a": "0.95",
+   "why": "0.95 is only 0.05 away from 1. The others are farther left.",
+   "options": [
+    "0.9",
+    "0.95",
+    "0.905",
+    "0.59"
+   ]
+  },
+  {
+   "q": "Put in order from least to greatest: 0.4, 0.04, 0.44, 0.404",
+   "type": "choice",
+   "a": "0.04, 0.4, 0.404, 0.44",
+   "why": "Compare as thousandths: 0.040, 0.400, 0.404, 0.440.",
+   "options": [
+    "0.04, 0.4, 0.404, 0.44",
+    "0.04, 0.404, 0.4, 0.44",
+    "0.4, 0.04, 0.404, 0.44",
+    "0.44, 0.404, 0.4, 0.04"
+   ]
+  },
+  {
+   "q": "A number line is cut into 5 equal jumps from 6 to 7. What is the fourth mark after 6?",
+   "type": "text",
+   "a": "6.8",
+   "why": "Each jump is 0.2. The 4th mark is 6 + 4 \u00d7 0.2 = 6.8."
+  },
+  {
+   "q": "The jumps on a number line are multiples of tenths. The first number has 3 tenths (0.3) and the number 5 jumps later is 0.8. What is the number 12 jumps after the first?",
+   "type": "text",
+   "a": "1.5",
+   "why": "0.3 + 12 tenths = 0.3 + 1.2 = 1.5."
+  },
+  {
+   "q": "Mia says 2.9 is closer to 3 than to 2. Is she right? Why?",
+   "type": "choice",
+   "a": "Yes: it is 0.1 from 3",
+   "why": "2.9 is only 0.1 below 3 but 0.9 above 2.",
+   "options": [
+    "Yes: it is 0.1 from 3",
+    "No: 9 is bigger than 2",
+    "No: it is closer to 2",
+    "Yes: 2.9 = 3"
+   ]
+  }
+ ]
+}

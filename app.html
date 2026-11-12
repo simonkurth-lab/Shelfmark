@@ -1385,6 +1385,25 @@ function screenTeacherLiveReports(){
   body.appendChild(qTable);
   const grp = (label, color, arr)=>arr.length ? `<p style="margin:6px 0;"><strong style="color:${color};">${label}</strong> (${arr.length}): ${arr.map(x=>nm(x.a) + ' ' + x.pct + '%').join(', ')}</p>` : '';
   body.appendChild(el(`<div class="card"><h3 style="margin-top:0;">By student</h3>${grp('🔴 Under 60% (reteach)', '#b03a2e', withPct.filter(x=>x.pct<60))}${grp('🟡 60-79% (practice)', '#9a7b00', withPct.filter(x=>x.pct>=60 && x.pct<80))}${grp('🟢 80%+ (extend)', '#2f7a2f', withPct.filter(x=>x.pct>=80))}${grp('No answers', '#666', students.filter(x=>x.pct==null))}</div>`));
+  // Follow-up: one tap sets up a group session at each level, matched to how they scored.
+  const tiers = [
+    { label:'🔴 Support set', setId:'number-line-support', who:withPct.filter(x=>x.pct<60) },
+    { label:'🟡 Practice set', setId:'fractions-decimals-number-line', who:withPct.filter(x=>x.pct>=60 && x.pct<80) },
+    { label:'🟢 Extension set', setId:'number-line-extend', who:withPct.filter(x=>x.pct>=80) }
+  ].filter(t=>t.who.length);
+  if(tiers.length){
+    const fu = el(`<div class="card"><h3 style="margin-top:0;">Next: follow-up at their level</h3><p class="muted" style="margin:0 0 8px;">Starts a live group with the right students already picked. Run one group at a time.</p><div id="tiers" style="display:flex;flex-direction:column;gap:8px;"></div></div>`);
+    tiers.forEach(t=>{
+      const b = el(`<button class="btn secondary" style="width:auto;margin:0;padding:10px 14px;text-align:left;">${t.label}: ${t.who.map(x=>nm(x.a)).join(', ')} →</button>`);
+      b.onclick = ()=>{
+        const L = STATE.live = STATE.live || { sets:null, setId:'', picked:null, session:null, responses:{}, loaded:false, seq:0, msg:'' };
+        L.setId = t.setId; L.picked = new Set(t.who.map(x=>x.a)); L.msg = '';
+        STATE.screen = 'teacherLive'; render();
+      };
+      fu.querySelector('#tiers').appendChild(b);
+    });
+    body.appendChild(fu);
+  }
   const del = el(`<button class="btn secondary" style="width:auto;margin:8px 0 24px;padding:8px 14px;">🗑 Delete this report</button>`);
   del.onclick = ()=>{ if(!confirm('Delete this saved report from this browser?')) return; const a = liveReportsLoad(); delete a[r.id]; liveReportsSave(a); STATE.liveReportId = null; render(); };
   body.appendChild(del);
