@@ -611,7 +611,7 @@ function quizLoadingSlide(idx){
 }
 
 function el(html){ const d=document.createElement('div'); d.innerHTML=html.trim(); return d.firstChild; }
-function render(){ clearLiveTimer(); stopQuizSpeech(); document.getElementById('app').innerHTML=''; document.getElementById('app').appendChild(buildScreen()); }
+function render(){ clearLiveTimer(); stopQuizSpeech(); document.getElementById('app').innerHTML=''; document.getElementById('app').appendChild(buildScreen()); liveWatchTick(); }
 
 async function api(path, opts){
   const res = await fetch(WORKER_URL + path, opts);
@@ -1283,6 +1283,31 @@ const LIVE_POLL_MS = 1500;
 function clearLiveTimer(){ if(STATE.liveTimer){ clearInterval(STATE.liveTimer); STATE.liveTimer = null; } }
 function liveClass(){ return DAILY_CLASSES[0]; }
 
+// Persistent watcher: a student can be on ANY screen (daily activity, a quiz, a book) when the
+// teacher starts a group, so a floating Join bar shows everywhere except the live screen itself.
+// It is separate from STATE.liveTimer because render() clears that timer on every screen change.
+function liveWatchBar(show){
+  let bar = document.getElementById('liveJoinBar');
+  if(!show){ if(bar) bar.remove(); return; }
+  if(bar) return;
+  bar = document.createElement('button');
+  bar.id = 'liveJoinBar';
+  bar.textContent = '👥 Your teacher started a group question. Tap to join!';
+  bar.style.cssText = 'position:fixed;left:12px;right:12px;bottom:12px;z-index:9999;padding:16px;border:0;border-radius:14px;background:#4a9d4a;color:#fff;font:800 17px Nunito,Arial,sans-serif;box-shadow:0 6px 20px rgba(0,0,0,.3);';
+  bar.onclick = ()=>{ bar.remove(); STATE.screen = 'live'; STATE.liveStu = null; render(); };
+  document.body.appendChild(bar);
+}
+async function liveWatchCheck(){
+  if(!STATE.student || !DAILY_CLASSES.includes(STATE.classCode) || STATE.teacherAuthed){ liveWatchBar(false); return; }
+  if(STATE.screen === 'live'){ liveWatchBar(false); return; }
+  try { const d = await liveFetchStudent(); liveWatchBar(!!(d && d.active) && STATE.screen !== 'live'); } catch(e){}
+}
+function liveWatchTick(){
+  if(STATE.screen === 'live') liveWatchBar(false);
+  if(STATE.liveWatchTimer) return;
+  STATE.liveWatchTimer = setInterval(liveWatchCheck, 3000);
+  liveWatchCheck();
+}
 function liveFetchStudent(){
   return api('/api/live?class=' + encodeURIComponent(STATE.classCode) + '&alias=' + encodeURIComponent(STATE.student.alias));
 }
