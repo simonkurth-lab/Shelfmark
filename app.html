@@ -2955,7 +2955,8 @@ function screenTeacherLowTakers(){
   list.querySelectorAll('button[data-i]').forEach(b=>{
     b.onclick = async ()=>{
       const x = info[Number(b.dataset.i)], name = x.s.realName || x.s.alias;
-      const note = `Hello,\n\nI'm writing to let you know that ${name} has completed ${x.n === 0 ? 'no' : 'only ' + x.n} reading quiz${x.n===1?'':'zes'} in the last ${days} days${x.last ? ' (most recent: ' + fmt(x.last) + ')' : ''}. Regular reading and quizzes are an important part of class, and I'd like to see more effort here. Could you please encourage ${name} to read and take quizzes at home or during free time? I'm happy to help with book choices.\n\nThank you for your support,\nMr. Kurth`;
+      const tn = (classLabel(x.s.classCode).split(' - ')[1] || '').trim(), teacher = tn ? 'Mr./Ms. ' + tn : 'Your teacher';
+      const note = `Hello,\n\nI'm writing to let you know that ${name} has completed ${x.n === 0 ? 'no' : 'only ' + x.n} reading quiz${x.n===1?'':'zes'} in the last ${days} days${x.last ? ' (most recent: ' + fmt(x.last) + ')' : ''}. Regular reading and quizzes are an important part of class, and I'd like to see more effort here. Could you please encourage ${name} to read and take quizzes at home or during free time? I'm happy to help with book choices.\n\nThank you for your support,\n${teacher}`;
       let ok = false; try{ await navigator.clipboard.writeText(note); ok = true; }catch(e){}
       const msg = list.querySelector('#msg');
       if(ok) msg.textContent = 'Copied a note for ' + name + '.'; else { msg.textContent = ''; msg.appendChild(el(`<textarea readonly style="width:100%;height:150px;">${escHtml(note)}</textarea>`)); }
