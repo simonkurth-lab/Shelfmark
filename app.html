@@ -649,6 +649,7 @@ function buildScreen(){
   else if(STATE.screen==='teacher') body = screenTeacher();
   else if(STATE.screen==='teacherStudent') body = screenTeacherStudent();
   else if(STATE.screen==='teacherSummary') body = screenTeacherSummary();
+  else if(STATE.screen==='teacherLowTakers') body = screenTeacherLowTakers();
   else if(STATE.screen==='teacherDaily') body = screenTeacherDaily();
   else if(STATE.screen==='teacherTrends') body = screenTeacherTrends();
   else if(STATE.screen==='teacherLive') body = screenTeacherLive();
@@ -2872,6 +2873,9 @@ function screenTeacher(){
   c.querySelector('#printBtn').onclick = ()=> window.print();
   c.querySelector('#summaryBtn').onclick = ()=>{ STATE.screen='teacherSummary'; render(); };
   c.querySelector('#dailyBtn').onclick = ()=>{ STATE.screen='teacherDaily'; render(); };
+  const lowBtn = el(`<button class="btn secondary" style="width:auto;margin:0;padding:10px 18px;">⚠️ Infrequent test takers</button>`);
+  lowBtn.onclick = ()=>{ STATE.screen='teacherLowTakers'; render(); };
+  c.querySelector('#dailyBtn').after(lowBtn);
   const liveBtn = el(`<button class="btn secondary" style="width:auto;margin:0;padding:10px 18px;">👥 Live group</button>`);
   liveBtn.onclick = ()=>{ STATE.screen='teacherLive'; render(); };
   c.querySelector('#dailyBtn').after(liveBtn);
@@ -2920,6 +2924,46 @@ function screenTeacher(){
 
 // ---- Teacher: parent conference report ----
 // One printable page per student: every book they were quizzed on, with the date and score.
+// Students who have taken few quizzes recently, with a ready-to-send note for parents.
+function screenTeacherLowTakers(){
+  if(!STATE.teacherAuthed) return screenTeacherLogin();
+  const allRows = STATE.teacherRows || [];
+  const days = STATE.lowDays || 14, maxQ = STATE.lowMax == null ? 1 : STATE.lowMax;
+  const rows = filterRowsByClass(allRows, STATE.teacherClassFilter);
+  const cutoff = new Date(); cutoff.setHours(0,0,0,0); cutoff.setDate(cutoff.getDate() - days);
+  const today = new Date(); today.setHours(0,0,0,0);
+  const info = rows.map(s=>{
+    const hist = s.history || [];
+    const dated = hist.map(h=>({ h, d: h.date ? new Date(h.date + 'T00:00:00') : null })).filter(x=>x.d && !isNaN(x.d));
+    const recent = dated.filter(x=>x.d >= cutoff);
+    const last = dated.reduce((m,x)=>(!m || x.d > m) ? x.d : m, null);
+    const avg = recent.length ? Math.round(recent.reduce((a,x)=>a+(x.h.score||0),0)/recent.length) : null;
+    return { s, n: recent.length, total: hist.length, last, since: last ? Math.round((today-last)/86400000) : null, avg };
+  }).filter(x=>x.n <= maxQ).sort((a,b)=>a.n-b.n || (b.since==null?1e9:b.since)-(a.since==null?1e9:a.since));
+  const sel = (id, opts, cur)=>`<select id="${id}">${opts.map(o=>`<option value="${o[0]}"${String(o[0])===String(cur)?' selected':''}>${o[1]}</option>`).join('')}</select>`;
+  const c = el(`<div><button class="backlink" id="back">&larr; Back to roster</button><div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;"><div><h2 style="margin-bottom:4px;">⚠️ Infrequent test takers</h2><p class="muted" style="margin:0;">Students with few quizzes in the chosen window. Use the note to tell parents.</p></div><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;"><span id="filterSlot"></span>${sel('days',[[7,'Last 7 days'],[14,'Last 14 days'],[30,'Last 30 days'],[60,'Last 60 days']],days)}${sel('maxq',[[0,'0 quizzes'],[1,'1 or fewer'],[2,'2 or fewer'],[3,'3 or fewer']],maxQ)}<button class="btn secondary" id="printBtn" style="width:auto;margin:0;padding:10px 18px;">🖨️ Print</button></div></div></div><div class="card"><div id="list"></div></div></div>`);
+  c.querySelector('#back').onclick = ()=>{ STATE.screen='teacher'; render(); };
+  c.querySelector('#filterSlot').replaceWith(classFilterSelect(allRows));
+  c.querySelector('#days').onchange = e=>{ STATE.lowDays = Number(e.target.value); render(); };
+  c.querySelector('#maxq').onchange = e=>{ STATE.lowMax = Number(e.target.value); render(); };
+  c.querySelector('#printBtn').onclick = ()=>window.print();
+  const list = c.querySelector('#list');
+  if(!info.length){ list.innerHTML = `<div class="empty">Everyone in this view has ${maxQ+1}+ quizzes in the last ${days} days. 🎉</div>`; return c; }
+  const fmt = d=>d ? d.toLocaleDateString(undefined,{month:'short',day:'numeric'}) : 'never';
+  const rowsHtml = info.map((x,i)=>`<tr><td>${escHtml(x.s.realName || x.s.alias)}${x.s.realName ? ` <span class="muted" style="font-size:12px;">(${escHtml(x.s.alias)})</span>` : ''}</td><td>${escHtml(classLabel(x.s.classCode))}</td><td><b>${x.n}</b></td><td>${x.total}</td><td>${fmt(x.last)}${x.since!=null ? ` <span class="muted">(${x.since}d ago)</span>` : ''}</td><td>${x.avg!=null ? x.avg+'%' : '—'}</td><td class="no-print"><button type="button" class="manage-btn" data-i="${i}">Copy parent note</button></td></tr>`).join('');
+  list.innerHTML = `<div style="overflow-x:auto;"><table class="roster-table"><thead><tr><th>Student</th><th>Class</th><th>Quizzes (last ${days}d)</th><th>All-time</th><th>Last quiz</th><th>Avg (window)</th><th class="no-print"></th></tr></thead><tbody>${rowsHtml}</tbody></table></div><p class="muted no-print" id="msg" style="margin:10px 0 0;"></p>`;
+  list.querySelectorAll('button[data-i]').forEach(b=>{
+    b.onclick = async ()=>{
+      const x = info[Number(b.dataset.i)], name = x.s.realName || x.s.alias;
+      const note = `Hello,\n\nI'm writing to let you know that ${name} has completed ${x.n === 0 ? 'no' : 'only ' + x.n} reading quiz${x.n===1?'':'zes'} in the last ${days} days${x.last ? ' (most recent: ' + fmt(x.last) + ')' : ''}. Regular reading and quizzes are an important part of class, and I'd like to see more effort here. Could you please encourage ${name} to read and take quizzes at home or during free time? I'm happy to help with book choices.\n\nThank you for your support,\nMr. Kurth`;
+      let ok = false; try{ await navigator.clipboard.writeText(note); ok = true; }catch(e){}
+      const msg = list.querySelector('#msg');
+      if(ok) msg.textContent = 'Copied a note for ' + name + '.'; else { msg.textContent = ''; msg.appendChild(el(`<textarea readonly style="width:100%;height:150px;">${escHtml(note)}</textarea>`)); }
+    };
+  });
+  return c;
+}
+
 function screenTeacherConference(){
   if(!STATE.teacherAuthed) return screenTeacherLogin();
   const allRows = STATE.teacherRows || [];
