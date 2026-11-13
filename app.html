@@ -853,6 +853,11 @@ function screenHome(){
   const sfBtn = el(`<button class="btn secondary">🔊 Sound Friends</button>`);
   sfBtn.onclick = ()=>{ STATE.screen='sounds'; render(); };
   c.querySelector('#dashBtn').after(sfBtn);
+  if(UNIT_QUIZ_CLASSES.includes(STATE.classCode) && !DAILY_CLASSES.includes(STATE.classCode)){
+    const uqBtn = el(`<button class="btn coral" style="margin:12px 0 4px;">📘 Unit quiz: Esperanza Rising</button>`);
+    uqBtn.onclick = ()=>{ STATE.currentBook = { title:'Esperanza Rising', author:'Pam Muñoz Ryan', olid:null }; STATE.unitFrom='home'; STATE.screen='quizGate'; render(); };
+    c.querySelector('.card').insertBefore(uqBtn, c.querySelector('.stat-row'));
+  }
   if(DAILY_CLASSES.includes(STATE.classCode)){
     const todayBtn = el(`<button class="btn coral" style="margin:12px 0 4px;">📝 Today's activity</button>`);
     todayBtn.onclick = ()=>{ STATE.screen='daily'; STATE.dailyToday=null; STATE.dailyTab=null; STATE.dailyDay=null; render(); };
@@ -879,6 +884,8 @@ function screenHome(){
 // data-response="key" attribute is collected and saved to the student's
 // record under student.daily[date][key]. Scripts in the file are not run.
 const DAILY_CLASSES = ['period1'];
+// Classes (besides the daily-activity class) that get the end-of-book unit quiz button on home.
+const UNIT_QUIZ_CLASSES = ['period3'];
 
 function todayStr(){
   const d = new Date();
@@ -1980,7 +1987,7 @@ function screenQuizGate(){
   const checking = STATE.loading;
   const goBtnInner = checking ? `<span class="btn-spinner"></span> Checking...` : 'Unlock';
   const c = el(`<div><button class="backlink" id="back">&larr; Back</button><div class="card"><h2 style="margin-bottom:6px;">Ask your teacher 🔑</h2><p class="muted" style="margin:0 0 14px;">A teacher needs to enter the passcode before every quiz.</p><input type="password" id="pc" placeholder="Teacher passcode" ${checking?'disabled':''} /><button class="btn coral" id="goBtn" ${checking?'disabled':''}>${goBtnInner}</button><div id="err"></div></div></div>`);
-  c.querySelector('#back').onclick = ()=>{ STATE.screen = STATE.unitFrom==='daily' ? 'daily' : 'book'; STATE.unitFrom=null; STATE.quizGateError=''; render(); };
+  c.querySelector('#back').onclick = ()=>{ STATE.screen = STATE.unitFrom==='daily' ? 'daily' : (STATE.unitFrom==='home' ? 'home' : 'book'); STATE.unitFrom=null; STATE.quizGateError=''; render(); };
   const pcInput = c.querySelector('#pc');
   if(!checking){
     const tryUnlock = ()=> verifyQuizGate(pcInput.value);
@@ -2372,7 +2379,7 @@ function screenUnitQuiz(){
     <div class="u-nav"><button class="btn secondary" id="prevBtn" type="button">&larr; Back / Atrás</button><button class="btn" id="nextBtn" type="button"></button></div>
     <div id="submitMsg"></div>
   </div></div>`);
-  c.querySelector('#back').onclick = ()=>{ unitSave(); STATE.screen = STATE.unitFrom==='daily' ? 'daily' : 'book'; STATE.unitFrom=null; render(); };
+  c.querySelector('#back').onclick = ()=>{ unitSave(); STATE.screen = STATE.unitFrom==='daily' ? 'daily' : (STATE.unitFrom==='home' ? 'home' : 'book'); STATE.unitFrom=null; render(); };
 
   const dots = c.querySelector('#dots');
   qs.forEach((qq,i)=>{
