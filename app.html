@@ -1989,6 +1989,15 @@ function screenQuizGate(){
   const c = el(`<div><button class="backlink" id="back">&larr; Back</button><div class="card"><h2 style="margin-bottom:6px;">Ask your teacher 🔑</h2><p class="muted" style="margin:0 0 14px;">A teacher needs to enter the passcode before every quiz.</p><input type="password" id="pc" placeholder="Teacher passcode" ${checking?'disabled':''} /><button class="btn coral" id="goBtn" ${checking?'disabled':''}>${goBtnInner}</button><div id="err"></div></div></div>`);
   c.querySelector('#back').onclick = ()=>{ STATE.screen = STATE.unitFrom==='daily' ? 'daily' : (STATE.unitFrom==='home' ? 'home' : 'book'); STATE.unitFrom=null; STATE.quizGateError=''; render(); };
   const pcInput = c.querySelector('#pc');
+  // If the teacher opened the unit quiz for this whole class, skip the passcode.
+  if(!checking && STATE.classCode){
+    const book = STATE.currentBook;
+    api('/api/quiz-unlock?class=' + encodeURIComponent(STATE.classCode)).then(async d=>{
+      if(!d || !d.open || STATE.screen !== 'quizGate' || STATE.currentBook !== book) return;
+      const unit = await findUnitQuiz(book);
+      if(unit && STATE.screen === 'quizGate') startUnitQuiz(unit);
+    }).catch(()=>{});
+  }
   if(!checking){
     const tryUnlock = ()=> verifyQuizGate(pcInput.value);
     pcInput.addEventListener('keydown', e=>{ if(e.key==='Enter') tryUnlock(); });
@@ -2833,6 +2842,27 @@ function studentStats(s){
   return { books: hist.length, avgScore, rank };
 }
 
+// One-click class-wide unlock for the end-of-book unit quiz (replaces typing the passcode on each device).
+function unitQuizAccessCard(){
+  const card = el(`<div class="card"><h3 style="margin:0 0 4px;">📘 Esperanza Rising unit quiz</h3><p class="muted" style="margin:0 0 10px;">Open it for a whole class with one click. Students then start without the passcode. Closes by itself after 4 hours.</p><div id="rows"></div></div>`);
+  const rowsEl = card.querySelector('#rows');
+  CLASSES.forEach(cl=>{
+    const row = el(`<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:6px 0;"><span style="min-width:190px;">${escHtml(cl.label)}</span><button class="btn secondary" style="width:auto;margin:0;padding:8px 16px;">…</button><span class="muted"></span></div>`);
+    const btn = row.querySelector('button'), note = row.querySelector('.muted');
+    let open = false;
+    const paint = ()=>{ btn.textContent = open ? '🔒 Close quiz' : '🔓 Open quiz'; btn.className = open ? 'btn secondary' : 'btn coral'; note.textContent = open ? 'Open now' : 'Closed'; btn.disabled = false; };
+    api('/api/quiz-unlock?class=' + encodeURIComponent(cl.code)).then(d=>{ open = !!(d && d.open); paint(); }).catch(()=>{ note.textContent = 'Could not check'; });
+    btn.onclick = async ()=>{
+      btn.disabled = true;
+      const r = await postJSON('/api/teacher/quiz-unlock', { passcode: STATE.teacherPasscode, classCode: cl.code, open: !open });
+      if(r && r.ok) open = !!r.open; else note.textContent = 'Failed - try again';
+      paint();
+    };
+    rowsEl.appendChild(row);
+  });
+  return card;
+}
+
 function screenTeacher(){
   if(!STATE.teacherAuthed) return screenTeacherLogin();
   const rows = STATE.teacherRows || [];
@@ -2855,6 +2885,7 @@ function screenTeacher(){
   confBtn.onclick = ()=>{ STATE.screen='teacherConference'; render(); };
   essayBtn.after(confBtn);
   c.querySelector('#filterSlot').replaceWith(classFilterSelect(rows));
+  c.querySelector('#groups').before(unitQuizAccessCard());
   const groupsDiv = c.querySelector('#groups');
   if(groups.length===0){
     groupsDiv.appendChild(el(`<div class="card"><div class="empty">No students yet.</div></div>`));
