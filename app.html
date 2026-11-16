@@ -812,7 +812,9 @@ function looksLikeRealName(n){
   if(/^(asd|sdf|dfg|qwe|wer|zxc|xcv|jkl|hjk|uiop|qaz)/.test(l)) return false;
   return true;
 }
-function needsRealName(s){ return !s.realName || !looksLikeRealName(s.realName); }
+// Bump NAME_CHECK to ask every student to retype their full first name once at their next login.
+const NAME_CHECK = '2026-11-16';
+function needsRealName(s){ return !s.realName || !looksLikeRealName(s.realName) || s.nameCheck !== NAME_CHECK; }
 
 // Prompt shown after login/signup when a student has no realName on file, or one that
 // doesn't look like a real name. This never touches the AI-facing endpoints or the public
@@ -820,7 +822,7 @@ function needsRealName(s){ return !s.realName || !looksLikeRealName(s.realName);
 // path and only ever surfaced back out through the teacher-passcode-gated
 // dashboard, so it stays private even though the student enters it.
 function screenNameCapture(){
-  const c = el(`<div><div class="card"><h2 style="margin-bottom:6px;">One more thing!</h2><p class="muted" style="margin:0 0 14px;">What's your first name? Only your teacher can see this — no one else in the app ever will. First name only, please, no last name.</p><input type="text" id="nameInput" placeholder="Your first name" maxlength="40" /><button class="btn coral" id="goBtn" style="margin-top:16px;">Continue</button><p class="error-text" id="nameMsg"></p></div></div>`);
+  const c = el(`<div><div class="card"><h2 style="margin-bottom:6px;">One more thing!</h2><p class="muted" style="margin:0 0 14px;">Please type your full first name, spelled the way your teacher knows you (not a nickname or short version). Only your teacher can see this — no one else in the app ever will. First name only, please, no last name.</p><input type="text" id="nameInput" placeholder="Your first name" maxlength="40" /><button class="btn coral" id="goBtn" style="margin-top:16px;">Continue</button><p class="error-text" id="nameMsg"></p></div></div>`);
   const nameInput = c.querySelector('#nameInput');
   let confirmFake = false;
   const submit = ()=>{
@@ -835,6 +837,7 @@ function screenNameCapture(){
       return;
     }
     STATE.student.realName = firstWord.toUpperCase();
+    STATE.student.nameCheck = NAME_CHECK;
     saveStudent(STATE.student.alias, STATE.student);
     STATE.screen = 'home';
     render();
