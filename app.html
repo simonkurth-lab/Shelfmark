@@ -456,7 +456,7 @@ const STATE = {
   teacherManagingAlias: null, teacherManagingClass: null, teacherClassFilter: 'all', showFullBookList: false,
   searchResults: [], searchQuery: '', currentBook: null, bookMode: 'quiz',
   rangeSaveMsg: '',
-  dailyDate: null, dailyActivities: {}, dailyMarkMsg: '', dailySort: 'name', trendSubject: 'all', trendCount: 10, dailyOpen: {}, dailySubject: null, dailyTab: null, dailyToday: null,
+  dailyDate: null, lookupQuery: '', lookupStudent: '', lookupDate: 'all', dailyActivities: {}, dailyMarkMsg: '', dailySort: 'name', trendSubject: 'all', trendCount: 10, dailyOpen: {}, dailySubject: null, dailyTab: null, dailyToday: null,
   quiz: null, quizAnswers: {}, unit: null, loading: false, loadingMsg: '',
   quizSetup: { count: 7, confidence: 'medium', challenge: 'onlevel', bilingual: 0 },
   speechRate: 0.95,
@@ -657,6 +657,7 @@ function buildScreen(){
   else if(STATE.screen==='teacherLiveReports') body = screenTeacherLiveReports();
   else if(STATE.screen==='teacherEssays') body = screenTeacherEssays();
   else if(STATE.screen==='teacherConference') body = screenTeacherConference();
+  else if(STATE.screen==='teacherLookup') body = screenTeacherLookup();
   else if(!STATE.classConfirmed) body = screenClassPick();
   else if(STATE.screen==='login') body = screenLogin();
   else if(STATE.screen==='nameCapture') body = screenNameCapture();
@@ -2892,6 +2893,9 @@ function screenTeacher(){
   const confBtn = el(`<button class="btn secondary" style="width:auto;margin:0;padding:10px 18px;">👪 Conference reports</button>`);
   confBtn.onclick = ()=>{ STATE.screen='teacherConference'; render(); };
   essayBtn.after(confBtn);
+  const lookBtn = el(`<button class="btn secondary" style="width:auto;margin:0;padding:10px 18px;">🔎 Student lookup</button>`);
+  lookBtn.onclick = ()=>{ STATE.screen='teacherLookup'; render(); };
+  confBtn.after(lookBtn);
   c.querySelector('#filterSlot').replaceWith(classFilterSelect(rows));
   c.querySelector('#groups').before(unitQuizAccessCard());
   const groupsDiv = c.querySelector('#groups');
@@ -3182,6 +3186,68 @@ function screenTeacherStudent(){
     }).join('');
     c.appendChild(el(`<div class="card"><h2 style="margin-bottom:6px;">Daily responses</h2>${body}</div>`));
   }
+  return c;
+}
+
+// ---- Teacher: look up one student by name, then pick any date they have work on ----
+function screenTeacherLookup(){
+  if(!STATE.teacherAuthed) return screenTeacherLogin();
+  const allRows = (STATE.teacherRows || []).slice().sort((a,b)=>(a.realName||a.alias).localeCompare(b.realName||b.alias));
+  const nameOf = s=>s.realName ? s.realName + ' (' + s.alias + ')' : s.alias;
+  const idOf = s=>s.alias + '|' + (s.classCode||'default');
+  const q = (STATE.lookupQuery||'').trim().toLowerCase();
+  const matches = q ? allRows.filter(s=>(s.realName||'').toLowerCase().includes(q) || s.alias.toLowerCase().includes(q)) : allRows;
+  const stu = allRows.find(s=>idOf(s)===STATE.lookupStudent) || null;
+  const c = el(`<div><button class="backlink" id="back">&larr; Back to roster</button><div class="card no-print"><h2 style="margin-bottom:4px;">🔎 Student lookup</h2><p class="muted" style="margin:0 0 10px;">Type a name, pick the student, then pick a date (or all dates).</p><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;"><input type="text" id="lq" placeholder="Search by name..." value="${escHtml(STATE.lookupQuery||'')}" style="flex:1 1 180px;margin:0;" /><select id="who" style="flex:1 1 220px;"><option value="">${matches.length ? 'Choose a student (' + matches.length + ')' : 'No match'}</option>${matches.map(s=>`<option value="${escHtml(idOf(s))}"${idOf(s)===STATE.lookupStudent?' selected':''}>${escHtml(nameOf(s))}</option>`).join('')}</select><select id="dateSel" style="flex:1 1 180px;"></select><button class="btn secondary" id="printBtn" style="width:auto;margin:0;padding:10px 18px;">🖨️ Print</button></div></div><div id="out"></div></div>`);
+  c.querySelector('#back').onclick = ()=>{ STATE.screen='teacher'; render(); };
+  c.querySelector('#printBtn').onclick = ()=> window.print();
+  const lq = c.querySelector('#lq');
+  lq.oninput = ()=>{ // re-render but keep typing focus
+    STATE.lookupQuery = lq.value; const pos = lq.selectionStart; render();
+    const n = document.querySelector('#lq'); if(n){ n.focus(); try{ n.setSelectionRange(pos,pos); }catch(e){} }
+  };
+  c.querySelector('#who').onchange = e=>{ STATE.lookupStudent = e.target.value; STATE.lookupDate = 'all'; render(); };
+  const dateSel = c.querySelector('#dateSel');
+  const out = c.querySelector('#out');
+  if(!stu){
+    dateSel.disabled = true; dateSel.innerHTML = '<option>Dates</option>';
+    out.appendChild(el(`<div class="card"><div class="empty">${q && !matches.length ? 'No student matches that name.' : 'Pick a student to see their progress.'}</div></div>`));
+    return c;
+  }
+  const hist = stu.history || [];
+  const daily = stu.daily || {};
+  const dates = Array.from(new Set(hist.map(h=>h.date).filter(Boolean).concat(Object.keys(daily).map(k=>k.slice(0,10))))).sort().reverse();
+  const day = dates.includes(STATE.lookupDate) ? STATE.lookupDate : 'all';
+  dateSel.innerHTML = `<option value="all"${day==='all'?' selected':''}>All dates (${dates.length})</option>` + dates.map(d=>`<option value="${d}"${d===day?' selected':''}>${d}</option>`).join('');
+  dateSel.onchange = e=>{ STATE.lookupDate = e.target.value; render(); };
+  const shownDates = day==='all' ? dates : [day];
+  const keys = Object.keys(daily).filter(k=>shownDates.includes(k.slice(0,10)) && daily[k] && typeof daily[k]==='object');
+  // Make sure each activity's question text / answer key is loaded before drawing.
+  const pending = keys.filter(k=>STATE.dailyActivities[k]===undefined);
+  if(pending.length){
+    pending.forEach(k=>loadDailyActivity(k.slice(0,10), k).then(()=>{ if(STATE.screen==='teacherLookup' && !keys.some(x=>STATE.dailyActivities[x]===undefined)) render(); }));
+    out.appendChild(el(`<div class="card"><div class="loading">Loading...</div></div>`));
+    return c;
+  }
+  const stats = studentStats(stu);
+  out.appendChild(el(`<div class="card"><h2 style="margin-bottom:2px;">${escHtml(nameOf(stu))}</h2><p class="muted" style="margin:0 0 8px;">${classLabel(stu.classCode)} · PIN ${escHtml(String(stu.pin))}</p><div class="stat-row"><div class="stat"><div class="num">${stu.points||0}</div><div class="lbl">Points</div></div><div class="stat"><div class="num">${stats.books}</div><div class="lbl">Books</div></div><div class="stat"><div class="num">${stats.avgScore!=null ? stats.avgScore+'%' : '—'}</div><div class="lbl">Avg score</div></div></div></div>`));
+  const books = hist.filter(h=>day==='all' || h.date===day);
+  out.appendChild(el(`<div class="card"><h3 style="margin:0 0 6px;">📚 Reading quizzes${day==='all'?'':' on '+day}</h3>${books.length ? `<div style="overflow-x:auto;"><table class="roster-table" style="width:100%;"><thead><tr><th>Book</th><th>Date</th><th>Score</th><th>Points</th></tr></thead><tbody>${books.map(h=>`<tr><td>${escHtml(h.title||'Untitled')}</td><td>${escHtml(h.date||'')}</td><td>${h.score!=null?h.score+'%':'—'}${unitScoreDetail(h)}</td><td>${h.points!=null?'+'+h.points:'—'}</td></tr>`).join('')}</tbody></table></div>` : '<div class="empty">No reading quizzes.</div>'}</div>`));
+  const dcard = el(`<div class="card"><h3 style="margin:0 0 6px;">📝 Daily work${day==='all'?'':' on '+day}</h3><div class="dl-rows"></div></div>`);
+  const host = dcard.querySelector('.dl-rows');
+  STATE.dailyOpen = STATE.dailyOpen || {};
+  keys.sort().reverse().forEach(k=>{
+    const cached = STATE.dailyActivities[k] || {};
+    const ans = daily[k];
+    const fieldKeys = Object.keys(ans).filter(x=>!x.startsWith('_'));
+    const act = cached.act || { context:'', fields: fieldKeys.map(x=>({ key:x, prompt:x, written:true })) };
+    const result = cached.key ? scoreAnswers(ans, cached.key) : null;
+    const sub = DAILY_SUBJECTS.find(x=>x.id && k.length>10 && k.slice(11)===x.id);
+    host.appendChild(el(`<div style="margin-top:8px;font-weight:700;">${escHtml(k.slice(0,10))} · ${sub ? sub.emoji+' '+sub.label : '📝 Activity'}${ans._submittedAt ? '' : ' <span class="muted" style="font-weight:600;">(not submitted)</span>'}</div>`));
+    host.appendChild(studentDailyRow(stu, k, act, cached.key, result, nameOf(stu)));
+  });
+  if(!keys.length) host.appendChild(el(`<div class="empty">No daily work.</div>`));
+  out.appendChild(dcard);
   return c;
 }
 
