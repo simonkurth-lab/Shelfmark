@@ -612,7 +612,7 @@ function quizLoadingSlide(idx){
 }
 
 function el(html){ const d=document.createElement('div'); d.innerHTML=html.trim(); return d.firstChild; }
-function render(){ clearLiveTimer(); stopQuizSpeech(); document.getElementById('app').innerHTML=''; document.getElementById('app').appendChild(buildScreen()); liveWatchTick(); }
+function render(){ clearLiveTimer(); stopQuizSpeech(); document.getElementById('app').style.maxWidth = STATE.screen === 'daily' ? '1280px' : ''; document.getElementById('app').innerHTML=''; document.getElementById('app').appendChild(buildScreen()); liveWatchTick(); }
 
 async function api(path, opts){
   const res = await fetch(WORKER_URL + path, opts);
