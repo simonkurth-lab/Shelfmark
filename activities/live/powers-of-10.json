@@ -1,0 +1,85 @@
+{
+ "title": "Powers of 10 and exponents: worked examples (10 questions)",
+ "questions": [
+  {
+   "q": "Look at Worked Example 1. In 10⁵, what is the exponent? [img:pow-ex1]",
+   "type": "text",
+   "a": "5",
+   "why": "The exponent is the small raised number, so in 10⁵ it is 5."
+  },
+  {
+   "q": "Look at Worked Example 2. What is 10² as a regular number? [img:pow-ex2]",
+   "type": "text",
+   "a": [
+    "100"
+   ],
+   "why": "10² = 10 × 10 = 100."
+  },
+  {
+   "q": "Now you try: what is 10³ as a regular number? Use Example 2 to help. (Commas are okay.) [img:pow-ex2]",
+   "type": "text",
+   "a": [
+    "1000",
+    "1,000"
+   ],
+   "why": "10³ = 10 × 10 × 10 = 100 × 10 = 1,000."
+  },
+  {
+   "q": "Look at Worked Example 3. How many zeros are in 10⁶ when you write it as a regular number? [img:pow-ex3]",
+   "type": "text",
+   "a": "6",
+   "why": "The exponent matches the number of zeros, so 10⁶ has 6 zeros (1,000,000)."
+  },
+  {
+   "q": "What is 10⁴ as a regular number? (Commas are okay.) [img:pow-ex3]",
+   "type": "text",
+   "a": [
+    "10000",
+    "10,000"
+   ],
+   "why": "The exponent is 4, so write a 1 and then 4 zeros: 10,000."
+  },
+  {
+   "q": "Look at Worked Example 4. Write 10,000 as a power of 10. Type just the exponent. [img:pow-ex4]",
+   "type": "text",
+   "a": "4",
+   "why": "10,000 has 4 zeros after the 1, so it is 10⁴."
+  },
+  {
+   "q": "10 × 10 × 10 × 10 × 10 can be written as 10 to what exponent? [img:pow-ex2]",
+   "type": "text",
+   "a": "5",
+   "why": "Five 10s are multiplied, so the exponent is 5: 10⁵ = 100,000."
+  },
+  {
+   "q": "Which is the greatest?",
+   "type": "choice",
+   "a": "10⁴",
+   "why": "More zeros means a bigger number: 10⁴ = 10,000, 10³ = 1,000, 10² = 100.",
+   "options": [
+    "10²",
+    "10³",
+    "10⁴"
+   ]
+  },
+  {
+   "q": "Look at Worked Example 5. Maya says 10³ = 30. Is she correct? [img:pow-ex5]",
+   "type": "choice",
+   "a": "No",
+   "why": "10³ means 10 × 10 × 10 = 1,000. Maya multiplied 10 × 3 instead.",
+   "options": [
+    "Yes",
+    "No"
+   ]
+  },
+  {
+   "q": "Maya's mistake: she did 10 × 3. What is 10³ really equal to? (Commas are okay.) [img:pow-ex5]",
+   "type": "text",
+   "a": [
+    "1000",
+    "1,000"
+   ],
+   "why": "10³ = 10 × 10 × 10 = 1,000."
+  }
+ ]
+}

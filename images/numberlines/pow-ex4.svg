@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 250" width="100%" role="img">
+<rect x="2" y="2" width="636" height="246" rx="16" fill="#fdf3e3" stroke="#d8c7ad" stroke-width="3"/>
+<text x="320" y="38" font-family="Helvetica,Arial,sans-serif" font-size="20" font-weight="800" fill="#8a4520" text-anchor="middle">WORKED EXAMPLE 4: Going backwards</text>
+<text x="320" y="90" font-family="Helvetica,Arial,sans-serif" font-size="24" font-weight="700" fill="#201e1d" text-anchor="middle">Write 1,000,000 as a power of 10.</text>
+<text x="320" y="135" font-family="Helvetica,Arial,sans-serif" font-size="20" font-weight="600" fill="#555" text-anchor="middle">Step 1: Count the zeros after the 1  →  6 zeros</text>
+<text x="320" y="172" font-family="Helvetica,Arial,sans-serif" font-size="20" font-weight="600" fill="#555" text-anchor="middle">Step 2: The exponent is 6</text>
+<text x="320" y="220" font-family="Helvetica,Arial,sans-serif" font-size="30" font-weight="800" fill="#2f7a2f" text-anchor="middle">1,000,000 = 10⁶</text>
+</svg>
