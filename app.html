@@ -3086,7 +3086,7 @@ function screenTeacherMath(){
     Promise.all(missingKeys.map(k=>Promise.all([
       fetch('activities/answers/' + k + '.json').then(r=>r.ok ? r.json() : null).catch(()=>null),
       fetch('activities/' + k + '.html').then(r=>r.ok ? r.text() : null).catch(()=>null),
-    ]).then(([j, h])=>{ STATE.mathKeys[k] = j; STATE.mathQ[k] = h ? buildMathQuestions(h) : null; }))).then(()=>{ if(STATE.screen==='teacherMath') render(); });
+    ]).then(([j, h])=>{ STATE.mathKeys[k] = j; try { STATE.mathQ[k] = h ? buildMathQuestions(h) : null; } catch(e){ STATE.mathQ[k] = null; } }).catch(()=>{ STATE.mathKeys[k] = STATE.mathKeys[k] || null; STATE.mathQ[k] = null; }))).then(()=>{ if(STATE.screen==='teacherMath') render(); });
     return c;
   }
   const list = STATE.mathPick ? rows.filter(s=>s.alias===STATE.mathPick) : rows;
@@ -3528,7 +3528,9 @@ function loadDailyActivity(day, date){
   return Promise.all([
     firstFound(k=>'activities/' + k + '.html').then(h=>h ? parseActivity(h) : null),
     firstFound(k=>'activities/answers/' + k + '.json').then(j=>j ? JSON.parse(j) : null),
-  ]).then(([parsed, key])=>(STATE.dailyActivities[date] = { act: parsed, key }));
+  ]).then(([parsed, key])=>(STATE.dailyActivities[date] = { act: parsed, key }))
+    // If one activity file or key is broken, don't leave the report spinning forever; show that day's raw answers instead.
+    .catch(()=>(STATE.dailyActivities[date] = { act: null, key: null }));
 }
 
 function screenTeacherDaily(){
