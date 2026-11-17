@@ -1,0 +1,24 @@
+<style>
+.activity{max-width:760px;margin:0 auto;padding:16px;font-size:20px;line-height:1.5;color:#201e1d}
+h2{border-bottom:3px solid #201e1d;padding-bottom:8px;font-size:1.7em;line-height:1.2;margin:0 0 10px}
+sup{font-size:.7em;line-height:0}
+.pep{background:#fdf3e3;border:2px solid #d8c7ad;border-radius:16px;padding:12px 16px;font-weight:600;margin:0 0 14px}
+.q{background:#fff;border:2px dashed #c67139;border-radius:16px;padding:14px 16px;margin:0 0 14px}
+.lab{font-weight:700}
+input,select,textarea{font:inherit;box-sizing:border-box;border:2px solid #d8c7ad;border-radius:12px;padding:8px 12px;background:#fff;color:#201e1d}
+input.blank{width:130px;min-height:46px;text-align:center;margin:0 4px;vertical-align:middle}
+input.blank.s{width:70px}
+select.mini{min-height:46px;margin:6px 4px 0}
+textarea{width:100%;min-height:90px;margin-top:8px}
+input:focus,select:focus,textarea:focus{outline:3px solid #c67139;outline-offset:2px;border-color:#c67139}
+</style>
+<div class="activity">
+<h2>🏆 Math Challenge: Powers of 10</h2>
+<p class="pep">Ready to stretch your brain? Use what you know: the exponent is the number of zeros!</p>
+<div class="q"><div class="lab">1. A number is a 1 followed by 9 zeros. Write it as a power of 10: 10<sup><input class="blank s" id="h1" type="text" inputmode="decimal" data-response="h1" aria-label="answer h1"></sup></div></div>
+<div class="q"><div class="lab">2. 10<sup>8</sup> = <input class="blank" id="h2" type="text" inputmode="decimal" data-response="h2" aria-label="answer h2"> (write it as a regular number, commas are okay)</div></div>
+<div class="q"><div class="lab">3. 10<sup>3</sup> × 10 = 1 followed by how many zeros? <input class="blank s" id="h3" type="text" inputmode="decimal" data-response="h3" aria-label="answer h3"> So 10<sup>3</sup> × 10 = 10<sup><input class="blank s" id="h3b" type="text" inputmode="decimal" data-response="h3b" aria-label="answer h3b"></sup></div></div>
+<div class="q"><div class="lab">4. Which is greater, 10<sup>7</sup> or 1,000,000?</div><select class="mini" id="h4" data-response="h4"><option value="">Choose...</option><option value="7">10⁷</option><option value="1000000">1,000,000</option></select><textarea id="h4w" data-response="h4w" placeholder="How do you know?"></textarea></div>
+<div class="q"><div class="lab">5. Leo says, "10<sup>4</sup> = 40,000." Find his mistake and write the correct value.</div><textarea id="h5w" data-response="h5w" placeholder="His mistake is..."></textarea><div style="margin-top:8px">10<sup>4</sup> = <input class="blank" id="h5" type="text" inputmode="decimal" data-response="h5" aria-label="answer h5"></div></div>
+<div class="pep">Amazing thinking! 🏆</div>
+</div>

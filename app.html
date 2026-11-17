@@ -908,6 +908,7 @@ const DAILY_SUBJECTS = [
   { id:'math', label:'Math', emoji:'➗' },
   { id:'math-review', label:'Math Review', emoji:'🛟' },
   { id:'math-exit', label:'Math Exit Ticket', emoji:'🎟️' },
+  { id:'math-challenge', label:'Math Challenge', emoji:'🏆' },
   { id:'social', label:'Social Studies', emoji:'🌎' },
   { id:'essay', label:'Essay', emoji:'✍️' },
 ];
@@ -943,6 +944,48 @@ async function planActivity(day, key, html){
 }
 
 // Builds one activity into host and wires up its Save button.
+// ---- Releasing results to students ----
+// A student only sees which questions they got right/wrong once the teacher releases that activity:
+// add its key (e.g. "2026-11-17-math") to activities/answers/released.json and push.
+async function getReleasedKeys(){
+  try { const r = await fetch('activities/answers/released.json?t=' + Date.now(), { cache:'no-store' }); return r.ok ? await r.json() : []; } catch(e){ return []; }
+}
+async function setupStudentResults(root, host, key, fields){
+  const rel = await getReleasedKeys();
+  if(!Array.isArray(rel) || !rel.includes(key)) return null;
+  const ak = await fetch('activities/answers/' + key + '.json').then(r=>r.ok ? r.json() : null).catch(()=>null);
+  if(!ak) return null;
+  if(!root.querySelector('#res-style')){
+    const st = document.createElement('style'); st.id = 'res-style';
+    st.textContent = '.res-badge{display:inline-block;font-size:14px;font-weight:800;margin:0 4px;vertical-align:middle;white-space:nowrap}.res-ok{border-color:#2f8a3a!important;background:#e7f6e7!important}.res-bad{border-color:#c0392b!important;background:#fbe3e0!important}.res-sum{background:#fdf3e3;border:2px solid #d8c7ad;border-radius:16px;padding:12px 16px;font-weight:700;margin:0 0 14px;font-size:18px}';
+    root.appendChild(st);
+  }
+  return function paint(){
+    root.querySelectorAll('.res-badge,.res-sum').forEach(n=>n.remove());
+    root.querySelectorAll('.res-ok,.res-bad').forEach(n=>n.classList.remove('res-ok','res-bad'));
+    const ans = (STATE.student.daily && STATE.student.daily[key]) || {};
+    if(!ans._submittedAt) return;
+    let right = 0, total = 0;
+    fields.forEach(f=>{
+      const id = f.dataset.response;
+      if(ak[id] === undefined) return;
+      const ok = isCorrectAnswer(f.value, ak[id]);
+      if(!id.startsWith('bonus')){ total++; if(ok) right++; }
+      f.classList.add(ok ? 'res-ok' : 'res-bad');
+      const b = document.createElement('span');
+      b.className = 'res-badge'; b.style.color = ok ? '#2f8a3a' : '#c0392b';
+      b.textContent = ok ? '✅' : '❌ Answer: ' + [].concat(ak[id])[0];
+      f.after(b);
+    });
+    if(total){
+      const sum = document.createElement('div');
+      sum.className = 'res-sum';
+      sum.textContent = '📋 Your results: ' + right + ' of ' + total + ' correct. ✅ = right, ❌ = see the right answer next to it.';
+      root.insertBefore(sum, root.firstChild);
+    }
+  };
+}
+
 function mountActivity(host, key, html, plan){
   host.innerHTML = '';
   // Shadow DOM keeps the activity's own styles from leaking into Piki.
@@ -967,6 +1010,7 @@ function mountActivity(host, key, html, plan){
   const msg = document.createElement('p');
   msg.className = 'muted';
   msg.textContent = saved._submittedAt ? 'Saved. You can edit and save again.' : '';
+  let paintResults = null;
   const doSave = async (auto)=>{
     const answers = {};
     fields.forEach(f=>{ answers[f.dataset.response] = f.value; });
@@ -979,6 +1023,7 @@ function mountActivity(host, key, html, plan){
     btn.disabled = false;
     btn.textContent = 'Update my answers';
     msg.textContent = auto ? 'Saved automatically ✅' : 'Saved! ✅';
+    if(paintResults) paintResults();
   };
   btn.onclick = ()=>doSave(false);
   // Activities marked data-carry (multi-day work like the essay) save on their own a couple of seconds after typing stops.
@@ -993,6 +1038,7 @@ function mountActivity(host, key, html, plan){
   // host has a shadow root, so light-DOM children of it never render;
   // the button and message go right after it instead.
   host.after(btn, msg);
+  setupStudentResults(root, host, key, fields).then(p=>{ if(p){ paintResults = p; p(); } });
   // Teacher feedback on a multi-day activity (data-carry): the latest note, if any, shows above the activity.
   if(root.querySelector('[data-carry]')){
     const sub = key.slice(10), marks = STATE.student.dailyMarks || {};
@@ -3023,7 +3069,7 @@ function screenTeacherMath(){
   if(!STATE.teacherAuthed) return screenTeacherLogin();
   const allRows = (STATE.teacherRows || []).filter(s=>DAILY_CLASSES.includes(s.classCode||'default'));
   const rows = filterRowsByClass(allRows, STATE.teacherClassFilter).slice().sort((a,b)=>(a.realName||a.alias).localeCompare(b.realName||b.alias));
-  const isMathKey = k=>/^\d{4}-\d{2}-\d{2}-math(-review|-exit)?$/.test(k);
+  const isMathKey = k=>/^\d{4}-\d{2}-\d{2}-math(-review|-exit|-challenge)?$/.test(k);
   const doneKeys = s=>Object.keys(s.daily||{}).filter(k=>isMathKey(k) && s.daily[k] && s.daily[k]._submittedAt);
   const posted = [...new Set(allRows.flatMap(doneKeys))].sort();
   STATE.mathKeys = STATE.mathKeys || {};
@@ -3046,7 +3092,7 @@ function screenTeacherMath(){
   const list = STATE.mathPick ? rows.filter(s=>s.alias===STATE.mathPick) : rows;
   if(!list.length){ pages.appendChild(el(`<div class="card"><div class="empty">No students found.</div></div>`)); return c; }
   const color = p=>p>=80 ? '#2f7a2f' : p>=60 ? '#9a7b00' : '#b03a2e';
-  const typeName = k=>k.endsWith('-review') ? 'Math review' : k.endsWith('-exit') ? 'Math exit ticket' : 'Daily math';
+  const typeName = k=>k.endsWith('-review') ? 'Math review' : k.endsWith('-exit') ? 'Math exit ticket' : k.endsWith('-challenge') ? 'Math challenge' : 'Daily math';
   list.forEach(s=>{
     const name = s.realName || s.alias;
     const done = doneKeys(s).sort();
