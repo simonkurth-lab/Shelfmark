@@ -907,6 +907,7 @@ const DAILY_SUBJECTS = [
   { id:'ela', label:'Language Arts', emoji:'📖' },
   { id:'math', label:'Math', emoji:'➗' },
   { id:'math-review', label:'Math Review', emoji:'🛟' },
+  { id:'math-exit', label:'Math Exit Ticket', emoji:'🎟️' },
   { id:'social', label:'Social Studies', emoji:'🌎' },
   { id:'essay', label:'Essay', emoji:'✍️' },
 ];
@@ -2981,7 +2982,7 @@ function screenTeacherMath(){
   if(!STATE.teacherAuthed) return screenTeacherLogin();
   const allRows = (STATE.teacherRows || []).filter(s=>DAILY_CLASSES.includes(s.classCode||'default'));
   const rows = filterRowsByClass(allRows, STATE.teacherClassFilter).slice().sort((a,b)=>(a.realName||a.alias).localeCompare(b.realName||b.alias));
-  const isMathKey = k=>/^\d{4}-\d{2}-\d{2}-math(-review)?$/.test(k);
+  const isMathKey = k=>/^\d{4}-\d{2}-\d{2}-math(-review|-exit)?$/.test(k);
   const doneKeys = s=>Object.keys(s.daily||{}).filter(k=>isMathKey(k) && s.daily[k] && s.daily[k]._submittedAt);
   const posted = [...new Set(allRows.flatMap(doneKeys))].sort();
   STATE.mathKeys = STATE.mathKeys || {};
@@ -3000,7 +3001,7 @@ function screenTeacherMath(){
   const list = STATE.mathPick ? rows.filter(s=>s.alias===STATE.mathPick) : rows;
   if(!list.length){ pages.appendChild(el(`<div class="card"><div class="empty">No students found.</div></div>`)); return c; }
   const color = p=>p>=80 ? '#2f7a2f' : p>=60 ? '#9a7b00' : '#b03a2e';
-  const typeName = k=>k.endsWith('-review') ? 'Math review' : 'Daily math';
+  const typeName = k=>k.endsWith('-review') ? 'Math review' : k.endsWith('-exit') ? 'Math exit ticket' : 'Daily math';
   list.forEach(s=>{
     const name = s.realName || s.alias;
     const done = doneKeys(s).sort();
