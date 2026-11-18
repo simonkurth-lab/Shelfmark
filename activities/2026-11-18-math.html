@@ -1,0 +1,66 @@
+<style>
+.activity{max-width:1000px;margin:0 auto;padding:12px 8px;font-size:19px;line-height:1.5;color:#201e1d}
+h2{border-bottom:3px solid #201e1d;padding-bottom:8px;font-size:1.7em;line-height:1.2;margin:0 0 8px}
+h3{font-size:1.2em;margin:24px 0 8px}
+sup{font-size:.7em;line-height:0}
+.pep{background:#fdf3e3;border:2px solid #d8c7ad;border-radius:16px;padding:12px 16px;font-weight:600;margin:0 0 14px}
+.panel{background:#fdf3e3;border:2px solid #d8c7ad;border-radius:16px;padding:12px 16px;margin:0 0 14px}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:14px 20px;align-items:start}
+.cols .q{margin:0}
+.q{background:#fff;border:2px solid #d8c7ad;border-radius:16px;padding:14px 16px;margin:0 0 14px}
+.lab{font-weight:700}
+input,select,textarea{font:inherit;box-sizing:border-box;border:2px solid #d8c7ad;border-radius:12px;padding:8px 12px;background:#fff;color:#201e1d}
+input.blank{width:120px;min-height:46px;text-align:center;margin:0 4px;vertical-align:middle}
+input.blank.s{width:70px}
+select.mini{min-height:46px;margin:6px 4px 0}
+input:focus,select:focus,textarea:focus{outline:3px solid #c67139;outline-offset:2px;border-color:#c67139}
+table{border-collapse:collapse;margin:6px 0;font-size:19px}
+th,td{border:2px solid #201e1d;padding:6px 14px;text-align:center}
+th{background:#fdf3e3}
+.big{font-size:26px;font-weight:800}
+.z{color:#d9731a;font-weight:800}
+/* Bonus round: hidden until the student scores 90%+ */
+.bonus-round{border:6px solid transparent;border-radius:24px;padding:18px;margin:26px 0 8px;background:linear-gradient(#fffbea,#fffbea) padding-box,linear-gradient(135deg,#ff4d6d,#ff9f1c,#ffd60a,#2ec4b6,#3a86ff,#8338ec) border-box;box-shadow:0 8px 28px rgba(131,56,236,.3)}
+.bonus-round.pop{animation:pop .7s ease-out}
+@keyframes pop{0%{transform:scale(.7);opacity:0}60%{transform:scale(1.04);opacity:1}100%{transform:scale(1)}}
+.bonus-round h3{margin:0 0 6px;font-size:1.7em;background:linear-gradient(90deg,#ff4d6d,#ff9f1c,#2ec4b6,#3a86ff,#8338ec);-webkit-background-clip:text;background-clip:text;color:transparent}
+.bonus-round .q{border:3px solid #ff9f1c;background:#fff}
+.bonus-round .q:nth-of-type(2n){border-color:#3a86ff}
+.bonus-round .q:nth-of-type(3n){border-color:#8338ec}
+</style>
+<div class="activity">
+<h2>Daily Math: Multiplying by Powers of 10</h2>
+<p class="pep">Last time you learned 10<sup>3</sup> = 1,000. Today we multiply other numbers by powers of 10. Same pattern: the exponent tells you how many zeros to add! 💪</p>
+<div class="panel"><strong>The pattern:</strong>
+<table><tr><th>Problem</th><th>Answer</th></tr>
+<tr><td>7 × 10<sup>1</sup></td><td>7<span class="z">0</span></td></tr>
+<tr><td>7 × 10<sup>2</sup></td><td>7<span class="z">00</span></td></tr>
+<tr><td>7 × 10<sup>3</sup></td><td>7<span class="z">,000</span></td></tr></table>
+<strong>Write the number, then add as many zeros as the exponent.</strong><br>Example: 35 × 10<sup>3</sup> = 35 then 3 zeros = <strong>35,000</strong>.<br>Careful: if the number already ends in zero, keep it. 40 × 10<sup>2</sup> = 40 then 2 zeros = <strong>4,000</strong>.</div>
+<h3>Part 1: Quick fluency</h3>
+<div class="cols">
+<div class="q"><div class="lab">1. 6 × 10<sup>2</sup> = <input class="blank" id="q1" type="text" inputmode="decimal" data-response="q1" aria-label="answer q1"></div></div>
+<div class="q"><div class="lab">2. 8 × 10<sup>3</sup> = <input class="blank" id="q2" type="text" inputmode="decimal" data-response="q2" aria-label="answer q2"></div></div>
+<div class="q"><div class="lab">3. 9 × 10<sup>4</sup> = <input class="blank" id="q3" type="text" inputmode="decimal" data-response="q3" aria-label="answer q3"></div></div>
+<div class="q"><div class="lab">4. 12 × 10<sup>2</sup> = <input class="blank" id="q4" type="text" inputmode="decimal" data-response="q4" aria-label="answer q4"></div></div>
+<div class="q"><div class="lab">5. 35 × 10<sup>3</sup> = <input class="blank" id="q5" type="text" inputmode="decimal" data-response="q5" aria-label="answer q5"></div></div>
+<div class="q"><div class="lab">6. 40 × 10<sup>2</sup> = <input class="blank" id="q6" type="text" inputmode="decimal" data-response="q6" aria-label="answer q6"></div></div>
+</div>
+<h3>Part 2: Find the exponent</h3>
+<div class="cols">
+<div class="q"><div class="lab">7. 5 × 10<sup><input class="blank s" id="q7" type="text" inputmode="decimal" data-response="q7" aria-label="answer q7"></sup> = 5,000</div></div>
+<div class="q"><div class="lab">8. 70 × 10<sup><input class="blank s" id="q8" type="text" inputmode="decimal" data-response="q8" aria-label="answer q8"></sup> = 7,000</div></div>
+</div>
+<div class="q"><div class="lab">9. Fill in the missing answers.</div><table><tr><th>Problem</th><th>Answer</th></tr><tr><td>4 × 10<sup>1</sup></td><td>40</td></tr><tr><td>4 × 10<sup>2</sup></td><td>400</td></tr><tr><td>4 × 10<sup>3</sup></td><td><input class="blank" id="q9a" type="text" inputmode="decimal" data-response="q9a" aria-label="answer q9a"></td></tr><tr><td>4 × 10<sup>4</sup></td><td><input class="blank" id="q9b" type="text" inputmode="decimal" data-response="q9b" aria-label="answer q9b"></td></tr></table></div>
+<h3>Part 3: Think</h3>
+<div class="q"><div class="lab">10. Maya says 25 × 10<sup>2</sup> = 250. She added only 1 zero. What is the correct answer?</div><div style="margin-top:8px">25 × 10<sup>2</sup> = <input class="blank" id="q10" type="text" inputmode="decimal" data-response="q10" aria-label="answer q10"></div></div>
+<div class="pep">Great work! Save your answers. Score 90% or more and a BONUS ROUND will pop up! ⭐</div>
+<div class="bonus-round" data-bonus-round style="display:none">
+<h3>⭐ BONUS ROUND ⭐</h3>
+<p class="pep" style="border-color:#ff9f1c">You scored 90%+! Try these tougher ones. They are extra credit! 🌈</p>
+<div class="q"><div class="lab">B1. 6 × 10<sup><input class="blank s" id="bonus1" type="text" inputmode="decimal" data-response="bonus1" aria-label="answer bonus1"></sup> = 600,000</div></div>
+<div class="q"><div class="lab">B2. 300 × 10<sup>2</sup> = <input class="blank" id="bonus2" type="text" inputmode="decimal" data-response="bonus2" aria-label="answer bonus2"></div></div>
+<div class="q"><div class="lab">B3. A box holds 10<sup>2</sup> pencils. How many pencils are in 25 boxes?</div><div style="margin-top:8px">25 × 10<sup>2</sup> = <input class="blank" id="bonus3" type="text" inputmode="decimal" data-response="bonus3" aria-label="answer bonus3"> pencils</div></div>
+<div class="q"><div class="lab">B4. Which is greater, 7 × 10<sup>3</sup> or 70 × 10<sup>2</sup>?</div><select class="mini" id="bonus4" data-response="bonus4"><option value="">Choose...</option><option value="first">7 × 10³ is greater</option><option value="second">70 × 10² is greater</option><option value="equal">They are equal</option></select></div>
+</div>
+</div>

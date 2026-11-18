@@ -986,6 +986,26 @@ async function setupStudentResults(root, host, key, fields){
   };
 }
 
+// ---- Bonus round ----
+// An activity can include <div data-bonus-round> (hidden at first). It pops up once the student has saved and
+// scored 90%+ on the regular questions (answer-key ids starting with "bonus" are the extra credit and don't count).
+async function setupBonusRound(root, key){
+  const box = root.querySelector('[data-bonus-round]');
+  if(!box) return null;
+  const ak = await fetch('activities/answers/' + key + '.json').then(r=>r.ok ? r.json() : null).catch(()=>null);
+  if(!ak) return null;
+  box.style.display = 'none';
+  return function check(){
+    const ans = (STATE.student.daily && STATE.student.daily[key]) || {};
+    if(!ans._submittedAt || box.style.display !== 'none') return false;
+    const r = scoreAnswers(ans, ak);
+    if(r.pct == null || r.pct < 90) return false;
+    box.style.display = 'block';
+    box.classList.add('pop');
+    return true;
+  };
+}
+
 function mountActivity(host, key, html, plan){
   host.innerHTML = '';
   // Shadow DOM keeps the activity's own styles from leaking into Piki.
@@ -1010,7 +1030,7 @@ function mountActivity(host, key, html, plan){
   const msg = document.createElement('p');
   msg.className = 'muted';
   msg.textContent = saved._submittedAt ? 'Saved. You can edit and save again.' : '';
-  let paintResults = null;
+  let paintResults = null, bonusCheck = null;
   const doSave = async (auto)=>{
     const answers = {};
     fields.forEach(f=>{ answers[f.dataset.response] = f.value; });
@@ -1024,6 +1044,7 @@ function mountActivity(host, key, html, plan){
     btn.textContent = 'Update my answers';
     msg.textContent = auto ? 'Saved automatically ✅' : 'Saved! ✅';
     if(paintResults) paintResults();
+    if(bonusCheck && bonusCheck()){ msg.textContent = '🎉 You scored 90%+ — a BONUS ROUND just popped up below!'; try{ root.querySelector('[data-bonus-round]').scrollIntoView({behavior:'smooth',block:'start'}); }catch(e){} }
   };
   btn.onclick = ()=>doSave(false);
   // Activities marked data-carry (multi-day work like the essay) save on their own a couple of seconds after typing stops.
@@ -1038,6 +1059,7 @@ function mountActivity(host, key, html, plan){
   // host has a shadow root, so light-DOM children of it never render;
   // the button and message go right after it instead.
   host.after(btn, msg);
+  setupBonusRound(root, key).then(c=>{ if(c){ bonusCheck = c; c(); } });
   setupStudentResults(root, host, key, fields).then(p=>{ if(p){ paintResults = p; p(); } });
   // Teacher feedback on a multi-day activity (data-carry): the latest note, if any, shows above the activity.
   if(root.querySelector('[data-carry]')){
