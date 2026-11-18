@@ -641,6 +641,204 @@ function screenSounds(){
   return c;
 }
 
+// ---------- Math Facts Rocket ----------
+// Multiplication tables x2 to x10. Answer 100 problems in 4 minutes with 100% accuracy to master a table;
+// mastering one unlocks the next. Progress is saved on the student record as student.mathFacts.
+const MF_TABLES = [2,3,4,5,6,7,8,9,10];
+const MF_SECONDS = 240, MF_COUNT = 100;
+const MF_COLORS = { 2:['#ff7eb3','#ff4d6d'], 3:['#ffb347','#ff7a00'], 4:['#ffe66d','#f5b700'], 5:['#7bed9f','#2ecc71'], 6:['#5ee6e6','#00b3b3'], 7:['#74b9ff','#2f80ed'], 8:['#a29bfe','#6c5ce7'], 9:['#fd79a8','#d63384'], 10:['#fab1a0','#e17055'] };
+
+function mfData(){
+  const s = STATE.student;
+  if(!s.mathFacts || typeof s.mathFacts !== 'object') s.mathFacts = {};
+  s.mathFacts.mastered = s.mathFacts.mastered || {};
+  s.mathFacts.best = s.mathFacts.best || {};
+  return s.mathFacts;
+}
+function mfUnlocked(d, n){ const i = MF_TABLES.indexOf(n); return i === 0 || !!d.mastered[MF_TABLES[i-1]]; }
+function mfProblems(n){
+  const a = [];
+  for(let m=1; m<=10; m++) for(let r=0; r<10; r++) a.push(m);
+  for(let i=a.length-1; i>0; i--){ const j = Math.floor(Math.random()*(i+1)); [a[i],a[j]] = [a[j],a[i]]; }
+  for(let i=1; i<a.length; i++) if(a[i]===a[i-1]){ const j = (i+7) % a.length; [a[i],a[j]] = [a[j],a[i]]; }
+  return a.map(m=> Math.random()<0.5 ? [n,m] : [m,n]);
+}
+function mfStyles(){
+  if(document.getElementById('mf-style')) return;
+  const st = document.createElement('style'); st.id = 'mf-style';
+  st.textContent = `
+  .mf-space{background:radial-gradient(circle at 20% 10%,#2b2a6e 0,#14123a 55%,#0a0820 100%);color:#fff;border-radius:20px;padding:18px;position:relative;overflow:hidden;min-height:420px}
+  .mf-space:before{content:"";position:absolute;inset:0;background-image:radial-gradient(2px 2px at 20% 30%,#fff,transparent),radial-gradient(1.5px 1.5px at 70% 20%,#fff,transparent),radial-gradient(2px 2px at 40% 80%,#fff,transparent),radial-gradient(1.5px 1.5px at 85% 65%,#fff,transparent),radial-gradient(1px 1px at 10% 70%,#fff,transparent),radial-gradient(2px 2px at 60% 55%,#ffe66d,transparent);opacity:.8;animation:mftw 3s ease-in-out infinite alternate;pointer-events:none}
+  @keyframes mftw{from{opacity:.4}to{opacity:.95}}
+  .mf-space h2{color:#fff;margin:0 0 4px}
+  .mf-sub{color:#cfd3ff;margin:0 0 14px;font-weight:700}
+  .mf-map{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:14px;position:relative}
+  .mf-planet{border:none;font-family:inherit;color:#fff;background:rgba(255,255,255,.08);border-radius:18px;padding:14px 8px 12px;text-align:center;cursor:pointer;transition:transform .15s}
+  .mf-planet:not(:disabled):hover{transform:translateY(-4px) scale(1.04)}
+  .mf-planet:disabled{opacity:.45;cursor:not-allowed}
+  .mf-orb{width:78px;height:78px;border-radius:50%;margin:0 auto 8px;display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:900;color:#fff;text-shadow:0 2px 4px rgba(0,0,0,.35);box-shadow:inset -10px -10px 18px rgba(0,0,0,.28),0 0 18px rgba(255,255,255,.25)}
+  .mf-planet.now .mf-orb{animation:mfpulse 1.2s ease-in-out infinite}
+  @keyframes mfpulse{0%,100%{box-shadow:inset -10px -10px 18px rgba(0,0,0,.28),0 0 12px rgba(255,255,255,.3)}50%{box-shadow:inset -10px -10px 18px rgba(0,0,0,.28),0 0 34px rgba(255,230,109,.95)}}
+  .mf-stat{font-size:13px;font-weight:800}
+  .mf-prog{height:14px;border-radius:9px;background:rgba(255,255,255,.15);overflow:hidden;margin:0 0 16px}
+  .mf-prog>div{height:100%;background:linear-gradient(90deg,#ff7eb3,#ffe66d,#7bed9f,#74b9ff);transition:width .5s}
+  .mf-btn{border:none;font-family:inherit;font-weight:900;font-size:18px;border-radius:14px;padding:12px 22px;cursor:pointer;background:linear-gradient(135deg,#ffb347,#ff4d6d);color:#fff;margin:6px 6px 0 0;box-shadow:0 4px 0 rgba(0,0,0,.3)}
+  .mf-btn.alt{background:rgba(255,255,255,.18);box-shadow:none}
+  .mf-top{display:flex;justify-content:space-between;align-items:center;gap:10px;position:relative}
+  .mf-timer{font-size:30px;font-weight:900;font-variant-numeric:tabular-nums;background:rgba(255,255,255,.12);border-radius:12px;padding:2px 14px}
+  .mf-timer.low{background:#ff4d6d;animation:mfpulse2 .6s ease-in-out infinite alternate}
+  @keyframes mfpulse2{to{transform:scale(1.08)}}
+  .mf-track{position:relative;height:54px;margin:14px 6px 8px;border-radius:30px;background:rgba(255,255,255,.1)}
+  .mf-fill{position:absolute;left:0;top:20px;height:14px;border-radius:9px;background:linear-gradient(90deg,#ff4d6d,#ffb347,#ffe66d);width:0;transition:width .25s}
+  .mf-rocket{position:absolute;top:2px;left:0;font-size:38px;transform:rotate(45deg);transition:left .25s;filter:drop-shadow(0 0 8px #ffb347)}
+  .mf-goal{position:absolute;right:6px;top:4px;font-size:36px}
+  .mf-grid{display:grid;grid-template-columns:repeat(20,1fr);gap:3px;margin:8px 6px 0}
+  .mf-grid i{display:block;aspect-ratio:1;border-radius:3px;background:rgba(255,255,255,.12)}
+  .mf-grid i.ok{background:#7bed9f;box-shadow:0 0 6px #7bed9f}
+  .mf-grid i.bad{background:#ff4d6d}
+  .mf-stage{text-align:center;padding:14px 0 6px;position:relative}
+  .mf-count{color:#cfd3ff;font-weight:800}
+  .mf-prob{font-size:clamp(46px,12vw,92px);font-weight:900;letter-spacing:2px;margin:4px 0 10px;text-shadow:0 4px 0 rgba(0,0,0,.3)}
+  .mf-in{width:180px;font-size:48px;font-weight:900;text-align:center;border-radius:16px;border:4px solid #ffe66d;padding:6px;font-family:inherit;color:#201e1d;background:#fff}
+  .mf-in.good{border-color:#7bed9f;background:#eaffef}
+  .mf-in.bad{border-color:#ff4d6d;animation:mfshake .35s}
+  @keyframes mfshake{25%{transform:translateX(-10px)}75%{transform:translateX(10px)}}
+  .mf-fb{min-height:30px;font-size:22px;font-weight:900;margin-top:8px}
+  .mf-big{font-size:60px;text-align:center;margin:6px 0}
+  .mf-res{text-align:center;position:relative}
+  .mf-res h2{font-size:34px}
+  .mf-miss{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:10px 0}
+  .mf-miss span{background:rgba(255,77,109,.25);border:2px solid #ff4d6d;border-radius:10px;padding:4px 10px;font-weight:800}
+  .mf-conf{position:absolute;top:-20px;font-size:26px;animation:mffall linear forwards;pointer-events:none;z-index:5}
+  @keyframes mffall{to{transform:translateY(560px) rotate(540deg);opacity:.2}}
+  `;
+  document.head.appendChild(st);
+}
+function mfConfetti(host){
+  const bits = ['🎉','⭐','✨','🌟','🎊','🚀','🏅'];
+  for(let i=0;i<46;i++){
+    const s = document.createElement('span');
+    s.className = 'mf-conf'; s.textContent = bits[i % bits.length];
+    s.style.left = (Math.random()*96) + '%';
+    s.style.animationDuration = (2 + Math.random()*2.5) + 's';
+    s.style.animationDelay = (Math.random()*0.8) + 's';
+    host.appendChild(s);
+    setTimeout(()=>s.remove(), 5500);
+  }
+}
+
+function screenMathFacts(){
+  mfStyles();
+  const d = mfData();
+  const c = el(`<div><button class="backlink" id="back">&larr; Back</button><div class="mf-space" id="mfHost"></div></div>`);
+  const host = c.querySelector('#mfHost');
+  c.querySelector('#back').onclick = ()=>{ STATE.mfTable = null; STATE.screen = 'home'; render(); };
+  if(STATE.mfTable) { mfPlay(host, d, STATE.mfTable); return c; }
+  const done = MF_TABLES.filter(n=>d.mastered[n]).length;
+  const current = MF_TABLES.find(n=>!d.mastered[n]);
+  host.innerHTML = `<h2>🚀 Math Facts Rocket</h2><p class="mf-sub">Answer ${MF_COUNT} problems in 4 minutes with <u>100% accuracy</u> to master a table and unlock the next planet!</p><div class="mf-prog"><div style="width:${Math.round(done/MF_TABLES.length*100)}%"></div></div>${done===MF_TABLES.length ? '<div class="mf-big">🏆</div><h2 style="text-align:center">Math Facts CHAMPION!</h2>' : ''}<div class="mf-map"></div><p class="mf-sub" style="margin-top:14px">${done} of ${MF_TABLES.length} planets mastered ⭐</p>`;
+  const map = host.querySelector('.mf-map');
+  MF_TABLES.forEach(n=>{
+    const open = mfUnlocked(d, n), mastered = !!d.mastered[n], now = n === current;
+    const col = MF_COLORS[n];
+    const b = el(`<button class="mf-planet${now?' now':''}"${open?'':' disabled'}><div class="mf-orb" style="background:radial-gradient(circle at 30% 30%,${col[0]},${col[1]})">${open ? '×' + n : '🔒'}</div><div class="mf-stat">${mastered ? '⭐ Mastered!' : now ? '▶ PLAY' : open ? '▶ Play' : 'Locked'}</div>${d.best[n] ? `<div class="mf-stat" style="color:#cfd3ff">Best: ${d.best[n]}/${MF_COUNT}</div>` : ''}</button>`);
+    b.onclick = ()=>{ STATE.mfTable = n; render(); };
+    map.appendChild(b);
+  });
+  return c;
+}
+
+function mfPlay(host, d, n){
+  const probs = mfProblems(n);
+  const col = MF_COLORS[n];
+  host.innerHTML = `<div class="mf-top"><button class="mf-btn alt" id="mfQuit" style="margin:0;font-size:14px;padding:8px 14px">✕ Quit</button><div style="font-weight:900;font-size:22px">×${n} Rocket Run</div><div class="mf-timer" id="mfTimer">4:00</div></div>
+  <div class="mf-track"><div class="mf-fill" id="mfFill"></div><div class="mf-rocket" id="mfRocket">🚀</div><div class="mf-goal">🪐</div></div>
+  <div class="mf-grid" id="mfGrid">${'<i></i>'.repeat(MF_COUNT)}</div>
+  <div class="mf-stage" id="mfStage"><div class="mf-count">Ready?</div><div class="mf-prob">×${n}</div><button class="mf-btn" id="mfGo">🚀 BLAST OFF!</button><p class="mf-sub">Type the answer. It goes in by itself. Every answer must be right!</p></div>`;
+  host.querySelector('#mfQuit').onclick = ()=>{ clearInterval(tm); STATE.mfTable = null; render(); };
+  const stage = host.querySelector('#mfStage'), timerEl = host.querySelector('#mfTimer');
+  const rocket = host.querySelector('#mfRocket'), fill = host.querySelector('#mfFill'), cells = host.querySelectorAll('#mfGrid i');
+  let tm = null, idx = 0, right = 0, startAt = 0, over = false;
+  const wrong = [];
+  const fmt = s=>Math.floor(s/60) + ':' + String(s%60).padStart(2,'0');
+  const setProgress = ()=>{
+    const pct = idx / MF_COUNT;
+    const w = host.querySelector('.mf-track').clientWidth - 90;
+    rocket.style.left = (pct * Math.max(w,0)) + 'px';
+    fill.style.width = (pct * Math.max(w,0) + 30) + 'px';
+  };
+  host.querySelector('#mfGo').onclick = ()=>{
+    let k = 3;
+    stage.innerHTML = '<div class="mf-prob" id="mfCd">3</div>';
+    const cd = setInterval(()=>{
+      k--;
+      if(k <= 0){ clearInterval(cd); begin(); return; }
+      const e = stage.querySelector('#mfCd'); if(e) e.textContent = k;
+    }, 700);
+  };
+  function begin(){
+    startAt = Date.now();
+    stage.innerHTML = `<div class="mf-count" id="mfCount"></div><div class="mf-prob" id="mfProb"></div><input class="mf-in" id="mfIn" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" autocapitalize="off"><div class="mf-fb" id="mfFb"></div>`;
+    const inp = stage.querySelector('#mfIn');
+    show();
+    inp.focus();
+    tm = setInterval(()=>{
+      if(!document.body.contains(host)){ clearInterval(tm); return; }
+      const left = Math.max(0, MF_SECONDS - Math.floor((Date.now()-startAt)/1000));
+      timerEl.textContent = fmt(left);
+      timerEl.classList.toggle('low', left <= 30);
+      if(left <= 0) finish();
+    }, 200);
+    const submit = ()=>{
+      if(over) return;
+      const txt = inp.value.trim(); if(!txt) return;
+      const [a,b] = probs[idx], ans = a*b;
+      const ok = Number(txt) === ans;
+      const fb = stage.querySelector('#mfFb');
+      if(ok){ right++; cells[idx].className = 'ok'; fb.style.color = '#7bed9f'; fb.textContent = ['Yes! ⚡','Nice! 🌟','Zoom! 🚀','Great! ✨','Boom! 💥'][idx % 5]; }
+      else { wrong.push(a + ' × ' + b + ' = ' + ans); cells[idx].className = 'bad'; fb.style.color = '#ff8fa3'; fb.textContent = a + ' × ' + b + ' = ' + ans; inp.classList.add('bad'); setTimeout(()=>inp.classList.remove('bad'), 380); }
+      idx++;
+      setProgress();
+      inp.value = '';
+      if(idx >= MF_COUNT){ finish(); return; }
+      show();
+      inp.focus();
+    };
+    inp.addEventListener('input', ()=>{
+      inp.value = inp.value.replace(/[^0-9]/g, '');
+      if(inp.value.length >= String(probs[idx][0]*probs[idx][1]).length) submit();
+    });
+    inp.addEventListener('keydown', e=>{ if(e.key === 'Enter') submit(); });
+  }
+  function show(){
+    const [a,b] = probs[idx];
+    stage.querySelector('#mfCount').textContent = (idx+1) + ' of ' + MF_COUNT + (right ? '  ·  ✅ ' + right : '');
+    stage.querySelector('#mfProb').textContent = a + ' × ' + b;
+  }
+  async function finish(){
+    if(over) return; over = true; clearInterval(tm);
+    const answered = idx, secs = Math.min(MF_SECONDS, Math.round((Date.now()-startAt)/1000));
+    for(let i=answered; i<MF_COUNT; i++) wrong.push(probs[i][0] + ' × ' + probs[i][1] + ' = ' + (probs[i][0]*probs[i][1]) + ' (not reached)');
+    const mastered = right === MF_COUNT;
+    const missed = Array.from(new Set(wrong));
+    if(right > (d.best[n] || 0)) d.best[n] = right;
+    d.tries = (d.tries || 0) + 1;
+    if(mastered && !d.mastered[n]) d.mastered[n] = todayStr();
+    const next = MF_TABLES[MF_TABLES.indexOf(n)+1];
+    host.innerHTML = '';
+    const res = el(`<div class="mf-res"><div class="mf-big">${mastered ? '🏆' : right >= 90 ? '🔥' : '💪'}</div><h2>${mastered ? '×' + n + ' MASTERED!' : right + ' of ' + MF_COUNT + ' correct'}</h2><p class="mf-sub">${mastered ? 'Perfect score in ' + fmt(secs) + '! ' + (next ? 'Planet ×' + next + ' is unlocked! 🌍' : 'You finished EVERY planet! You are a Math Facts CHAMPION! 🏆') : answered < MF_COUNT ? 'Time ran out after ' + answered + ' problems. You need all ' + MF_COUNT + ' in 4 minutes with no mistakes.' : 'So close! You need all ' + MF_COUNT + ' correct. Practice these and try again:'}</p>${!mastered && missed.length ? '<div class="mf-miss">' + missed.slice(0,14).map(m=>'<span>' + escHtml(m) + '</span>').join('') + '</div>' : ''}<div id="mfBtns"></div></div>`);
+    const btns = res.querySelector('#mfBtns');
+    const add = (txt, alt, fn)=>{ const b = el(`<button class="mf-btn${alt?' alt':''}">${txt}</button>`); b.onclick = fn; btns.appendChild(b); };
+    if(mastered && next) add('Next planet ×' + next + ' 🚀', false, ()=>{ STATE.mfTable = next; render(); });
+    if(!mastered) add('Try again 🔁', false, ()=>{ render(); });
+    add('Back to the map 🗺️', true, ()=>{ STATE.mfTable = null; render(); });
+    host.appendChild(res);
+    if(mastered) mfConfetti(host);
+    try { await saveStudent(STATE.student.alias, STATE.student); } catch(e){}
+  }
+  setProgress();
+}
+
 function buildScreen(){
   const wrap = el(`<div></div>`);
   wrap.appendChild(topbar());
@@ -663,6 +861,7 @@ function buildScreen(){
   else if(STATE.screen==='nameCapture') body = screenNameCapture();
   else if(STATE.screen==='home') body = screenHome();
   else if(STATE.screen==='daily') body = screenDaily();
+  else if(STATE.screen==='mathFacts') body = screenMathFacts();
   else if(STATE.screen==='live') body = screenLive();
   else if(STATE.screen==='search') body = screenSearch();
   else if(STATE.screen==='manualBook') body = screenManualBook();
@@ -868,6 +1067,9 @@ function screenHome(){
     const todayBtn = el(`<button class="btn coral" style="margin:12px 0 4px;">📝 Today's activity</button>`);
     todayBtn.onclick = ()=>{ STATE.screen='daily'; STATE.dailyToday=null; STATE.dailyTab=null; STATE.dailyDay=null; render(); };
     c.querySelector('.card').insertBefore(todayBtn, c.querySelector('.stat-row'));
+    const factsBtn = el(`<button class="btn" style="margin:4px 0;background:linear-gradient(135deg,#6c5ce7,#ff4d6d);color:#fff;">🚀 Math Facts Rocket</button>`);
+    factsBtn.onclick = ()=>{ STATE.screen='mathFacts'; STATE.mfTable=null; render(); };
+    todayBtn.after(factsBtn);
     // A teacher-led group question is live for this student: show a join button.
     let banner = null;
     const check = ()=>liveFetchStudent().then(d=>{
@@ -3133,6 +3335,7 @@ function screenTeacherMath(){
     const body = items.length ? `<table class="roster-table" style="width:100%;"><thead><tr><th>Date</th><th>Activity</th><th>Level</th><th style="text-align:right;">Correct</th><th style="text-align:right;">Score</th></tr></thead><tbody>${items.map(x=>`<tr><td style="white-space:nowrap;">${escHtml(x.date)}</td><td>${x.type}</td><td>${escHtml(x.tier)}</td><td style="text-align:right;">${x.r && x.r.total ? x.r.correct + '/' + x.r.total : '—'}</td><td style="text-align:right;font-weight:800;color:${x.r && x.r.pct!=null ? color(x.r.pct) : '#666'};">${x.r && x.r.pct!=null ? x.r.pct + '%' : '—'}</td></tr>${x.missedHtml ? `<tr class="no-print"><td colspan="5" style="padding:0 8px 8px;">${x.missedHtml}</td></tr>` : ''}`).join('')}</tbody></table>` : `<div class="empty">No math activities completed yet.</div>`;
     pages.appendChild(el(`<div class="card conf-page" style="margin-top:14px;"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;"><h2 style="margin:0;">${escHtml(name)}</h2><span class="muted">Math progress report · ${escHtml(new Date().toLocaleDateString([], {month:'long',day:'numeric',year:'numeric'}))}</span></div>
       <div class="stat-row" style="margin:12px 0;"><div class="stat"><div class="num">${done.length}/${posted.length}</div><div class="lbl">Activities Done${rate!=null ? ' (' + rate + '%)' : ''}</div></div><div class="stat"><div class="num">${avg!=null ? avg + '%' : '—'}</div><div class="lbl">Average Score</div></div><div class="stat"><div class="num" style="font-size:18px;">${trend}</div><div class="lbl">Trend</div></div></div>
+      <p style="margin:0 0 10px;"><strong>🚀 Math facts mastered:</strong> ${(s.mathFacts && s.mathFacts.mastered && Object.keys(s.mathFacts.mastered).length) ? Object.keys(s.mathFacts.mastered).sort((a,b)=>a-b).map(n=>'×' + n).join(', ') : 'none yet'}</p>
       ${body}
       <p class="muted" style="margin:10px 0 0;font-size:12px;">Scores: 80%+ strong · 60–79% developing · under 60% needs support. Level shows the practice tier the student worked at.</p>
       <div style="margin-top:16px;"><strong>Teacher comments / goals:</strong><div style="border-bottom:1px solid #999;height:26px;"></div><div style="border-bottom:1px solid #999;height:26px;"></div><div style="border-bottom:1px solid #999;height:26px;"></div></div></div>`));
