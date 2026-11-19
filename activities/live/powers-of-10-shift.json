@@ -1,0 +1,102 @@
+{
+ "title": "Powers of 10 and decimal place value: 10 questions",
+ "questions": [
+  {
+   "q": "3.25 × 10 = ? [img:pow10-shift]",
+   "type": "choice",
+   "a": "32.5",
+   "why": "× 10: digits shift left 1 place. 3.25 → 32.5.",
+   "options": [
+    "0.325",
+    "32.5",
+    "325"
+   ]
+  },
+  {
+   "q": "3.25 × 100 = ? [img:pow10-shift]",
+   "type": "text",
+   "a": [
+    "325"
+   ],
+   "why": "× 100: digits shift left 2 places. 3.25 → 325."
+  },
+  {
+   "q": "3.25 ÷ 10 = ? [img:pow10-shift]",
+   "type": "text",
+   "a": [
+    "0.325",
+    ".325"
+   ],
+   "why": "÷ 10: digits shift right 1 place. 3.25 → 0.325."
+  },
+  {
+   "q": "3.25 ÷ 100 = ? [img:pow10-shift]",
+   "type": "text",
+   "a": [
+    "0.0325",
+    ".0325"
+   ],
+   "why": "÷ 100: digits shift right 2 places. Use a zero to hold the place: 0.0325."
+  },
+  {
+   "q": "The digits shift LEFT 2 places. Which operation is it? [img:pow10-shift]",
+   "type": "choice",
+   "a": "× 100",
+   "why": "Left means bigger. 2 places means 100. So it is × 100.",
+   "options": [
+    "× 10",
+    "× 100",
+    "÷ 100"
+   ]
+  },
+  {
+   "q": "The digits shift RIGHT 1 place. Which operation is it? [img:pow10-shift]",
+   "type": "choice",
+   "a": "÷ 10",
+   "why": "Right means smaller. 1 place means 10. So it is ÷ 10.",
+   "options": [
+    "× 10",
+    "÷ 10",
+    "÷ 100"
+   ]
+  },
+  {
+   "q": "6.4 × 10 = ? [img:pow10-shift]",
+   "type": "text",
+   "a": [
+    "64"
+   ],
+   "why": "× 10: digits shift left 1 place. 6.4 → 64."
+  },
+  {
+   "q": "What turns 6.4 into 0.064? [img:pow10-shift]",
+   "type": "choice",
+   "a": "÷ 100",
+   "why": "6.4 → 0.064 moves the digits right 2 places. That is ÷ 100.",
+   "options": [
+    "÷ 10",
+    "÷ 100",
+    "÷ 1,000"
+   ]
+  },
+  {
+   "q": "0.72 × 100 = ? [img:pow10-shift]",
+   "type": "text",
+   "a": [
+    "72"
+   ],
+   "why": "× 100: digits shift left 2 places. 0.72 → 72."
+  },
+  {
+   "q": "Final check: In 3.25, the tenths place is ___ the hundredths place. [img:pow10-shift]",
+   "type": "choice",
+   "a": "10 times",
+   "why": "Every place is 10 times the place to its right. Tenths is left of hundredths, so it is 10 times.",
+   "options": [
+    "10 times",
+    "one-tenth of",
+    "the same as"
+   ]
+  }
+ ]
+}
