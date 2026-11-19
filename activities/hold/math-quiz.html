@@ -1,0 +1,60 @@
+<style>
+.activity{max-width:1000px;margin:0 auto;padding:12px 8px;font-size:19px;line-height:1.5;color:#201e1d}
+h2{border-bottom:3px solid #201e1d;padding-bottom:8px;font-size:1.7em;line-height:1.2;margin:0 0 8px}
+h3{font-size:1.2em;margin:24px 0 8px}
+sup{font-size:.7em;line-height:0}
+.pep{background:#fdf3e3;border:2px solid #d8c7ad;border-radius:16px;padding:12px 16px;font-weight:600;margin:0 0 14px}
+.panel{background:#fdf3e3;border:2px solid #d8c7ad;border-radius:16px;padding:12px 16px;margin:0 0 14px}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:14px 20px;align-items:start}
+.cols .q{margin:0}
+.q{background:#fff;border:2px solid #d8c7ad;border-radius:16px;padding:14px 16px;margin:0 0 14px}
+.lab{font-weight:700}
+input,select,textarea{font:inherit;box-sizing:border-box;border:2px solid #d8c7ad;border-radius:12px;padding:8px 12px;background:#fff;color:#201e1d}
+input.blank{width:120px;min-height:46px;text-align:center;margin:0 4px;vertical-align:middle}
+input.blank.s{width:70px}
+select.mini{min-height:46px;margin:6px 4px 0}
+input:focus,select:focus,textarea:focus{outline:3px solid #c67139;outline-offset:2px;border-color:#c67139}
+table{border-collapse:collapse;margin:6px 0;font-size:19px}
+th,td{border:2px solid #201e1d;padding:6px 14px;text-align:center}
+th{background:#fdf3e3}
+.big{font-size:26px;font-weight:800}
+.z{color:#d9731a;font-weight:800}
+/* Bonus round: hidden until the student scores 90%+ */
+.bonus-round{border:6px solid transparent;border-radius:24px;padding:18px;margin:26px 0 8px;background:linear-gradient(#fffbea,#fffbea) padding-box,linear-gradient(135deg,#ff4d6d,#ff9f1c,#ffd60a,#2ec4b6,#3a86ff,#8338ec) border-box;box-shadow:0 8px 28px rgba(131,56,236,.3)}
+.bonus-round.pop{animation:pop .7s ease-out}
+@keyframes pop{0%{transform:scale(.7);opacity:0}60%{transform:scale(1.04);opacity:1}100%{transform:scale(1)}}
+.bonus-round h3{margin:0 0 6px;font-size:1.7em;background:linear-gradient(90deg,#ff4d6d,#ff9f1c,#2ec4b6,#3a86ff,#8338ec);-webkit-background-clip:text;background-clip:text;color:transparent}
+.bonus-round .q{border:3px solid #ff9f1c;background:#fff}
+.bonus-round .q:nth-of-type(2n){border-color:#3a86ff}
+.bonus-round .q:nth-of-type(3n){border-color:#8338ec}
+</style>
+<div class="activity">
+<h2>Math Unit Quiz: Decimals and Powers of 10</h2>
+<p class="pep">20 questions. Do your best work. This quiz has no hints. Type your answers, then save! 💪</p>
+<h3>Part 1: Decimals and number lines</h3>
+<div class="q"><div class="lab">1. What is the value of the 7 in 3.472?</div><div style="margin-top:8px"><input class="blank" id="q1" type="text" inputmode="decimal" data-response="q1" aria-label="answer q1"></div></div>
+<div class="q"><div class="lab">2. Which is greater, 0.6 or 0.58?</div><div style="margin-top:8px"><select class="mini" id="q2" data-response="q2"><option value="">Choose...</option><option value="0.6">0.6</option><option value="0.58">0.58</option><option value="same">They are equal</option></select></div></div>
+<div class="q"><div class="lab">3. Start at 4.7 and count 4 tenths forward. Where do you land?</div><div style="margin-top:8px"><input class="blank" id="q3" type="text" inputmode="decimal" data-response="q3" aria-label="answer q3"></div></div>
+<div class="q"><div class="lab">4. A number line from 0 to 1 is cut into 10 equal parts. A point is on the 3rd mark. What decimal is the point?</div><div style="margin-top:8px"><input class="blank" id="q4" type="text" inputmode="decimal" data-response="q4" aria-label="answer q4"></div></div>
+<div class="q"><div class="lab">5. A number line goes from 0.4 to 0.5. It is cut into 10 equal parts. What number is on the 3rd mark after 0.4?</div><div style="margin-top:8px"><input class="blank" id="q5" type="text" inputmode="decimal" data-response="q5" aria-label="answer q5"></div></div>
+<h3>Part 2: 1/10 of a number</h3>
+<div class="q"><div class="lab">6. What is 1/10 of 900?</div><div style="margin-top:8px"><input class="blank" id="q6" type="text" inputmode="decimal" data-response="q6" aria-label="answer q6"></div></div>
+<div class="q"><div class="lab">7. What is 1/10 of 6?</div><div style="margin-top:8px"><input class="blank" id="q7" type="text" inputmode="decimal" data-response="q7" aria-label="answer q7"></div></div>
+<div class="q"><div class="lab">8. What is 1/10 of 34?</div><div style="margin-top:8px"><input class="blank" id="q8" type="text" inputmode="decimal" data-response="q8" aria-label="answer q8"></div></div>
+<div class="q"><div class="lab">9. What is 1/10 of 0.5?</div><div style="margin-top:8px"><input class="blank" id="q9" type="text" inputmode="decimal" data-response="q9" aria-label="answer q9"></div></div>
+<h3>Part 3: Powers of 10</h3>
+<div class="q"><div class="lab">10. In 10<sup>4</sup>, what is the exponent?</div><div style="margin-top:8px"><input class="blank s" id="q10" type="text" inputmode="decimal" data-response="q10" aria-label="answer q10"></div></div>
+<div class="q"><div class="lab">11. 10<sup>3</sup> = </div><div style="margin-top:8px"><input class="blank" id="q11" type="text" inputmode="decimal" data-response="q11" aria-label="answer q11"></div></div>
+<div class="q"><div class="lab">12. 100,000 = 10<sup>?</sup>. What is the exponent?</div><div style="margin-top:8px"><input class="blank s" id="q12" type="text" inputmode="decimal" data-response="q12" aria-label="answer q12"></div></div>
+<div class="q"><div class="lab">13. Leo says, "10<sup>5</sup> has 4 zeros." Is Leo right?</div><div style="margin-top:8px"><select class="mini" id="q13" data-response="q13"><option value="">Choose...</option><option value="yes">Yes</option><option value="no">No</option></select></div></div>
+<div class="q"><div class="lab">14. Which equals 10 × 10 × 10 × 10?</div><div style="margin-top:8px"><select class="mini" id="q14" data-response="q14"><option value="">Choose...</option><option value="p3">10³</option><option value="p4">10⁴</option><option value="p5">10⁵</option></select></div></div>
+<h3>Part 4: Multiplying by powers of 10</h3>
+<div class="q"><div class="lab">15. 6 × 10<sup>2</sup> = </div><div style="margin-top:8px"><input class="blank" id="q15" type="text" inputmode="decimal" data-response="q15" aria-label="answer q15"></div></div>
+<div class="q"><div class="lab">16. 35 × 10<sup>3</sup> = </div><div style="margin-top:8px"><input class="blank" id="q16" type="text" inputmode="decimal" data-response="q16" aria-label="answer q16"></div></div>
+<div class="q"><div class="lab">17. 40 × 10<sup>2</sup> = </div><div style="margin-top:8px"><input class="blank" id="q17" type="text" inputmode="decimal" data-response="q17" aria-label="answer q17"></div></div>
+<div class="q"><div class="lab">18. 5 × 10<sup>?</sup> = 5,000. What is the exponent?</div><div style="margin-top:8px"><input class="blank s" id="q18" type="text" inputmode="decimal" data-response="q18" aria-label="answer q18"></div></div>
+<h3>Part 5: Decimals × and ÷ by 10 and 100</h3>
+<div class="q"><div class="lab">19. 4.7 × 10 = </div><div style="margin-top:8px"><input class="blank" id="q19" type="text" inputmode="decimal" data-response="q19" aria-label="answer q19"></div></div>
+<div class="q"><div class="lab">20. 3.8 ÷ 100 = </div><div style="margin-top:8px"><input class="blank" id="q20" type="text" inputmode="decimal" data-response="q20" aria-label="answer q20"></div></div>
+<div class="pep">Check your answers, then tap Save my answers. 🌟</div>
+</div>
