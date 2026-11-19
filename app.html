@@ -1114,11 +1114,12 @@ const DAILY_SUBJECTS = [
   { id:'social', label:'Social Studies', emoji:'🌎' },
   { id:'essay', label:'Essay', emoji:'✍️' },
   // Counting practice for Esther only: shown to her in place of the regular math activities.
-  { id:'math-count', label:'Counting Fun', emoji:'🧸', onlyFor:['ESTHER'] },
+  { id:'math-count', label:'Counting Fun', emoji:'🧸', onlyFor:['LINDY'] },
 ];
 function visibleDailySubjects(list){
-  const first = String((STATE.student && STATE.student.realName) || '').trim().toUpperCase();
-  const mine = list.filter(x=>!x.onlyFor || x.onlyFor.includes(first));
+  // onlyFor matches the student's alias (login name), which is unique.
+  const who = String((STATE.student && STATE.student.alias) || '').trim().toUpperCase();
+  const mine = list.filter(x=>!x.onlyFor || x.onlyFor.includes(who));
   const hasCount = mine.some(x=>x.id==='math-count');
   // Students who get the counting activity don't get the other math activities that day.
   return hasCount ? mine.filter(x=>!/^math/.test(x.id) || x.id==='math-count') : mine;
