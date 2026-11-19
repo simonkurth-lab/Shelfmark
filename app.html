@@ -1113,7 +1113,16 @@ const DAILY_SUBJECTS = [
   { id:'math-challenge', label:'Math Challenge', emoji:'🏆' },
   { id:'social', label:'Social Studies', emoji:'🌎' },
   { id:'essay', label:'Essay', emoji:'✍️' },
+  // Counting practice for Esther only: shown to her in place of the regular math activities.
+  { id:'math-count', label:'Counting Fun', emoji:'🧸', onlyFor:['ESTHER'] },
 ];
+function visibleDailySubjects(list){
+  const first = String((STATE.student && STATE.student.realName) || '').trim().toUpperCase();
+  const mine = list.filter(x=>!x.onlyFor || x.onlyFor.includes(first));
+  const hasCount = mine.some(x=>x.id==='math-count');
+  // Students who get the counting activity don't get the other math activities that day.
+  return hasCount ? mine.filter(x=>!/^math/.test(x.id) || x.id==='math-count') : mine;
+}
 function dailyKeyFor(day, subjectId){ return day + (subjectId ? '-' + subjectId : ''); }
 
 // ---- Progressive activities ----
@@ -1233,9 +1242,40 @@ function mountActivity(host, key, html, plan){
   msg.className = 'muted';
   msg.textContent = saved._submittedAt ? 'Saved. You can edit and save again.' : '';
   let paintResults = null, bonusCheck = null;
+  // Goal timer: <div data-timer-goal="300"> adds a Start button and clock. The time taken is saved with the answers.
+  let timerSeconds = saved._seconds != null ? Number(saved._seconds) : null, timerStop = null;
+  const timerBox = root.querySelector('[data-timer-goal]');
+  if(timerBox){
+    const goal = Number(timerBox.dataset.timerGoal) || 300;
+    const fmt = s=>Math.floor(s/60) + ':' + String(Math.floor(s%60)).padStart(2,'0');
+    const clock = document.createElement('div'); clock.className = 'clock';
+    const bar = document.createElement('div'); bar.className = 'bar'; bar.innerHTML = '<i></i>';
+    const note = document.createElement('div');
+    const go = document.createElement('button'); go.type = 'button'; go.textContent = '▶️ Start the clock';
+    timerBox.append(clock, bar, note, go);
+    const paint = s=>{
+      clock.textContent = '⏱️ ' + fmt(s) + ' of ' + fmt(goal);
+      bar.firstChild.style.width = Math.min(100, s/goal*100) + '%';
+    };
+    const finish = s=>{
+      note.textContent = s <= goal ? '🎉 You beat your goal! ' + fmt(s) + ' — goal was ' + fmt(goal) + '. Amazing!' : '⭐ You finished in ' + fmt(s) + '. Goal was ' + fmt(goal) + '. Great counting, try again tomorrow!';
+    };
+    if(timerSeconds != null){ paint(timerSeconds); finish(timerSeconds); go.style.display = 'none'; }
+    else { paint(0); }
+    go.onclick = ()=>{
+      const t0 = Date.now(); go.style.display = 'none';
+      const iv = setInterval(()=>{
+        if(!document.body.contains(host)){ clearInterval(iv); return; }
+        paint((Date.now()-t0)/1000);
+      }, 500);
+      timerStop = ()=>{ clearInterval(iv); timerSeconds = Math.round((Date.now()-t0)/1000); paint(timerSeconds); finish(timerSeconds); timerStop = null; };
+    };
+  }
   const doSave = async (auto)=>{
     const answers = {};
     fields.forEach(f=>{ answers[f.dataset.response] = f.value; });
+    if(timerStop) timerStop();
+    if(timerSeconds != null) answers._seconds = timerSeconds;
     answers._submittedAt = new Date().toISOString();
     if(plan){ answers._tier = plan.tier; answers._review = plan.review.join(','); answers._shown = Array.from(fields).map(f=>f.dataset.response).join(','); }
     STATE.student.daily = STATE.student.daily || {};
@@ -1931,7 +1971,8 @@ function screenDaily(){
   daySel.onchange = ()=>{ STATE.dailyDay = daySel.value; STATE.dailyTab = null; STATE.dailyToday = null; render(); };
   c.querySelector('#daySlot').appendChild(daySel);
 
-  const show = list=>{
+  const show = fullList=>{
+    const list = visibleDailySubjects(fullList);
     if(!list.length){
       host.innerHTML = `<div class="empty">No activity posted for today yet. Check back soon!</div>`;
       return;
@@ -3883,7 +3924,7 @@ function studentDailyRow(s, date, act, answerKey, result, name){
     return `<div style="margin:12px 0;padding-top:10px;border-top:1px solid var(--line);"><div class="muted" style="font-size:13px;">${escHtml(f.prompt || f.key)}</div>${answerHtml(f.key, ans[f.key], answerKey)}${markHtml}</div>`;
   }).join('');
   const hasMarks = act.fields.some(f=>marks[f.key]);
-  const row = el(`<details style="border-top:1px solid var(--line);"${STATE.dailyOpen[openKey]?' open':''}><summary style="cursor:pointer;padding:10px 4px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;list-style:revert;"><span><span>${dot}</span> <strong>${escHtml(name)}</strong>${s.realName ? ` <span class="muted" style="font-size:13px;">(${escHtml(s.alias)})</span>` : ''}${ans._tier ? ` <span style="background:#F6F1E4;border-radius:999px;padding:2px 10px;font-size:12px;margin-left:6px;">${({support:'🌱 Back to basics',core:'🌿 On track',extend:'🌳 Stretch'})[ans._tier]||''}${ans._review ? ' · review ' + escHtml(ans._review.toUpperCase().split(',').join(', ')) : ''}</span>` : ''}</span><span>${scoreHtml} <span class="muted" style="font-size:12px;">${escHtml(new Date(ans._submittedAt).toLocaleTimeString([], {hour:'numeric', minute:'2-digit'}))}</span></span></summary><div class="dl-body">${body}<div class="no-print" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;"></div></div></details>`);
+  const row = el(`<details style="border-top:1px solid var(--line);"${STATE.dailyOpen[openKey]?' open':''}><summary style="cursor:pointer;padding:10px 4px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;list-style:revert;"><span><span>${dot}</span> <strong>${escHtml(name)}</strong>${s.realName ? ` <span class="muted" style="font-size:13px;">(${escHtml(s.alias)})</span>` : ''}${ans._tier ? ` <span style="background:#F6F1E4;border-radius:999px;padding:2px 10px;font-size:12px;margin-left:6px;">${({support:'🌱 Back to basics',core:'🌿 On track',extend:'🌳 Stretch'})[ans._tier]||''}${ans._review ? ' · review ' + escHtml(ans._review.toUpperCase().split(',').join(', ')) : ''}</span>` : ''}${ans._seconds!=null ? ` <span class="muted" style="font-size:12px;">⏱️ ${Math.floor(ans._seconds/60)}:${String(ans._seconds%60).padStart(2,'0')}</span>` : ''}</span><span>${scoreHtml} <span class="muted" style="font-size:12px;">${escHtml(new Date(ans._submittedAt).toLocaleTimeString([], {hour:'numeric', minute:'2-digit'}))}</span></span></summary><div class="dl-body">${body}<div class="no-print" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;"></div></div></details>`);
   row.addEventListener('toggle', ()=>{ STATE.dailyOpen[openKey] = row.open; });
   const actions = row.querySelector('.no-print');
   if(hasMarks){

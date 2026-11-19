@@ -1,0 +1,35 @@
+<style>
+.activity{max-width:1000px;margin:0 auto;padding:12px 8px;font-size:22px;line-height:1.5;color:#201e1d}
+h2{border-bottom:3px solid #201e1d;padding-bottom:8px;font-size:1.7em;line-height:1.2;margin:0 0 8px}
+.pep{background:#fdf3e3;border:2px solid #d8c7ad;border-radius:16px;padding:12px 16px;font-weight:600;margin:0 0 14px}
+.q{background:#fff;border:2px solid #d8c7ad;border-radius:16px;padding:14px 16px;margin:0 0 14px}
+.lab{font-weight:700}
+.things{font-size:46px;line-height:1.3;letter-spacing:6px;margin:6px 0;word-break:break-all}
+.ans{font-weight:700;font-size:24px}
+input,select{font:inherit;box-sizing:border-box;border:2px solid #d8c7ad;border-radius:12px;padding:8px 12px;background:#fff;color:#201e1d}
+input.blank{width:90px;min-height:54px;text-align:center;margin:0 6px;vertical-align:middle;font-size:28px}
+select.mini{min-height:54px;margin:6px 4px 0;font-size:22px}
+input:focus,select:focus{outline:3px solid #c67139;outline-offset:2px;border-color:#c67139}
+.timer-box{background:#eaf6ff;border:3px solid #3a86ff;border-radius:18px;padding:12px 16px;margin:0 0 16px;font-weight:700}
+.timer-box button{font:inherit;font-weight:800;background:#3a86ff;color:#fff;border:0;border-radius:14px;padding:10px 18px;cursor:pointer}
+.timer-box .clock{font-size:38px;font-weight:800;margin:6px 0}
+.timer-box .bar{height:16px;background:#d6e6fa;border-radius:10px;overflow:hidden}
+.timer-box .bar i{display:block;height:100%;width:0;background:#2ec4b6}
+</style>
+<div class="activity">
+<h2>🧸 Counting Fun!</h2>
+<p class="pep">Touch each picture with your finger and count out loud: 1, 2, 3... Then type how many. You can do it, Esther! 💪</p>
+<div class="timer-box" data-timer-goal="300">
+<div>🎯 <strong>Your goal:</strong> count all 9 groups in <strong>5 minutes</strong>. Take your time and count carefully!</div>
+</div>
+<div class="q"><div class="lab">1. How many teddy bears?</div><div class="things">🧸🧸🧸</div><div class="ans">I count <input class="blank s" id="q1" type="text" inputmode="numeric" data-response="q1" aria-label="answer q1"> teddy bears</div></div>
+<div class="q"><div class="lab">2. How many teddy bears?</div><div class="things">🧸🧸🧸🧸🧸</div><div class="ans">I count <input class="blank s" id="q2" type="text" inputmode="numeric" data-response="q2" aria-label="answer q2"> teddy bears</div></div>
+<div class="q"><div class="lab">3. How many apples?</div><div class="things">🍎🍎🍎🍎</div><div class="ans">I count <input class="blank s" id="q3" type="text" inputmode="numeric" data-response="q3" aria-label="answer q3"> apples</div></div>
+<div class="q"><div class="lab">4. How many stars?</div><div class="things">⭐⭐</div><div class="ans">I count <input class="blank s" id="q4" type="text" inputmode="numeric" data-response="q4" aria-label="answer q4"> stars</div></div>
+<div class="q"><div class="lab">5. How many chicks?</div><div class="things">🐥🐥🐥🐥🐥🐥</div><div class="ans">I count <input class="blank s" id="q5" type="text" inputmode="numeric" data-response="q5" aria-label="answer q5"> chicks</div></div>
+<div class="q"><div class="lab">6. How many balloons?</div><div class="things">🎈🎈🎈🎈🎈🎈🎈</div><div class="ans">I count <input class="blank s" id="q6" type="text" inputmode="numeric" data-response="q6" aria-label="answer q6"> balloons</div></div>
+<div class="q"><div class="lab">7. How many flowers?</div><div class="things">🌸🌸🌸🌸🌸🌸🌸🌸</div><div class="ans">I count <input class="blank s" id="q7" type="text" inputmode="numeric" data-response="q7" aria-label="answer q7"> flowers</div></div>
+<div class="q"><div class="lab">8. How many teddy bears?</div><div class="things">🧸🧸🧸🧸🧸🧸🧸🧸🧸🧸</div><div class="ans">I count <input class="blank s" id="q8" type="text" inputmode="numeric" data-response="q8" aria-label="answer q8"> teddy bears</div></div>
+<div class="q"><div class="lab">9. Which group has MORE?</div><div class="things">🧸🧸🧸🧸🧸 or 🍎🍎</div><select class="mini" id="q9" data-response="q9"><option value="">Choose...</option><option value="bears">The teddy bears 🧸</option><option value="apples">The apples 🍎</option><option value="same">They are the same</option></select></div>
+<div class="pep">Great counting! Tap Save my answers when you are done. ⭐</div>
+</div>
